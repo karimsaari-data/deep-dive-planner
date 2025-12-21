@@ -29,7 +29,7 @@ const Index = () => {
             <Waves className="h-8 w-8 text-foam" />
           </div>
           
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">Bienvenue chez Team Oxygen !</h1>
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">Réserve ta sortie TO2 !</h1>
           
           <p className="mx-auto max-w-2xl text-lg text-foam/80">Association d’apnée éco-engagée de Martigues à Marseille</p>
         </div>
