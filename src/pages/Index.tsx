@@ -5,23 +5,22 @@ import OutingCard from "@/components/outings/OutingCard";
 import OutingFilters from "@/components/outings/OutingFilters";
 import { useOutings, OutingType } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
-
 const Index = () => {
   const [typeFilter, setTypeFilter] = useState<OutingType | null>(null);
-  const { data: outings, isLoading, error } = useOutings(typeFilter);
-  const { user } = useAuth();
-
-  return (
-    <Layout>
+  const {
+    data: outings,
+    isLoading,
+    error
+  } = useOutings(typeFilter);
+  const {
+    user
+  } = useAuth();
+  return <Layout>
       {/* Hero Section */}
       <section className="hero-gradient relative overflow-hidden py-16 text-foam md:py-24">
         <div className="absolute inset-0 opacity-10">
           <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path
-              d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z"
-              fill="currentColor"
-              className="animate-wave"
-            />
+            <path d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z" fill="currentColor" className="animate-wave" />
           </svg>
         </div>
         
@@ -30,14 +29,9 @@ const Index = () => {
             <Waves className="h-8 w-8 text-foam" />
           </div>
           
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
-            Plongez dans l'aventure
-          </h1>
+          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">Bienvenue chez Team Oxygen !</h1>
           
-          <p className="mx-auto max-w-2xl text-lg text-foam/80">
-            Rejoignez notre club d'apnée et participez à des sorties exceptionnelles. 
-            Fosse, mer, piscine ou étang - il y en a pour tous les niveaux !
-          </p>
+          <p className="mx-auto max-w-2xl text-lg text-foam/80">Association d’apnée éco-engagée de Martigues à Marseille</p>
         </div>
       </section>
 
@@ -57,39 +51,25 @@ const Index = () => {
             <OutingFilters activeFilter={typeFilter} onFilterChange={setTypeFilter} />
           </div>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
+          {isLoading ? <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
+            </div> : error ? <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-6 text-center">
               <p className="text-destructive">
                 Une erreur est survenue lors du chargement des sorties.
               </p>
-            </div>
-          ) : outings?.length === 0 ? (
-            <div className="rounded-lg border border-border bg-muted/50 p-12 text-center">
+            </div> : outings?.length === 0 ? <div className="rounded-lg border border-border bg-muted/50 p-12 text-center">
               <Waves className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50" />
               <h3 className="mb-2 text-lg font-medium text-foreground">
                 Aucune sortie prévue
               </h3>
               <p className="text-muted-foreground">
-                {typeFilter
-                  ? `Pas de sortie "${typeFilter}" prévue pour le moment.`
-                  : "Revenez bientôt pour découvrir nos prochaines aventures !"}
+                {typeFilter ? `Pas de sortie "${typeFilter}" prévue pour le moment.` : "Revenez bientôt pour découvrir nos prochaines aventures !"}
               </p>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {outings?.map((outing) => (
-                <OutingCard key={outing.id} outing={outing} />
-              ))}
-            </div>
-          )}
+            </div> : <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {outings?.map(outing => <OutingCard key={outing.id} outing={outing} />)}
+            </div>}
         </div>
       </section>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Index;
