@@ -1,88 +1,116 @@
+@import url('@fontsource/outfit/400.css');
+@import url('@fontsource/outfit/500.css');
+@import url('@fontsource/outfit/600.css');
+@import url('@fontsource/outfit/700.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Marine color palette */
+    --background: 210 40% 98%;
+    --foreground: 205 45% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 205 45% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 205 45% 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Deep ocean blue */
+    --primary: 201 90% 27%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Light sky blue */
+    --secondary: 199 89% 94%;
+    --secondary-foreground: 201 90% 27%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 205 25% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Cyan accent */
+    --accent: 187 85% 43%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 210 30% 90%;
+    --input: 210 30% 90%;
+    --ring: 201 90% 27%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Custom marine tokens */
+    --ocean-deep: 201 90% 20%;
+    --ocean-medium: 201 90% 27%;
+    --ocean-light: 199 89% 48%;
+    --ocean-surface: 199 89% 94%;
+    --foam: 0 0% 100%;
+    --sand: 39 40% 95%;
+
+    /* Gradients */
+    --gradient-ocean: linear-gradient(135deg, hsl(201 90% 20%), hsl(201 90% 35%));
+    --gradient-surface: linear-gradient(180deg, hsl(199 89% 94%), hsl(210 40% 98%));
+    --gradient-hero: linear-gradient(135deg, hsl(201 90% 20%) 0%, hsl(201 80% 30%) 50%, hsl(187 85% 43%) 100%);
+
+    /* Shadows */
+    --shadow-card: 0 4px 20px -4px hsl(201 90% 27% / 0.1);
+    --shadow-elevated: 0 12px 40px -8px hsl(201 90% 27% / 0.2);
+    --shadow-glow: 0 0 30px hsl(187 85% 43% / 0.3);
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 205 45% 7%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 205 45% 10%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 205 45% 10%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 205 45% 7%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 205 35% 18%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 205 35% 18%;
+    --muted-foreground: 210 30% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 187 85% 43%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 205 35% 20%;
+    --input: 205 35% 20%;
+    --ring: 199 89% 48%;
+
+    --ocean-deep: 201 90% 15%;
+    --ocean-medium: 201 90% 35%;
+    --ocean-light: 199 89% 48%;
+    --ocean-surface: 205 35% 18%;
+    --foam: 210 40% 98%;
+    --sand: 205 25% 20%;
+
+    --gradient-ocean: linear-gradient(135deg, hsl(201 90% 10%), hsl(201 90% 25%));
+    --gradient-surface: linear-gradient(180deg, hsl(205 35% 12%), hsl(205 45% 7%));
+    --gradient-hero: linear-gradient(135deg, hsl(201 90% 10%) 0%, hsl(201 80% 20%) 50%, hsl(187 85% 33%) 100%);
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,6 +128,92 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: "Outfit", sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+    font-family: "Outfit", sans-serif;
+  }
+}
+
+@layer utilities {
+  .ocean-gradient {
+    background: var(--gradient-ocean);
+  }
+
+  .hero-gradient {
+    background: var(--gradient-hero);
+  }
+
+  .surface-gradient {
+    background: var(--gradient-surface);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .animate-wave {
+    animation: wave 3s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(2deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
