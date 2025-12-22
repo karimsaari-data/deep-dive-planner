@@ -1,0 +1,246 @@
+import { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { format, differenceInHours } from "date-fns";
+import { fr } from "date-fns/locale";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, CheckCircle, XCircle, Car, UserCheck } from "lucide-react";
+import Layout from "@/components/layout/Layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport } from "@/hooks/useOutings";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const OutingDetail = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isOrganizer, loading: roleLoading } = useUserRole();
+  const { data: outing, isLoading } = useOuting(id ?? "");
+  const updatePresence = useUpdateReservationPresence();
+  const updateSessionReport = useUpdateSessionReport();
+  const [sessionReport, setSessionReport] = useState("");
+
+  useEffect(() => {
+    if (outing?.session_report) {
+      setSessionReport(outing.session_report);
+    }
+  }, [outing?.session_report]);
+
+  useEffect(() => {
+    if (!authLoading && !roleLoading && !isOrganizer) {
+      navigate("/");
+    }
+  }, [authLoading, roleLoading, isOrganizer, navigate]);
+
+  if (authLoading || roleLoading || isLoading) {
+    return (
+      <Layout>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!outing) {
+    return (
+      <Layout>
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <p className="text-muted-foreground">Sortie non trouvée</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") ?? [];
+  const waitlistedReservations = outing.reservations?.filter(r => r.status === "en_attente") ?? [];
+  const cancelledReservations = outing.reservations?.filter(r => r.status === "annulé") ?? [];
+
+  const isPast = new Date(outing.date_time) < new Date();
+  const mapsUrl = outing.location_details?.maps_url;
+
+  const handleSaveReport = () => {
+    updateSessionReport.mutate({ outingId: outing.id, sessionReport });
+  };
+
+  return (
+    <Layout>
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="mb-8">
+            <Badge variant="secondary" className="mb-2">{outing.outing_type}</Badge>
+            <h1 className="text-3xl font-bold text-foreground">{outing.title}</h1>
+            <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                {format(new Date(outing.date_time), "EEEE d MMMM yyyy", { locale: fr })}
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                {format(new Date(outing.date_time), "HH'h'mm", { locale: fr })}
+                {outing.end_date && <> → {format(new Date(outing.end_date), "HH'h'mm", { locale: fr })}</>}
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary" />
+                {outing.location_details?.name || outing.location}
+                {mapsUrl && (
+                  <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                    <Navigation className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Trombinoscope */}
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Participants confirmés ({confirmedReservations.length}/{outing.max_participants})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {confirmedReservations.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">Aucun inscrit</p>
+                ) : (
+                  <div className="space-y-3">
+                    {confirmedReservations.map((reservation) => {
+                      const profile = reservation.profile;
+                      const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
+                      
+                      return (
+                        <div key={reservation.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={profile?.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-sm">{initials}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {profile?.first_name} {profile?.last_name}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                {profile?.apnea_level && (
+                                  <Badge variant="outline" className="text-xs">{profile.apnea_level}</Badge>
+                                )}
+                                {reservation.carpool_option === "driver" && (
+                                  <Badge variant="secondary" className="text-xs gap-1">
+                                    <Car className="h-3 w-3" /> {reservation.carpool_seats} places
+                                  </Badge>
+                                )}
+                                {reservation.carpool_option === "passenger" && (
+                                  <Badge variant="outline" className="text-xs">Cherche covoiturage</Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {isPast && (
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={reservation.is_present}
+                                onCheckedChange={(checked) => 
+                                  updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground">Présent</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {waitlistedReservations.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">Liste d'attente ({waitlistedReservations.length})</h4>
+                    <div className="space-y-2">
+                      {waitlistedReservations.map((reservation) => {
+                        const profile = reservation.profile;
+                        return (
+                          <div key={reservation.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            {profile?.first_name} {profile?.last_name}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {cancelledReservations.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">Annulations ({cancelledReservations.length})</h4>
+                    <div className="space-y-2">
+                      {cancelledReservations.map((reservation) => {
+                        const profile = reservation.profile;
+                        const isLastMinute = reservation.cancelled_at && 
+                          differenceInHours(new Date(outing.date_time), new Date(reservation.cancelled_at)) < 24;
+                        
+                        return (
+                          <div 
+                            key={reservation.id} 
+                            className={cn(
+                              "flex items-center gap-2 text-sm",
+                              isLastMinute ? "text-destructive" : "text-muted-foreground"
+                            )}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            {profile?.first_name} {profile?.last_name}
+                            {isLastMinute && <Badge variant="destructive" className="text-xs">-24h</Badge>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Session Report */}
+            {isPast && (
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5 text-primary" />
+                    Compte-rendu de séance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    placeholder="Température de l'eau, exercices réalisés, observations..."
+                    value={sessionReport}
+                    onChange={(e) => setSessionReport(e.target.value)}
+                    className="min-h-[200px]"
+                  />
+                  <Button
+                    variant="ocean"
+                    className="mt-4 w-full"
+                    onClick={handleSaveReport}
+                    disabled={updateSessionReport.isPending}
+                  >
+                    {updateSessionReport.isPending ? "Enregistrement..." : "Enregistrer le compte-rendu"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </section>
+    </Layout>
+  );
+};
+
+export default OutingDetail;

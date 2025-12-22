@@ -1,23 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save } from "lucide-react";
+import { Loader2, User, Save, Upload, Camera } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const APNEA_LEVELS = [
+  "AIDA 1",
+  "AIDA 2",
+  "AIDA 3",
+  "AIDA 4",
+  "Initiateur",
+  "MEF1",
+  "MEF2",
+  "BPJEPS",
+  "DEJEPS",
+  "FSGT EA2",
+];
+
 const profileSchema = z.object({
   first_name: z.string().min(2, "Le prénom doit faire au moins 2 caractères").max(50),
   last_name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(50),
-  apnea_level: z.string().max(100).optional(),
+  apnea_level: z.string().optional(),
 });
 
 type ProfileData = z.infer<typeof profileSchema>;
@@ -26,6 +42,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
@@ -86,6 +104,56 @@ const Profile = () => {
     },
   });
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("L'image doit faire moins de 2MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      // Update profile with avatar URL
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: urlData.publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      toast.success("Photo de profil mise à jour !");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'upload");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/auth");
@@ -102,6 +170,10 @@ const Profile = () => {
     );
   }
 
+  const initials = profile
+    ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`
+    : "?";
+
   return (
     <Layout>
       <section className="py-12">
@@ -114,6 +186,45 @@ const Profile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Avatar Section */}
+              <div className="mb-6 flex flex-col items-center gap-4">
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={profile?.avatar_url ?? undefined} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Button
+                    size="icon"
+                    variant="secondary"
+                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
+                {/* Member Status Badge (Read-only) */}
+                {profile?.member_status && (
+                  <Badge variant={profile.member_status === "Encadrant" ? "default" : "secondary"}>
+                    {profile.member_status}
+                  </Badge>
+                )}
+              </div>
+
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit((data) => updateProfile.mutate(data))}
@@ -155,9 +266,20 @@ const Profile = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Niveau d'apnée</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ex: Débutant, Intermédiaire, A1, A2..." {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner un niveau" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {APNEA_LEVELS.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {level}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -166,6 +288,9 @@ const Profile = () => {
                   <div className="rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">
                       <strong>Email :</strong> {user?.email}
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Le statut (Membre/Encadrant) ne peut être modifié que par un administrateur.
                     </p>
                   </div>
 

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCreateOuting, OutingType } from "@/hooks/useOutings";
+import { useLocations } from "@/hooks/useLocations";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -21,9 +22,11 @@ const outingSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
   description: z.string().max(500).optional(),
   date: z.date({ required_error: "La date est requise" }),
-  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
+  location_id: z.string().optional(),
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères").max(200),
-  outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang"]),
+  outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
   max_participants: z.number().min(1).max(100),
 });
 
@@ -32,31 +35,54 @@ type OutingFormData = z.infer<typeof outingSchema>;
 const CreateOutingForm = () => {
   const { user } = useAuth();
   const createOuting = useCreateOuting();
-  const [isOpen, setIsOpen] = useState(false);
+  const { data: locations } = useLocations();
+  const [isDateOpen, setIsDateOpen] = useState(false);
 
   const form = useForm<OutingFormData>({
     resolver: zodResolver(outingSchema),
     defaultValues: {
       title: "",
       description: "",
-      time: "10:00",
+      startTime: "10:00",
+      endTime: "12:00",
       location: "",
+      location_id: "",
       outing_type: "Mer",
       max_participants: 10,
     },
   });
 
+  const selectedLocationId = form.watch("location_id");
+
+  // When a location is selected, update the location name
+  const handleLocationChange = (locationId: string) => {
+    form.setValue("location_id", locationId);
+    const selectedLocation = locations?.find((l) => l.id === locationId);
+    if (selectedLocation) {
+      form.setValue("location", selectedLocation.name);
+    }
+  };
+
   const onSubmit = (data: OutingFormData) => {
-    const dateTime = new Date(data.date);
-    const [hours, minutes] = data.time.split(":").map(Number);
-    dateTime.setHours(hours, minutes);
+    const startDateTime = new Date(data.date);
+    const [startHours, startMinutes] = data.startTime.split(":").map(Number);
+    startDateTime.setHours(startHours, startMinutes);
+
+    let endDateTime: Date | undefined;
+    if (data.endTime) {
+      endDateTime = new Date(data.date);
+      const [endHours, endMinutes] = data.endTime.split(":").map(Number);
+      endDateTime.setHours(endHours, endMinutes);
+    }
 
     createOuting.mutate(
       {
         title: data.title,
         description: data.description || undefined,
-        date_time: dateTime.toISOString(),
+        date_time: startDateTime.toISOString(),
+        end_date: endDateTime?.toISOString(),
         location: data.location,
+        location_id: data.location_id || undefined,
         outing_type: data.outing_type as OutingType,
         max_participants: data.max_participants,
         organizer_id: user?.id,
@@ -112,14 +138,14 @@ const CreateOutingForm = () => {
               )}
             />
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <FormField
                 control={form.control}
                 name="date"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date</FormLabel>
-                    <Popover open={isOpen} onOpenChange={setIsOpen}>
+                    <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -132,7 +158,7 @@ const CreateOutingForm = () => {
                             <CalendarIcon className="mr-2 h-4 w-4" />
                             {field.value
                               ? format(field.value, "PPP", { locale: fr })
-                              : "Sélectionner une date"}
+                              : "Date"}
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
@@ -142,10 +168,11 @@ const CreateOutingForm = () => {
                           selected={field.value}
                           onSelect={(date) => {
                             field.onChange(date);
-                            setIsOpen(false);
+                            setIsDateOpen(false);
                           }}
                           disabled={(date) => date < new Date()}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -156,10 +183,24 @@ const CreateOutingForm = () => {
 
               <FormField
                 control={form.control}
-                name="time"
+                name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Heure</FormLabel>
+                    <FormLabel>Début</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fin</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -169,19 +210,50 @@ const CreateOutingForm = () => {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Lieu</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Marseille, Calanque de Sormiou" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="location_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lieu enregistré</FormLabel>
+                    <Select onValueChange={handleLocationChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un lieu" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {locations?.map((location) => (
+                          <SelectItem key={location.id} value={location.id}>
+                            {location.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ou saisir un lieu</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Marseille, Calanque de Sormiou"
+                        {...field}
+                        disabled={!!selectedLocationId}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
@@ -198,8 +270,9 @@ const CreateOutingForm = () => {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Mer">Mer</SelectItem>
-                        <SelectItem value="Fosse">Fosse</SelectItem>
                         <SelectItem value="Piscine">Piscine</SelectItem>
+                        <SelectItem value="Dépollution">Dépollution</SelectItem>
+                        <SelectItem value="Fosse">Fosse</SelectItem>
                         <SelectItem value="Étang">Étang</SelectItem>
                       </SelectContent>
                     </Select>

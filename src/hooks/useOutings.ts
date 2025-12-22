@@ -3,23 +3,54 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-export type OutingType = "Fosse" | "Mer" | "Piscine" | "Étang";
+export type OutingType = "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution";
+export type BookingStatus = "confirmé" | "annulé" | "en_attente";
+export type CarpoolOption = "none" | "driver" | "passenger";
+
+export interface Reservation {
+  id: string;
+  user_id: string;
+  outing_id?: string;
+  status: BookingStatus;
+  cancelled_at: string | null;
+  carpool_option: CarpoolOption;
+  carpool_seats: number;
+  is_present: boolean;
+  created_at: string;
+  profile?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    apnea_level: string | null;
+    avatar_url: string | null;
+    member_status: string | null;
+  };
+}
 
 export interface Outing {
   id: string;
   title: string;
   description: string | null;
   date_time: string;
+  end_date: string | null;
   location: string;
+  location_id: string | null;
   organizer_id: string | null;
   outing_type: OutingType;
   max_participants: number;
+  session_report: string | null;
   created_at: string;
   organizer?: {
     first_name: string;
     last_name: string;
   } | null;
-  reservations?: { user_id: string }[];
+  location_details?: {
+    id: string;
+    name: string;
+    address: string | null;
+    maps_url: string | null;
+  } | null;
+  reservations?: Reservation[];
 }
 
 export const useOutings = (typeFilter?: OutingType | null) => {
@@ -31,7 +62,8 @@ export const useOutings = (typeFilter?: OutingType | null) => {
         .select(`
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          reservations(user_id)
+          location_details:locations(id, name, address, maps_url),
+          reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
         .gte("date_time", new Date().toISOString())
         .order("date_time", { ascending: true });
@@ -45,6 +77,40 @@ export const useOutings = (typeFilter?: OutingType | null) => {
       if (error) throw error;
       return data as Outing[];
     },
+  });
+};
+
+export const useOuting = (outingId: string) => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["outing", outingId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("outings")
+        .select(`
+          *,
+          organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
+          location_details:locations(id, name, address, maps_url),
+          reservations(
+            id, 
+            user_id, 
+            status, 
+            carpool_option, 
+            carpool_seats, 
+            cancelled_at, 
+            is_present, 
+            created_at,
+            profile:profiles(first_name, last_name, email, apnea_level, avatar_url, member_status)
+          )
+        `)
+        .eq("id", outingId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as Outing | null;
+    },
+    enabled: !!outingId && !!user,
   });
 };
 
@@ -62,10 +128,12 @@ export const useMyReservations = () => {
           *,
           outing:outings(
             *,
-            organizer:profiles!outings_organizer_id_fkey(first_name, last_name)
+            organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
+            location_details:locations(id, name, address, maps_url)
           )
         `)
         .eq("user_id", user.id)
+        .neq("status", "annulé")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -80,20 +148,51 @@ export const useCreateReservation = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (outingId: string) => {
+    mutationFn: async ({
+      outingId,
+      carpoolOption = "none",
+      carpoolSeats = 0,
+    }: {
+      outingId: string;
+      carpoolOption?: CarpoolOption;
+      carpoolSeats?: number;
+    }) => {
       if (!user) throw new Error("Non connecté");
+
+      // Check current confirmed count
+      const { data: outing } = await supabase
+        .from("outings")
+        .select("max_participants")
+        .eq("id", outingId)
+        .single();
+
+      const { count } = await supabase
+        .from("reservations")
+        .select("*", { count: "exact", head: true })
+        .eq("outing_id", outingId)
+        .eq("status", "confirmé");
+
+      const isFull = (count ?? 0) >= (outing?.max_participants ?? 0);
 
       const { error } = await supabase.from("reservations").insert({
         outing_id: outingId,
         user_id: user.id,
+        status: isFull ? "en_attente" : "confirmé",
+        carpool_option: carpoolOption,
+        carpool_seats: carpoolSeats,
       });
 
       if (error) throw error;
+      return { waitlisted: isFull };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
-      toast.success("Inscription confirmée !");
+      if (result?.waitlisted) {
+        toast.info("Vous êtes sur liste d'attente");
+      } else {
+        toast.success("Inscription confirmée !");
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de l'inscription");
@@ -111,7 +210,10 @@ export const useCancelReservation = () => {
 
       const { error } = await supabase
         .from("reservations")
-        .delete()
+        .update({
+          status: "annulé",
+          cancelled_at: new Date().toISOString(),
+        })
         .eq("outing_id", outingId)
         .eq("user_id", user.id);
 
@@ -128,6 +230,63 @@ export const useCancelReservation = () => {
   });
 };
 
+export const useUpdateReservationPresence = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      reservationId,
+      isPresent,
+    }: {
+      reservationId: string;
+      isPresent: boolean;
+    }) => {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ is_present: isPresent })
+        .eq("id", reservationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("Présence mise à jour");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};
+
+export const useUpdateSessionReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      outingId,
+      sessionReport,
+    }: {
+      outingId: string;
+      sessionReport: string;
+    }) => {
+      const { error } = await supabase
+        .from("outings")
+        .update({ session_report: sessionReport })
+        .eq("id", outingId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      toast.success("Compte-rendu enregistré");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'enregistrement");
+    },
+  });
+};
+
 export const useCreateOuting = () => {
   const queryClient = useQueryClient();
 
@@ -136,7 +295,9 @@ export const useCreateOuting = () => {
       title: string;
       description?: string;
       date_time: string;
+      end_date?: string;
       location: string;
+      location_id?: string;
       outing_type: OutingType;
       max_participants: number;
       organizer_id?: string;

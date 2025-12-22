@@ -1,12 +1,13 @@
-import { Building, Waves, Droplets, TreePine, X } from "lucide-react";
+import { Building, Waves, Droplets, TreePine, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OutingType } from "@/hooks/useOutings";
 import { cn } from "@/lib/utils";
 
 const filters: { type: OutingType; icon: typeof Waves; label: string }[] = [
-  { type: "Fosse", icon: Building, label: "Fosse" },
   { type: "Mer", icon: Waves, label: "Mer" },
   { type: "Piscine", icon: Droplets, label: "Piscine" },
+  { type: "Dépollution", icon: Trash2, label: "Dépollution" },
+  { type: "Fosse", icon: Building, label: "Fosse" },
   { type: "Étang", icon: TreePine, label: "Étang" },
 ];
 

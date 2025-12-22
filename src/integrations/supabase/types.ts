@@ -14,16 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      locations: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          maps_url: string | null
+          name: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          maps_url?: string | null
+          name: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          maps_url?: string | null
+          name?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       outings: {
         Row: {
           created_at: string | null
           date_time: string
           description: string | null
+          end_date: string | null
           id: string
           location: string
+          location_id: string | null
           max_participants: number
           organizer_id: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
+          reminder_sent: boolean | null
+          session_report: string | null
           title: string
           updated_at: string | null
         }
@@ -31,11 +65,15 @@ export type Database = {
           created_at?: string | null
           date_time: string
           description?: string | null
+          end_date?: string | null
           id?: string
           location: string
+          location_id?: string | null
           max_participants?: number
           organizer_id?: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
+          reminder_sent?: boolean | null
+          session_report?: string | null
           title: string
           updated_at?: string | null
         }
@@ -43,15 +81,26 @@ export type Database = {
           created_at?: string | null
           date_time?: string
           description?: string | null
+          end_date?: string | null
           id?: string
           location?: string
+          location_id?: string | null
           max_participants?: number
           organizer_id?: string | null
           outing_type?: Database["public"]["Enums"]["outing_type"]
+          reminder_sent?: boolean | null
+          session_report?: string | null
           title?: string
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "outings_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "outings_organizer_id_fkey"
             columns: ["organizer_id"]
@@ -64,31 +113,37 @@ export type Database = {
       profiles: {
         Row: {
           apnea_level: string | null
+          avatar_url: string | null
           created_at: string | null
           email: string
           first_name: string
           id: string
           last_name: string
+          member_status: Database["public"]["Enums"]["member_status"] | null
           specialty: string | null
           updated_at: string | null
         }
         Insert: {
           apnea_level?: string | null
+          avatar_url?: string | null
           created_at?: string | null
           email: string
           first_name: string
           id: string
           last_name: string
+          member_status?: Database["public"]["Enums"]["member_status"] | null
           specialty?: string | null
           updated_at?: string | null
         }
         Update: {
           apnea_level?: string | null
+          avatar_url?: string | null
           created_at?: string | null
           email?: string
           first_name?: string
           id?: string
           last_name?: string
+          member_status?: Database["public"]["Enums"]["member_status"] | null
           specialty?: string | null
           updated_at?: string | null
         }
@@ -96,21 +151,36 @@ export type Database = {
       }
       reservations: {
         Row: {
+          cancelled_at: string | null
+          carpool_option: Database["public"]["Enums"]["carpool_option"] | null
+          carpool_seats: number | null
           created_at: string | null
           id: string
+          is_present: boolean | null
           outing_id: string
+          status: Database["public"]["Enums"]["booking_status"] | null
           user_id: string
         }
         Insert: {
+          cancelled_at?: string | null
+          carpool_option?: Database["public"]["Enums"]["carpool_option"] | null
+          carpool_seats?: number | null
           created_at?: string | null
           id?: string
+          is_present?: boolean | null
           outing_id: string
+          status?: Database["public"]["Enums"]["booking_status"] | null
           user_id: string
         }
         Update: {
+          cancelled_at?: string | null
+          carpool_option?: Database["public"]["Enums"]["carpool_option"] | null
+          carpool_seats?: number | null
           created_at?: string | null
           id?: string
+          is_present?: boolean | null
           outing_id?: string
+          status?: Database["public"]["Enums"]["booking_status"] | null
           user_id?: string
         }
         Relationships: [
@@ -163,7 +233,10 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "organizer" | "member"
-      outing_type: "Fosse" | "Mer" | "Piscine" | "Étang"
+      booking_status: "confirmé" | "annulé" | "en_attente"
+      carpool_option: "none" | "driver" | "passenger"
+      member_status: "Membre" | "Encadrant"
+      outing_type: "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -292,7 +365,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "organizer", "member"],
-      outing_type: ["Fosse", "Mer", "Piscine", "Étang"],
+      booking_status: ["confirmé", "annulé", "en_attente"],
+      carpool_option: ["none", "driver", "passenger"],
+      member_status: ["Membre", "Encadrant"],
+      outing_type: ["Fosse", "Mer", "Piscine", "Étang", "Dépollution"],
     },
   },
 } as const

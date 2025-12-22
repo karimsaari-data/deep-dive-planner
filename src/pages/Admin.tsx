@@ -1,20 +1,24 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Users, Calendar } from "lucide-react";
+import { Loader2, Users, Calendar, MapPin } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
+import LocationManager from "@/components/admin/LocationManager";
+import MemberManager from "@/components/admin/MemberManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useOutings } from "@/hooks/useOutings";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Link } from "react-router-dom";
 
 const Admin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isOrganizer, loading: roleLoading } = useUserRole();
+  const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const { data: outings, isLoading } = useOutings();
 
   useEffect(() => {
@@ -48,70 +52,88 @@ const Admin = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Administration</h1>
             <p className="text-muted-foreground">
-              Gérez les sorties et visualisez les inscriptions
+              Gérez les sorties, lieux et membres
             </p>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* Create Outing Form */}
-            <div>
-              <CreateOutingForm />
-            </div>
+          <Tabs defaultValue="outings" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="outings">Sorties</TabsTrigger>
+              <TabsTrigger value="locations">Lieux</TabsTrigger>
+              {isAdmin && <TabsTrigger value="members">Membres</TabsTrigger>}
+            </TabsList>
 
-            {/* Outings List with Participants */}
-            <div>
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    Sorties à venir
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : outings?.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Aucune sortie prévue
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {outings?.slice(0, 5).map((outing) => (
-                        <div
-                          key={outing.id}
-                          className="rounded-lg border border-border bg-muted/30 p-4"
-                        >
-                          <div className="mb-2 flex items-start justify-between">
-                            <div>
-                              <h4 className="font-medium text-foreground">
-                                {outing.title}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {format(new Date(outing.date_time), "d MMMM yyyy", {
-                                  locale: fr,
-                                })}
-                              </p>
-                            </div>
-                            <Badge variant="secondary">{outing.outing_type}</Badge>
-                          </div>
+            <TabsContent value="outings">
+              <div className="grid gap-8 lg:grid-cols-2">
+                <CreateOutingForm />
 
-                          <div className="flex items-center gap-2 text-sm">
-                            <Users className="h-4 w-4 text-primary" />
-                            <span className="font-medium">
-                              {outing.reservations?.length ?? 0}/{outing.max_participants}
-                            </span>
-                            <span className="text-muted-foreground">inscrits</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      Sorties à venir
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : outings?.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucune sortie prévue
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {outings?.slice(0, 5).map((outing) => {
+                          const confirmedCount = outing.reservations?.filter(r => r.status === "confirmé").length ?? 0;
+                          return (
+                            <Link
+                              key={outing.id}
+                              to={`/outing/${outing.id}`}
+                              className="block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
+                            >
+                              <div className="mb-2 flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-medium text-foreground">
+                                    {outing.title}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {format(new Date(outing.date_time), "d MMMM yyyy", {
+                                      locale: fr,
+                                    })}
+                                  </p>
+                                </div>
+                                <Badge variant="secondary">{outing.outing_type}</Badge>
+                              </div>
+
+                              <div className="flex items-center gap-2 text-sm">
+                                <Users className="h-4 w-4 text-primary" />
+                                <span className="font-medium">
+                                  {confirmedCount}/{outing.max_participants}
+                                </span>
+                                <span className="text-muted-foreground">inscrits</span>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="locations">
+              <LocationManager />
+            </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="members">
+                <MemberManager />
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
       </section>
     </Layout>
