@@ -10,6 +10,8 @@ import Reservations from "./pages/Reservations";
 import Admin from "./pages/Admin";
 import Stats from "./pages/Stats";
 import Profile from "./pages/Profile";
+import OutingDetail from "./pages/OutingDetail";
+import MemberManagement from "./pages/MemberManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/outing/:id" element={<OutingDetail />} />
+            <Route path="/members" element={<MemberManagement />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
