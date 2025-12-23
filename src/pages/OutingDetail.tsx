@@ -1,9 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, CheckCircle, XCircle, Car, UserCheck } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,23 +10,35 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport } from "@/hooks/useOutings";
-import { supabase } from "@/integrations/supabase/client";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting } from "@/hooks/useOutings";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { toast } from "sonner";
 
 const OutingDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isOrganizer, loading: roleLoading } = useUserRole();
+  const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const { data: outing, isLoading } = useOuting(id ?? "");
   const updatePresence = useUpdateReservationPresence();
   const updateSessionReport = useUpdateSessionReport();
+  const cancelOuting = useCancelOuting();
   const [sessionReport, setSessionReport] = useState("");
+  const [cancelReason, setCancelReason] = useState("Météo défavorable");
 
   useEffect(() => {
     if (outing?.session_report) {
@@ -36,10 +47,10 @@ const OutingDetail = () => {
   }, [outing?.session_report]);
 
   useEffect(() => {
-    if (!authLoading && !roleLoading && !isOrganizer) {
+    if (!authLoading && !roleLoading && !isOrganizer && !isAdmin) {
       navigate("/");
     }
-  }, [authLoading, roleLoading, isOrganizer, navigate]);
+  }, [authLoading, roleLoading, isOrganizer, isAdmin, navigate]);
 
   if (authLoading || roleLoading || isLoading) {
     return (
@@ -67,9 +78,14 @@ const OutingDetail = () => {
 
   const isPast = new Date(outing.date_time) < new Date();
   const mapsUrl = outing.location_details?.maps_url;
+  const hasActiveReservations = confirmedReservations.length > 0 || waitlistedReservations.length > 0;
 
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });
+  };
+
+  const handleCancelOuting = () => {
+    cancelOuting.mutate({ outingId: outing.id, reason: cancelReason });
   };
 
   return (
@@ -77,7 +93,50 @@ const OutingDetail = () => {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <Badge variant="secondary" className="mb-2">{outing.outing_type}</Badge>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <Badge variant="secondary">{outing.outing_type}</Badge>
+              {!isPast && hasActiveReservations && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="gap-2">
+                      <CloudRain className="h-4 w-4" />
+                      Annuler la sortie
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        Annuler cette sortie ?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tous les inscrits ({confirmedReservations.length + waitlistedReservations.length} personnes) seront automatiquement notifiés par email.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-4">
+                      <Label htmlFor="cancelReason">Motif d'annulation</Label>
+                      <Input
+                        id="cancelReason"
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Météo défavorable, autre..."
+                        className="mt-2"
+                      />
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Retour</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancelOuting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={cancelOuting.isPending}
+                      >
+                        {cancelOuting.isPending ? "Annulation..." : "Confirmer l'annulation"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
             <h1 className="text-3xl font-bold text-foreground">{outing.title}</h1>
             <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground">
               <div className="flex items-center gap-2">

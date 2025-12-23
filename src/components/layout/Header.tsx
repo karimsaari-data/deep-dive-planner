@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, BarChart3 } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, BarChart3, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -31,6 +31,11 @@ const Header = () => {
     });
   }
   if (isAdmin) {
+    navItems.push({
+      to: "/members",
+      label: "Membres",
+      icon: Users
+    });
     navItems.push({
       to: "/stats",
       label: "Statistiques",

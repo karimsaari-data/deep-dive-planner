@@ -314,3 +314,26 @@ export const useCreateOuting = () => {
     },
   });
 };
+
+export const useCancelOuting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ outingId, reason }: { outingId: string; reason?: string }) => {
+      // Call the edge function to cancel and notify
+      const { error } = await supabase.functions.invoke("send-outing-notification", {
+        body: { outingId, type: "cancellation", reason },
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("Sortie annulée et participants notifiés");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'annulation");
+    },
+  });
+};

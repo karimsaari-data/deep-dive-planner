@@ -1,1 +1,7 @@
 project_id = "etslsnlmexokwvrneomd"
+
+[functions.send-outing-notification]
+verify_jwt = false
+
+[functions.send-reminders]
+verify_jwt = false
