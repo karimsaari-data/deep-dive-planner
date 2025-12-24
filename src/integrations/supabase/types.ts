@@ -56,6 +56,7 @@ export type Database = {
           max_participants: number
           organizer_id: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
+          photos: string[] | null
           reminder_sent: boolean | null
           session_report: string | null
           title: string
@@ -72,6 +73,7 @@ export type Database = {
           max_participants?: number
           organizer_id?: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
+          photos?: string[] | null
           reminder_sent?: boolean | null
           session_report?: string | null
           title: string
@@ -88,6 +90,7 @@ export type Database = {
           max_participants?: number
           organizer_id?: string | null
           outing_type?: Database["public"]["Enums"]["outing_type"]
+          photos?: string[] | null
           reminder_sent?: boolean | null
           session_report?: string | null
           title?: string
@@ -230,6 +233,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_encadrant_or_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "organizer" | "member"
