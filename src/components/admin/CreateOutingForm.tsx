@@ -288,13 +288,32 @@ const CreateOutingForm = () => {
                   <FormItem>
                     <FormLabel>Places maximum</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={100}
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => field.onChange(Math.max(1, field.value - 1))}
+                        >
+                          -
+                        </Button>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={100}
+                          className="w-20 text-center"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => field.onChange(Math.min(100, field.value + 1))}
+                        >
+                          +
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -12,6 +12,8 @@ import Stats from "./pages/Stats";
 import Profile from "./pages/Profile";
 import OutingDetail from "./pages/OutingDetail";
 import MemberManagement from "./pages/MemberManagement";
+import Souvenirs from "./pages/Souvenirs";
+import Archives from "./pages/Archives";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/outing/:id" element={<OutingDetail />} />
             <Route path="/members" element={<MemberManagement />} />
+            <Route path="/souvenirs" element={<Souvenirs />} />
+            <Route path="/archives" element={<Archives />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
