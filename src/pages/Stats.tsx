@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,12 +18,20 @@ const Stats = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const [selectedYear, setSelectedYear] = useState(2025);
+
+  // Generate available years from 2025 to current year + 1
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from(
+    { length: Math.max(currentYear + 1 - 2025 + 1, 1) },
+    (_, i) => 2025 + i
+  );
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["enhanced-stats"],
+    queryKey: ["enhanced-stats", selectedYear],
     queryFn: async () => {
-      const currentYear = new Date().getFullYear();
-      const startOfYear = new Date(currentYear, 0, 1).toISOString();
+      const startOfYear = new Date(selectedYear, 0, 1).toISOString();
+      const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
 
       // Get all outings with reservations
       const { data: outings, error: outingsError } = await supabase
@@ -37,7 +46,8 @@ const Stats = () => {
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
           reservations(id, status, is_present, cancelled_at, user_id)
         `)
-        .gte("date_time", startOfYear);
+        .gte("date_time", startOfYear)
+        .lte("date_time", endOfYear);
 
       if (outingsError) throw outingsError;
 
@@ -198,11 +208,25 @@ const Stats = () => {
     <Layout>
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Statistiques</h1>
-            <p className="text-muted-foreground">
-              Tableau de bord annuel du club
-            </p>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Statistiques</h1>
+              <p className="text-muted-foreground">
+                Tableau de bord annuel du club
+              </p>
+            </div>
+            <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Année" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {isLoading ? (
