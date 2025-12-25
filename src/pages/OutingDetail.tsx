@@ -79,6 +79,10 @@ const OutingDetail = () => {
   const isPast = new Date(outing.date_time) < new Date();
   const mapsUrl = outing.location_details?.maps_url;
   const hasActiveReservations = confirmedReservations.length > 0 || waitlistedReservations.length > 0;
+  
+  // Check if user is the organizer of this specific outing OR is admin
+  const isOutingOrganizer = user?.id === outing.organizer_id;
+  const canEditPresenceAndReport = isOutingOrganizer || isAdmin;
 
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });
@@ -205,7 +209,7 @@ const OutingDetail = () => {
                             </div>
                           </div>
                           
-                          {isPast && (
+                          {isPast && canEditPresenceAndReport && (
                             <div className="flex items-center gap-2">
                               <Checkbox
                                 checked={reservation.is_present}
@@ -215,6 +219,11 @@ const OutingDetail = () => {
                               />
                               <span className="text-sm text-muted-foreground">Présent</span>
                             </div>
+                          )}
+                          {isPast && !canEditPresenceAndReport && (
+                            <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
+                              {reservation.is_present ? "Présent" : "Absent"}
+                            </Badge>
                           )}
                         </div>
                       );
@@ -269,7 +278,7 @@ const OutingDetail = () => {
             </Card>
 
             {/* Session Report */}
-            {isPast && (
+            {isPast && canEditPresenceAndReport && (
               <Card className="shadow-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
