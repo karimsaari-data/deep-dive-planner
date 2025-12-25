@@ -219,13 +219,25 @@ export const useCreateReservation = () => {
 
       return { waitlisted: isFull };
     },
-    onSuccess: (result) => {
+    onSuccess: async (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
       if (result?.waitlisted) {
         toast.info("Vous êtes sur liste d'attente");
       } else {
         toast.success("Inscription confirmée !");
+        // Send confirmation email
+        try {
+          await supabase.functions.invoke("send-reservation-confirmation", {
+            body: { 
+              outingId: variables.outingId, 
+              userId: user?.id,
+              type: "confirmation" 
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send confirmation email:", emailError);
+        }
       }
     },
     onError: (error: Error) => {
@@ -252,11 +264,26 @@ export const useCancelReservation = () => {
         .eq("user_id", user.id);
 
       if (error) throw error;
+      
+      return outingId;
     },
-    onSuccess: () => {
+    onSuccess: async (outingId) => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
       toast.success("Inscription annulée");
+      
+      // Send cancellation email
+      try {
+        await supabase.functions.invoke("send-reservation-confirmation", {
+          body: { 
+            outingId, 
+            userId: user?.id,
+            type: "cancellation" 
+          },
+        });
+      } catch (emailError) {
+        console.error("Failed to send cancellation email:", emailError);
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de l'annulation");
