@@ -159,6 +159,14 @@ export const useCreateReservation = () => {
     }) => {
       if (!user) throw new Error("Non connecté");
 
+      // Check if user already has a reservation (including cancelled ones)
+      const { data: existingReservation } = await supabase
+        .from("reservations")
+        .select("id, status")
+        .eq("outing_id", outingId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       // Check current confirmed count
       const { data: outing } = await supabase
         .from("outings")
@@ -173,16 +181,42 @@ export const useCreateReservation = () => {
         .eq("status", "confirmé");
 
       const isFull = (count ?? 0) >= (outing?.max_participants ?? 0);
+      const newStatus = isFull ? "en_attente" : "confirmé";
 
-      const { error } = await supabase.from("reservations").insert({
-        outing_id: outingId,
-        user_id: user.id,
-        status: isFull ? "en_attente" : "confirmé",
-        carpool_option: carpoolOption,
-        carpool_seats: carpoolSeats,
-      });
+      if (existingReservation) {
+        // User has an existing reservation - reactivate it
+        if (existingReservation.status === "confirmé") {
+          throw new Error("Vous êtes déjà inscrit à cette sortie");
+        }
+        if (existingReservation.status === "en_attente") {
+          throw new Error("Vous êtes déjà sur liste d'attente");
+        }
+        
+        // Reactivate cancelled reservation
+        const { error } = await supabase
+          .from("reservations")
+          .update({
+            status: newStatus,
+            cancelled_at: null,
+            carpool_option: carpoolOption,
+            carpool_seats: carpoolSeats,
+          })
+          .eq("id", existingReservation.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Create new reservation
+        const { error } = await supabase.from("reservations").insert({
+          outing_id: outingId,
+          user_id: user.id,
+          status: newStatus,
+          carpool_option: carpoolOption,
+          carpool_seats: carpoolSeats,
+        });
+
+        if (error) throw error;
+      }
+
       return { waitlisted: isFull };
     },
     onSuccess: (result) => {
