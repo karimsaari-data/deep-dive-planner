@@ -8,6 +8,8 @@ export interface Location {
   address: string | null;
   type: string | null;
   maps_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 }
 
