@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, BarChart3, Users, Image, FileText } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, BarChart3, Users, Image, FileText, MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -14,6 +14,7 @@ const Header = () => {
     { to: "/", label: "Sorties", icon: Waves },
     { to: "/reservations", label: "Mes Réservations", icon: Calendar },
     { to: "/souvenirs", label: "Souvenirs", icon: Image },
+    { to: "/map", label: "Carte", icon: MapIcon },
   ];
 
   if (isOrganizer) {

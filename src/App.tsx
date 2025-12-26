@@ -14,6 +14,7 @@ import OutingDetail from "./pages/OutingDetail";
 import MemberManagement from "./pages/MemberManagement";
 import Souvenirs from "./pages/Souvenirs";
 import Archives from "./pages/Archives";
+import Map from "./pages/Map";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/members" element={<MemberManagement />} />
             <Route path="/souvenirs" element={<Souvenirs />} />
             <Route path="/archives" element={<Archives />} />
+            <Route path="/map" element={<Map />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
