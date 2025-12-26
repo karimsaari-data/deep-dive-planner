@@ -76,7 +76,14 @@ const OutingDetail = () => {
   const waitlistedReservations = outing.reservations?.filter(r => r.status === "en_attente") ?? [];
   const cancelledReservations = outing.reservations?.filter(r => r.status === "annulé") ?? [];
 
-  const isPast = new Date(outing.date_time) < new Date();
+  const outingDate = new Date(outing.date_time);
+  const now = new Date();
+  const isPast = outingDate < now;
+  
+  // Attendance module available 1 hour before start time
+  const oneHourBefore = new Date(outingDate.getTime() - 60 * 60 * 1000);
+  const canMarkAttendance = now >= oneHourBefore;
+  
   const mapsUrl = outing.location_details?.maps_url;
   const hasActiveReservations = confirmedReservations.length > 0 || waitlistedReservations.length > 0;
   
@@ -209,7 +216,7 @@ const OutingDetail = () => {
                             </div>
                           </div>
                           
-                          {isPast && canEditPresenceAndReport && (
+                          {canMarkAttendance && canEditPresenceAndReport && (
                             <div className="flex items-center gap-2">
                               <Checkbox
                                 checked={reservation.is_present}
@@ -220,7 +227,7 @@ const OutingDetail = () => {
                               <span className="text-sm text-muted-foreground">Présent</span>
                             </div>
                           )}
-                          {isPast && !canEditPresenceAndReport && (
+                          {canMarkAttendance && !canEditPresenceAndReport && (
                             <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
                               {reservation.is_present ? "Présent" : "Absent"}
                             </Badge>
