@@ -57,6 +57,10 @@ export const useOutings = (typeFilter?: OutingType | null) => {
   return useQuery({
     queryKey: ["outings", typeFilter],
     queryFn: async () => {
+      // Keep outings visible until midnight of the event day
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
       let query = supabase
         .from("outings")
         .select(`
@@ -65,7 +69,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           location_details:locations(id, name, address, maps_url),
           reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
-        .gte("date_time", new Date().toISOString())
+        .gte("date_time", today.toISOString())
         .order("date_time", { ascending: true });
 
       if (typeFilter) {
@@ -336,11 +340,37 @@ export const useCreateOuting = () => {
       max_participants: number;
       organizer_id?: string;
     }) => {
-      const { error } = await supabase.from("outings").insert(outing);
+      // Create the outing
+      const { data: newOuting, error } = await supabase
+        .from("outings")
+        .insert(outing)
+        .select("id")
+        .single();
+      
       if (error) throw error;
+
+      // Auto-register the organizer
+      if (outing.organizer_id && newOuting) {
+        const { error: reservationError } = await supabase
+          .from("reservations")
+          .insert({
+            outing_id: newOuting.id,
+            user_id: outing.organizer_id,
+            status: "confirmé",
+            carpool_option: "none",
+            carpool_seats: 0,
+          });
+
+        if (reservationError) {
+          console.error("Error auto-registering organizer:", reservationError);
+        }
+      }
+
+      return newOuting;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
       toast.success("Sortie créée avec succès !");
     },
     onError: (error: Error) => {

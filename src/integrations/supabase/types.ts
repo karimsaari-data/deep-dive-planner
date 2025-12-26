@@ -19,6 +19,8 @@ export type Database = {
           address: string | null
           created_at: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           maps_url: string | null
           name: string
           type: string | null
@@ -28,6 +30,8 @@ export type Database = {
           address?: string | null
           created_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           maps_url?: string | null
           name: string
           type?: string | null
@@ -37,6 +41,8 @@ export type Database = {
           address?: string | null
           created_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           maps_url?: string | null
           name?: string
           type?: string | null
