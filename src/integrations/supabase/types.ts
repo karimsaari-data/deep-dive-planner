@@ -17,34 +17,43 @@ export type Database = {
       locations: {
         Row: {
           address: string | null
+          comments: string | null
           created_at: string | null
           id: string
           latitude: number | null
           longitude: number | null
           maps_url: string | null
+          max_depth: number | null
           name: string
+          photo_url: string | null
           type: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          comments?: string | null
           created_at?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           maps_url?: string | null
+          max_depth?: number | null
           name: string
+          photo_url?: string | null
           type?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          comments?: string | null
           created_at?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           maps_url?: string | null
+          max_depth?: number | null
           name?: string
+          photo_url?: string | null
           type?: string | null
           updated_at?: string | null
         }
