@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -504,20 +505,32 @@ const Stats = () => {
                     {memberPresences?.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">Aucune donnée de présence</p>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-2">
                         {memberPresences?.map((member) => (
-                          <div key={member.id} className="border border-border rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-semibold text-foreground">{member.name}</span>
-                              <Badge variant="secondary">{member.totalPresences}</Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {member.outings.map((outing) => (
-                                <Badge key={outing.id} variant="outline" className="text-xs">
-                                  {outing.title} ({new Date(outing.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })})
+                          <div key={member.id} className="flex items-center justify-between border border-border rounded-lg p-3">
+                            <span className="font-medium text-foreground">{member.name}</span>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+                                  {member.totalPresences}
                                 </Badge>
-                              ))}
-                            </div>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Sorties de {member.name}</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                                  {member.outings.map((outing) => (
+                                    <div key={outing.id} className="flex items-center justify-between border border-border rounded-lg p-3">
+                                      <span className="font-medium">{outing.title}</span>
+                                      <Badge variant="outline">
+                                        {new Date(outing.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         ))}
                       </div>
