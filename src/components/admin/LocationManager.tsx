@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Plus, Trash2, ExternalLink, Pencil, Image } from "lucide-react";
+import { MapPin, Plus, Trash2, ExternalLink, Pencil, Image, Upload, Link, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocations, useCreateLocation, useDeleteLocation, useUpdateLocation, Location } from "@/hooks/useLocations";
-import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const locationSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(100),
@@ -31,6 +33,10 @@ const LocationManager = () => {
   const updateLocation = useUpdateLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [photoMode, setPhotoMode] = useState<"url" | "upload">("url");
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
@@ -56,6 +62,8 @@ const LocationManager = () => {
       max_depth: location.max_depth ?? "",
       comments: location.comments || "",
     });
+    setPreviewUrl(location.photo_url || null);
+    setPhotoMode(location.photo_url ? "url" : "url");
     setIsDialogOpen(true);
   };
 
@@ -70,7 +78,57 @@ const LocationManager = () => {
       max_depth: "",
       comments: "",
     });
+    setPreviewUrl(null);
+    setPhotoMode("url");
     setIsDialogOpen(true);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Generate unique filename
+      const fileExt = file.name.split(".").pop();
+      const fileName = `location-${Date.now()}.${fileExt}`;
+      const filePath = `locations/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("outings_gallery")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("outings_gallery")
+        .getPublicUrl(filePath);
+
+      // Update form and preview
+      form.setValue("photo_url", publicUrl);
+      setPreviewUrl(publicUrl);
+      toast.success("Photo uploadée avec succès");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error("Erreur lors de l'upload: " + error.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const onSubmit = (data: LocationFormData) => {
@@ -92,6 +150,7 @@ const LocationManager = () => {
             form.reset();
             setIsDialogOpen(false);
             setEditingLocation(null);
+            setPreviewUrl(null);
           },
         }
       );
@@ -100,6 +159,7 @@ const LocationManager = () => {
         onSuccess: () => {
           form.reset();
           setIsDialogOpen(false);
+          setPreviewUrl(null);
         },
       });
     }
@@ -114,7 +174,10 @@ const LocationManager = () => {
         </CardTitle>
         <Dialog open={isDialogOpen} onOpenChange={(open) => {
           setIsDialogOpen(open);
-          if (!open) setEditingLocation(null);
+          if (!open) {
+            setEditingLocation(null);
+            setPreviewUrl(null);
+          }
         }}>
           <DialogTrigger asChild>
             <Button variant="ocean" size="sm" onClick={openCreateDialog}>
@@ -187,22 +250,102 @@ const LocationManager = () => {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="photo_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>URL de la photo</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="https://..."
-                          {...field}
+                {/* Photo Section with Tabs */}
+                <div className="space-y-3">
+                  <FormLabel>Photo du lieu</FormLabel>
+                  <Tabs value={photoMode} onValueChange={(v) => setPhotoMode(v as "url" | "upload")}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="url" className="gap-2">
+                        <Link className="h-4 w-4" />
+                        URL
+                      </TabsTrigger>
+                      <TabsTrigger value="upload" className="gap-2">
+                        <Upload className="h-4 w-4" />
+                        Upload
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="url" className="mt-3">
+                      <FormField
+                        control={form.control}
+                        name="photo_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Input
+                                placeholder="https://exemple.com/photo.jpg"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  setPreviewUrl(e.target.value || null);
+                                }}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="upload" className="mt-3">
+                      <div className="space-y-3">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full gap-2"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Upload en cours...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4" />
+                              Choisir une image
+                            </>
+                          )}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Formats acceptés : JPG, PNG, WebP. Max 5 Mo.
+                        </p>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  {/* Preview */}
+                  {previewUrl && (
+                    <div className="relative mt-3 rounded-lg overflow-hidden bg-muted aspect-video">
+                      <img
+                        src={previewUrl}
+                        alt="Aperçu"
+                        className="h-full w-full object-cover"
+                        onError={() => setPreviewUrl(null)}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8"
+                        onClick={() => {
+                          setPreviewUrl(null);
+                          form.setValue("photo_url", "");
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
-                />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -247,7 +390,7 @@ const LocationManager = () => {
                   type="submit"
                   variant="ocean"
                   className="w-full"
-                  disabled={createLocation.isPending || updateLocation.isPending}
+                  disabled={createLocation.isPending || updateLocation.isPending || isUploading}
                 >
                   {createLocation.isPending || updateLocation.isPending
                     ? "Enregistrement..."
