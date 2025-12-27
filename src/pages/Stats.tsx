@@ -51,7 +51,19 @@ const Stats = () => {
 
       if (outingsError) throw outingsError;
 
-      const pastOutings = outings?.filter(o => new Date(o.date_time) < new Date()) ?? [];
+      // Filter past outings to only include "realized" ones (2+ people present)
+      // Also exclude cancelled outings from statistics
+      const pastOutings = outings?.filter(o => {
+        const isPast = new Date(o.date_time) < new Date();
+        if (!isPast) return false;
+        
+        // Count present people
+        const presentCount = o.reservations?.filter(r => r.status === "confirmé" && r.is_present).length ?? 0;
+        
+        // Rule of 2: must have at least 2 people present (organizer + 1 participant)
+        return presentCount >= 2;
+      }) ?? [];
+      
       const allOutings = outings ?? [];
 
       // Total outings

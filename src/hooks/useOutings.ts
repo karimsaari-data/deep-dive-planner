@@ -49,6 +49,8 @@ export interface Outing {
     name: string;
     address: string | null;
     maps_url: string | null;
+    latitude: number | null;
+    longitude: number | null;
   } | null;
   reservations?: Reservation[];
 }
@@ -57,19 +59,16 @@ export const useOutings = (typeFilter?: OutingType | null) => {
   return useQuery({
     queryKey: ["outings", typeFilter],
     queryFn: async () => {
-      // Keep outings visible until midnight of the event day
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const now = new Date();
       
       let query = supabase
         .from("outings")
         .select(`
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          location_details:locations(id, name, address, maps_url),
+          location_details:locations(id, name, address, maps_url, latitude, longitude),
           reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
-        .gte("date_time", today.toISOString())
         .order("date_time", { ascending: true });
 
       if (typeFilter) {
@@ -79,7 +78,14 @@ export const useOutings = (typeFilter?: OutingType | null) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Outing[];
+      
+      // Filter outings: only show future outings where end_date (or date_time) is in the future
+      const upcomingOutings = data?.filter(outing => {
+        const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
+        return endDate > now;
+      }) ?? [];
+      
+      return upcomingOutings as Outing[];
     },
   });
 };
@@ -95,7 +101,7 @@ export const useOuting = (outingId: string) => {
         .select(`
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          location_details:locations(id, name, address, maps_url),
+          location_details:locations(id, name, address, maps_url, latitude, longitude),
           reservations(
             id, 
             user_id, 

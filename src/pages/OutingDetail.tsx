@@ -4,6 +4,7 @@ import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain } from "lucide-react";
 import Layout from "@/components/layout/Layout";
+import MarineWeather from "@/components/weather/MarineWeather";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -170,6 +171,17 @@ const OutingDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Marine Weather Widget for future outings */}
+          {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
+            <div className="mb-8">
+              <MarineWeather
+                latitude={outing.location_details.latitude}
+                longitude={outing.location_details.longitude}
+                dateTime={outing.date_time}
+              />
+            </div>
+          )}
 
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Trombinoscope */}

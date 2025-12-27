@@ -65,15 +65,23 @@ const Archives = () => {
 
       if (error) throw error;
       
-      return data?.map(outing => ({
-        ...outing,
-        confirmedParticipants: outing.reservations?.filter(
+      // Filter outings: must have at least 2 people present (rule of 2)
+      // A "realized" outing requires organizer + at least 1 present participant
+      return data?.map(outing => {
+        const confirmedParticipants = outing.reservations?.filter(
           (r: any) => r.status === "confirmé"
-        ) ?? [],
-        presentParticipants: outing.reservations?.filter(
+        ) ?? [];
+        const presentParticipants = outing.reservations?.filter(
           (r: any) => r.status === "confirmé" && r.is_present
-        ) ?? []
-      })) ?? [];
+        ) ?? [];
+        
+        return {
+          ...outing,
+          confirmedParticipants,
+          presentParticipants,
+          isRealized: presentParticipants.length >= 2, // Rule of 2 people minimum
+        };
+      }).filter(outing => outing.isRealized) ?? []; // Only show realized outings
     },
     enabled: !!user && (isOrganizer || isAdmin),
   });

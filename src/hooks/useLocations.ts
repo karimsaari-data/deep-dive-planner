@@ -10,6 +10,9 @@ export interface Location {
   maps_url: string | null;
   latitude: number | null;
   longitude: number | null;
+  photo_url: string | null;
+  max_depth: number | null;
+  comments: string | null;
   created_at: string;
 }
 
@@ -64,6 +67,9 @@ export const useUpdateLocation = () => {
       address?: string;
       type?: string;
       maps_url?: string;
+      photo_url?: string;
+      max_depth?: number;
+      comments?: string;
     }) => {
       const { error } = await supabase
         .from("locations")
