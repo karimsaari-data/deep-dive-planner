@@ -115,7 +115,7 @@ const Admin = () => {
                                     {outing.title}
                                   </h4>
                                   <p className="text-sm text-muted-foreground">
-                                    {format(new Date(outing.date_time), "d MMMM yyyy", {
+                                    {format(new Date(outing.date_time), "d MMMM yyyy 'à' HH'h'mm", {
                                       locale: fr,
                                     })}
                                   </p>
