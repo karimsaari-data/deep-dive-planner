@@ -39,10 +39,12 @@ interface MarineWeatherData {
     swell_wave_height: number[];
     swell_wave_direction: number[];
     swell_wave_period: number[];
+    sea_surface_temperature?: number[];
   };
   hourly_units: {
     wave_height: string;
     wave_period: string;
+    sea_surface_temperature?: string;
   };
 }
 
@@ -98,7 +100,7 @@ const Weather = () => {
     queryKey: ["marine-weather", selectedLocation.lat, selectedLocation.lon],
     queryFn: async (): Promise<MarineWeatherData> => {
       const response = await fetch(
-        `https://marine-api.open-meteo.com/v1/marine?latitude=${selectedLocation.lat}&longitude=${selectedLocation.lon}&hourly=wave_height,wave_direction,wave_period,wind_wave_height,swell_wave_height,swell_wave_direction,swell_wave_period&timezone=Europe/Paris&forecast_days=7`
+        `https://marine-api.open-meteo.com/v1/marine?latitude=${selectedLocation.lat}&longitude=${selectedLocation.lon}&hourly=wave_height,wave_direction,wave_period,wind_wave_height,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature&timezone=Europe/Paris&forecast_days=7`
       );
       if (!response.ok) throw new Error("Failed to fetch marine weather");
       return response.json();
@@ -148,6 +150,7 @@ const Weather = () => {
       avgWindSpeed: number;
       maxWindSpeed: number;
       avgTemp: number;
+      avgWaterTemp: number;
       windDirection: number;
       waveDirection: number;
       wavePeriod: number;
@@ -158,6 +161,7 @@ const Weather = () => {
         swellHeight: number;
         windSpeed: number;
         temp: number;
+        waterTemp: number;
         weatherCode: number;
       }>;
     }> = [];
@@ -177,6 +181,7 @@ const Weather = () => {
       const swellHeights = hourlyIndices.map(i => marineData.hourly.swell_wave_height[i] || 0);
       const windSpeeds = hourlyIndices.map(i => weatherData.hourly.wind_speed_10m[i] || 0);
       const temps = hourlyIndices.map(i => weatherData.hourly.temperature_2m[i] || 0);
+      const waterTemps = hourlyIndices.map(i => marineData.hourly.sea_surface_temperature?.[i] || 0);
 
       // Get hourly data for 6h, 9h, 12h, 15h, 18h
       const keyHours = [6, 9, 12, 15, 18];
@@ -190,6 +195,7 @@ const Weather = () => {
           swellHeight: marineData.hourly.swell_wave_height[idx] || 0,
           windSpeed: weatherData.hourly.wind_speed_10m[idx] || 0,
           temp: weatherData.hourly.temperature_2m[idx] || 0,
+          waterTemp: marineData.hourly.sea_surface_temperature?.[idx] || 0,
           weatherCode: weatherData.hourly.weather_code[idx] || 0,
         };
       }).filter(Boolean) as Array<{
@@ -198,8 +204,14 @@ const Weather = () => {
         swellHeight: number;
         windSpeed: number;
         temp: number;
+        waterTemp: number;
         weatherCode: number;
       }>;
+
+      const validWaterTemps = waterTemps.filter(t => t > 0);
+      const avgWaterTemp = validWaterTemps.length > 0 
+        ? validWaterTemps.reduce((a, b) => a + b, 0) / validWaterTemps.length 
+        : 0;
 
       days.push({
         date,
@@ -209,6 +221,7 @@ const Weather = () => {
         avgWindSpeed: windSpeeds.reduce((a, b) => a + b, 0) / windSpeeds.length,
         maxWindSpeed: Math.max(...windSpeeds),
         avgTemp: temps.reduce((a, b) => a + b, 0) / temps.length,
+        avgWaterTemp,
         windDirection: weatherData.hourly.wind_direction_10m[hourlyIndices[12]] || 0,
         waveDirection: marineData.hourly.wave_direction[hourlyIndices[12]] || 0,
         wavePeriod: marineData.hourly.wave_period[hourlyIndices[12]] || 0,
@@ -286,9 +299,17 @@ const Weather = () => {
                             <CardTitle className="text-lg capitalize">
                               {isToday ? "Aujourd'hui" : format(day.date, "EEEE d MMMM", { locale: fr })}
                             </CardTitle>
-                            <CardDescription className="flex items-center gap-2">
-                              <Thermometer className="h-3 w-3" />
-                              {day.avgTemp.toFixed(1)}°C
+                          <CardDescription className="flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <Thermometer className="h-3 w-3" />
+                                Air {day.avgTemp.toFixed(1)}°C
+                              </span>
+                              {day.avgWaterTemp > 0 && (
+                                <span className="flex items-center gap-1 text-cyan-600">
+                                  <Waves className="h-3 w-3" />
+                                  Eau {day.avgWaterTemp.toFixed(1)}°C
+                                </span>
+                              )}
                             </CardDescription>
                           </div>
                         </div>
@@ -352,6 +373,9 @@ const Weather = () => {
                                 <p className="text-xs font-medium text-foreground">{hour.time}</p>
                                 <div className="my-1">{getWeatherIcon(hour.weatherCode)}</div>
                                 <p className="text-xs text-muted-foreground">{hour.temp.toFixed(0)}°</p>
+                                {hour.waterTemp > 0 && (
+                                  <p className="text-xs text-cyan-600 font-medium">{hour.waterTemp.toFixed(0)}° 💧</p>
+                                )}
                                 <p className="text-xs text-primary font-medium">{hour.windSpeed.toFixed(0)} km/h</p>
                                 <p className="text-xs text-blue-500">{hour.waveHeight.toFixed(1)} m</p>
                               </div>
