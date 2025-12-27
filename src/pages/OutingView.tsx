@@ -123,6 +123,8 @@ const OutingView = () => {
   const now = new Date();
   const isPast = outingDate < now;
   const isFull = confirmedReservations.length >= outing.max_participants;
+  
+  const mapsUrl = outing.location_details?.maps_url;
 
   // Check if user is already registered
   const userReservation = outing.reservations?.find(

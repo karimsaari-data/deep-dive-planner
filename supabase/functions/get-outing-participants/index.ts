@@ -126,12 +126,12 @@ serve(async (req) => {
             status: "confirmé",
             carpool_option: "none",
             carpool_seats: 0,
-            profile: {
+            profile: [{
               first_name: organizerProfile.first_name,
               last_name: organizerProfile.last_name,
               avatar_url: organizerProfile.avatar_url,
-            },
-          });
+            }],
+          } as any);
         }
       }
     }
