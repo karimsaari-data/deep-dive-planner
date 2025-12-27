@@ -24,7 +24,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 
   try {
     await client.send({
-      from: "Team Oxygen <noreply@teamoxygen.fr>",
+      from: "Team Oxygen <karimsaari.com@gmail.com>",
       to: to,
       subject: subject,
       content: "auto",
