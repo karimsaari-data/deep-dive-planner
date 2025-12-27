@@ -256,7 +256,7 @@ const Stats = () => {
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
-              <TabsTrigger value="members">Présences membres</TabsTrigger>
+              <TabsTrigger value="members">Participation</TabsTrigger>
               <TabsTrigger value="organizers">Encadrants</TabsTrigger>
             </TabsList>
 
@@ -509,7 +509,7 @@ const Stats = () => {
                           <div key={member.id} className="border border-border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <span className="font-semibold text-foreground">{member.name}</span>
-                              <Badge variant="secondary">{member.totalPresences} présences</Badge>
+                              <Badge variant="secondary">{member.totalPresences}</Badge>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {member.outings.map((outing) => (
