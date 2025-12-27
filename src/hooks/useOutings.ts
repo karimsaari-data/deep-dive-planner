@@ -141,6 +141,14 @@ export const useOuting = (outingId: string) => {
   });
 };
 
+export interface OutingParticipant {
+  id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url: string | null;
+  member_status: string | null;
+}
+
 export const useMyReservations = () => {
   const { user } = useAuth();
 
@@ -156,13 +164,7 @@ export const useMyReservations = () => {
           outing:outings(
             *,
             organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-            location_details:locations(id, name, address, maps_url),
-            reservations(
-              id,
-              user_id,
-              status,
-              profile:profiles(id, first_name, last_name, avatar_url, member_status)
-            )
+            location_details:locations(id, name, address, maps_url)
           )
         `)
         .eq("user_id", user.id)
@@ -172,7 +174,22 @@ export const useMyReservations = () => {
       if (error) throw error;
       
       // Filter out reservations for deleted outings
-      return data?.filter(r => r.outing && !r.outing.is_deleted) ?? [];
+      const filteredReservations = data?.filter(r => r.outing && !r.outing.is_deleted) ?? [];
+      
+      // Fetch participants for each outing using SECURITY DEFINER function
+      const reservationsWithParticipants = await Promise.all(
+        filteredReservations.map(async (reservation) => {
+          const { data: participants } = await supabase
+            .rpc('get_outing_participants', { outing_uuid: reservation.outing_id });
+          
+          return {
+            ...reservation,
+            participants: (participants ?? []) as OutingParticipant[],
+          };
+        })
+      );
+      
+      return reservationsWithParticipants;
     },
     enabled: !!user,
   });
