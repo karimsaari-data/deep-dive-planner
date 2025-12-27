@@ -39,11 +39,38 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Get auth header from request
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("Unauthorized: No authorization header");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: No authorization header" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Create client with user's token for authorization check
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
+      console.error("Unauthorized: Invalid token", userError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid token" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`User ${user.id} attempting notification request`);
 
     const { outingId, type, reason }: NotificationRequest = await req.json();
 
-    console.log(`Processing ${type} notification for outing: ${outingId}`);
+    // Use service role for data queries
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get outing details
     const { data: outing, error: outingError } = await supabase
@@ -59,6 +86,25 @@ const handler = async (req: Request): Promise<Response> => {
       console.error("Outing not found:", outingError);
       throw new Error("Sortie non trouvée");
     }
+
+    // Verify user is admin or organizer of this outing
+    const { data: userRoles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    const isAdmin = userRoles?.some(r => r.role === "admin");
+    const isOrganizer = outing.organizer_id === user.id;
+
+    if (!isAdmin && !isOrganizer) {
+      console.error(`User ${user.id} not authorized for outing ${outingId}`);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Must be admin or organizer of this outing" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Processing ${type} notification for outing: ${outingId} by user ${user.id}`);
 
     // Get all reservations with user profiles (confirmed and waitlisted)
     const { data: reservations, error: resError } = await supabase
