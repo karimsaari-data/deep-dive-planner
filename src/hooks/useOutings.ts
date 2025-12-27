@@ -41,6 +41,7 @@ export interface Outing {
   session_report: string | null;
   created_at: string;
   is_deleted?: boolean;
+  is_archived?: boolean;
   organizer?: {
     first_name: string;
     last_name: string;
@@ -455,6 +456,29 @@ export const useUpdateOuting = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};
+
+export const useArchiveOuting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (outingId: string) => {
+      const { error } = await supabase
+        .from("outings")
+        .update({ is_archived: true })
+        .eq("id", outingId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("Sortie validée et archivée");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'archivage");
     },
   });
 };
