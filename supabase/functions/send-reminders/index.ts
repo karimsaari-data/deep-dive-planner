@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 const corsHeaders = {
@@ -10,20 +10,34 @@ const corsHeaders = {
 };
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${RESEND_API_KEY}`,
+  const client = new SMTPClient({
+    connection: {
+      hostname: "smtp-relay.brevo.com",
+      port: 587,
+      tls: true,
+      auth: {
+        username: Deno.env.get("BREVO_SMTP_USER")!,
+        password: Deno.env.get("BREVO_SMTP_KEY")!,
+      },
     },
-    body: JSON.stringify({
-      from: "Team Oxygen <onboarding@resend.dev>",
-      to: [to],
-      subject,
-      html,
-    }),
   });
-  return res.json();
+
+  try {
+    await client.send({
+      from: "Team Oxygen <noreply@teamoxygen.fr>",
+      to: to,
+      subject: subject,
+      content: "auto",
+      html: html,
+    });
+    console.log(`Email sent successfully to ${to}`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Failed to send email to ${to}:`, error);
+    throw error;
+  } finally {
+    await client.close();
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -151,9 +165,17 @@ const handler = async (req: Request): Promise<Response> => {
                 <li><strong>Lieu :</strong> ${outing.location_details?.name || outing.location}</li>
                 ${outing.location_details?.address ? `<li><strong>Adresse :</strong> ${outing.location_details.address}</li>` : ""}
               </ul>
+              <h2>⚠️ Rappels de sécurité AIDA</h2>
+              <ul>
+                <li>Ne jamais pratiquer l'apnée seul</li>
+                <li>Toujours avoir un binôme de surveillance</li>
+                <li>Respecter les temps de récupération entre les apnées</li>
+                <li>S'hydrater correctement avant et après la session</li>
+                <li>Signaler tout malaise ou fatigue à l'encadrant</li>
+              </ul>
               <p>En cas d'empêchement, merci d'annuler votre inscription dès que possible pour libérer une place.</p>
               <p>À demain !</p>
-              <p>L'équipe du club</p>
+              <p>L'équipe Team Oxygen</p>
             `
           );
           totalNotified++;
