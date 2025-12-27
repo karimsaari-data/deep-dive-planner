@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,14 +29,18 @@ type SignUpData = z.infer<typeof signUpSchema>;
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Get the redirect URL from state or default to "/"
+  const from = (location.state as { from?: string })?.from || "/";
+
   useEffect(() => {
     if (user) {
-      navigate("/");
+      navigate(from, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, from]);
 
   const signInForm = useForm<SignInData>({
     resolver: zodResolver(signInSchema),
@@ -59,7 +63,7 @@ const Auth = () => {
         : error.message);
     } else {
       toast.success("Connexion réussie !");
-      navigate("/");
+      navigate(from, { replace: true });
     }
   };
 
@@ -76,7 +80,7 @@ const Auth = () => {
       }
     } else {
       toast.success("Inscription réussie ! Bienvenue au club !");
-      navigate("/");
+      navigate(from, { replace: true });
     }
   };
 

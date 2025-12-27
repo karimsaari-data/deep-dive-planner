@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -46,6 +46,7 @@ import { useState } from "react";
 const OutingView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const { data: outing, isLoading } = useOuting(id ?? "");
 
@@ -88,7 +89,7 @@ const OutingView = () => {
           <div className="container mx-auto px-4 text-center">
             <h1 className="text-2xl font-bold text-foreground mb-4">Connexion requise</h1>
             <p className="text-muted-foreground mb-6">Connectez-vous pour voir les détails de cette sortie et vous inscrire.</p>
-            <Button variant="ocean" onClick={() => navigate("/auth")}>
+            <Button variant="ocean" onClick={() => navigate("/auth", { state: { from: location.pathname } })}>
               Se connecter
             </Button>
           </div>
