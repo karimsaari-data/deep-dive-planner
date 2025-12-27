@@ -35,7 +35,11 @@ const Reservations = () => {
     .sort((a, b) => new Date(a.outing?.date_time).getTime() - new Date(b.outing?.date_time).getTime())
     ?? [];
   const pastReservations = reservations
-    ?.filter((r) => new Date(r.outing?.date_time) < now)
+    ?.filter((r) => 
+      new Date(r.outing?.date_time) < now && 
+      r.is_present === true &&
+      !r.outing?.is_deleted
+    )
     .sort((a, b) => new Date(b.outing?.date_time).getTime() - new Date(a.outing?.date_time).getTime())
     ?? [];
 
