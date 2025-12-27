@@ -19,6 +19,7 @@ interface Profile {
   apnea_level: string | null;
   avatar_url: string | null;
   member_status: "Membre" | "Encadrant" | null;
+  member_code: string | null;
 }
 
 const MemberManager = () => {
@@ -118,6 +119,11 @@ const MemberManager = () => {
                         {profile.first_name} {profile.last_name}
                       </p>
                       <p className="text-xs text-muted-foreground">{profile.email}</p>
+                      {profile.member_code && (
+                        <p className="text-xs font-semibold text-foreground mt-1">
+                          {profile.member_code}
+                        </p>
+                      )}
                       {profile.apnea_level && (
                         <Badge variant="outline" className="mt-1 text-xs">
                           {profile.apnea_level}
