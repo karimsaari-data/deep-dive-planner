@@ -33,6 +33,7 @@ const LocationManager = () => {
   const updateLocation = useUpdateLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [viewingLocation, setViewingLocation] = useState<Location | null>(null);
   const [photoMode, setPhotoMode] = useState<"url" | "upload">("url");
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -429,7 +430,12 @@ const LocationManager = () => {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground">{location.name}</p>
+                  <button
+                    onClick={() => setViewingLocation(location)}
+                    className="font-medium text-foreground hover:text-primary hover:underline text-left"
+                  >
+                    {location.name}
+                  </button>
                   {location.address && (
                     <p className="text-sm text-muted-foreground truncate">{location.address}</p>
                   )}
@@ -485,6 +491,75 @@ const LocationManager = () => {
           </div>
         )}
       </CardContent>
+
+      {/* View Location Dialog */}
+      <Dialog open={!!viewingLocation} onOpenChange={(open) => !open && setViewingLocation(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              {viewingLocation?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingLocation && (
+            <div className="space-y-4">
+              {viewingLocation.photo_url && (
+                <div className="rounded-lg overflow-hidden bg-muted aspect-video">
+                  <img
+                    src={viewingLocation.photo_url}
+                    alt={viewingLocation.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
+              
+              <div className="space-y-3">
+                {viewingLocation.type && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Type :</span>
+                    <span className="text-sm bg-primary/10 text-primary px-2 py-0.5 rounded">
+                      {viewingLocation.type}
+                    </span>
+                  </div>
+                )}
+                
+                {viewingLocation.address && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Adresse :</span>
+                    <p className="text-sm font-medium">{viewingLocation.address}</p>
+                  </div>
+                )}
+                
+                {viewingLocation.max_depth && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Profondeur max :</span>
+                    <span className="text-sm font-medium">{viewingLocation.max_depth}m</span>
+                  </div>
+                )}
+                
+                {viewingLocation.comments && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Commentaires :</span>
+                    <p className="text-sm mt-1">{viewingLocation.comments}</p>
+                  </div>
+                )}
+                
+                {viewingLocation.maps_url && (
+                  <a
+                    href={viewingLocation.maps_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Voir sur Google Maps
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
