@@ -11,6 +11,7 @@ import Admin from "./pages/Admin";
 import Stats from "./pages/Stats";
 import Profile from "./pages/Profile";
 import OutingDetail from "./pages/OutingDetail";
+import OutingView from "./pages/OutingView";
 import MemberManagement from "./pages/MemberManagement";
 import Souvenirs from "./pages/Souvenirs";
 import Archives from "./pages/Archives";
@@ -35,7 +36,8 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/outing/:id" element={<OutingDetail />} />
+            <Route path="/outing/:id" element={<OutingView />} />
+            <Route path="/outing/:id/manage" element={<OutingDetail />} />
             <Route path="/members" element={<MemberManagement />} />
             <Route path="/souvenirs" element={<Souvenirs />} />
             <Route path="/archives" element={<Archives />} />
