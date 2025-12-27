@@ -49,8 +49,8 @@ const OutingCard = ({ outing }: OutingCardProps) => {
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(0);
 
-  const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") ?? [];
-  const currentParticipants = confirmedReservations.length;
+  // Use real confirmed count from SECURITY DEFINER function (bypasses RLS)
+  const currentParticipants = outing.confirmed_count ?? 0;
   const isFull = currentParticipants >= outing.max_participants;
   const userReservation = outing.reservations?.find((r) => r.user_id === user?.id && r.status !== "annulé");
   const isRegistered = !!userReservation;
