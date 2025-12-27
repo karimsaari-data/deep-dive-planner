@@ -85,7 +85,10 @@ const Admin = () => {
                       </p>
                     ) : (
                       <div className="space-y-4">
-                        {outings?.slice(0, 5).map((outing) => {
+                        {outings
+                          ?.filter((outing) => isAdmin || outing.organizer_id === user?.id)
+                          .slice(0, 5)
+                          .map((outing) => {
                           const confirmedCount = outing.reservations?.filter(r => r.status === "confirmé").length ?? 0;
                           return (
                             <Link
