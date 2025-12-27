@@ -30,12 +30,14 @@ const Reservations = () => {
   }
 
   const now = new Date();
-  const upcomingReservations = reservations?.filter(
-    (r) => new Date(r.outing?.date_time) >= now
-  ) ?? [];
-  const pastReservations = reservations?.filter(
-    (r) => new Date(r.outing?.date_time) < now
-  ) ?? [];
+  const upcomingReservations = reservations
+    ?.filter((r) => new Date(r.outing?.date_time) >= now)
+    .sort((a, b) => new Date(a.outing?.date_time).getTime() - new Date(b.outing?.date_time).getTime())
+    ?? [];
+  const pastReservations = reservations
+    ?.filter((r) => new Date(r.outing?.date_time) < now)
+    .sort((a, b) => new Date(b.outing?.date_time).getTime() - new Date(a.outing?.date_time).getTime())
+    ?? [];
 
   return (
     <Layout>
