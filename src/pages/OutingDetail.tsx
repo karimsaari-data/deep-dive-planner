@@ -91,7 +91,8 @@ const OutingDetail = () => {
   // Check if user is the organizer of this specific outing OR is admin
   const isOutingOrganizer = user?.id === outing.organizer_id;
   const canEditPresenceAndReport = isOutingOrganizer || isAdmin;
-
+  // Only the organizer of the outing or admin can cancel it
+  const canCancelOuting = isOutingOrganizer || isAdmin;
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });
   };
@@ -107,7 +108,7 @@ const OutingDetail = () => {
           <div className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="secondary">{outing.outing_type}</Badge>
-              {!isPast && hasActiveReservations && (
+              {!isPast && hasActiveReservations && canCancelOuting && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm" className="gap-2">
