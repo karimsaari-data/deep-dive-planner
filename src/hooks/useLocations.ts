@@ -76,6 +76,21 @@ export const useUpdateLocation = () => {
         .update(updates)
         .eq("id", id);
       if (error) throw error;
+
+      // If maps_url was updated, extract new coordinates
+      if (updates.maps_url) {
+        console.log("Maps URL updated, extracting new coordinates...");
+        try {
+          const { error: fnError } = await supabase.functions.invoke("extract-coordinates", {
+            body: { locationId: id, forceUpdate: true },
+          });
+          if (fnError) {
+            console.error("Error extracting coordinates:", fnError);
+          }
+        } catch (err) {
+          console.error("Failed to call extract-coordinates:", err);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });

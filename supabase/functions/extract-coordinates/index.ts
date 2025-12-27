@@ -96,24 +96,45 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all locations with maps_url but without coordinates
-    const { data: locations, error: fetchError } = await supabase
+    // Check if a specific location ID is provided (for single location update)
+    let locationId: string | null = null;
+    let forceUpdate = false;
+    
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        locationId = body.locationId || null;
+        forceUpdate = body.forceUpdate || false;
+        console.log(`Received request for locationId: ${locationId}, forceUpdate: ${forceUpdate}`);
+      } catch {
+        // No body or invalid JSON, proceed with batch processing
+      }
+    }
+
+    let query = supabase
       .from("locations")
       .select("id, name, maps_url, latitude, longitude")
       .not("maps_url", "is", null);
+
+    // If a specific location is requested, filter by ID
+    if (locationId) {
+      query = query.eq("id", locationId);
+    }
+
+    const { data: locations, error: fetchError } = await query;
 
     if (fetchError) {
       throw fetchError;
     }
 
-    console.log(`Found ${locations?.length ?? 0} locations with maps_url`);
+    console.log(`Found ${locations?.length ?? 0} locations to process`);
 
     const results: { name: string; success: boolean; coordinates?: { lat: number; lng: number } }[] = [];
 
     for (const location of locations ?? []) {
-      // Skip if already has coordinates
-      if (location.latitude && location.longitude) {
-        console.log(`Skipping ${location.name} - already has coordinates`);
+      // Skip if already has coordinates AND not forcing update
+      if (location.latitude && location.longitude && !forceUpdate) {
+        console.log(`Skipping ${location.name} - already has coordinates (use forceUpdate to override)`);
         results.push({ 
           name: location.name, 
           success: true, 
@@ -123,10 +144,12 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       if (!location.maps_url) {
+        console.log(`Skipping ${location.name} - no maps_url`);
         results.push({ name: location.name, success: false });
         continue;
       }
 
+      console.log(`Extracting coordinates for ${location.name}...`);
       const coordinates = await extractCoordinates(location.maps_url);
 
       if (coordinates) {
@@ -147,11 +170,14 @@ const handler = async (req: Request): Promise<Response> => {
           results.push({ name: location.name, success: true, coordinates });
         }
       } else {
+        console.log(`No coordinates found for ${location.name}`);
         results.push({ name: location.name, success: false });
       }
 
-      // Small delay to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Small delay to avoid rate limiting (only in batch mode)
+      if (!locationId) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
     }
 
     const successCount = results.filter((r) => r.success).length;
