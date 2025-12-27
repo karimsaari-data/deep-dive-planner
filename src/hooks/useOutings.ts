@@ -422,3 +422,39 @@ export const useCancelOuting = () => {
     },
   });
 };
+
+export const useUpdateOuting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      outingId,
+      ...updates
+    }: {
+      outingId: string;
+      title?: string;
+      description?: string | null;
+      date_time?: string;
+      end_date?: string | null;
+      location?: string;
+      location_id?: string | null;
+      outing_type?: OutingType;
+      max_participants?: number;
+    }) => {
+      const { error } = await supabase
+        .from("outings")
+        .update(updates)
+        .eq("id", outingId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("Sortie mise à jour");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};

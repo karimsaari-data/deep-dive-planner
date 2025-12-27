@@ -5,6 +5,7 @@ import { fr } from "date-fns/locale";
 import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import MarineWeather from "@/components/weather/MarineWeather";
+import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +109,9 @@ const OutingDetail = () => {
           <div className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="secondary">{outing.outing_type}</Badge>
+              {!isPast && canCancelOuting && (
+                <EditOutingDialog outing={outing} />
+              )}
               {!isPast && hasActiveReservations && canCancelOuting && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
