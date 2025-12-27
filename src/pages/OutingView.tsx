@@ -1,7 +1,18 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, Car, UserPlus, UserMinus } from "lucide-react";
+import {
+  Loader2,
+  MapPin,
+  Calendar,
+  Users,
+  Navigation,
+  Clock,
+  Car,
+  UserPlus,
+  UserMinus,
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,17 +33,41 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOuting, useCreateReservation, useCancelReservation, CarpoolOption } from "@/hooks/useOutings";
+import {
+  useOuting,
+  useCreateReservation,
+  useCancelReservation,
+  CarpoolOption,
+} from "@/hooks/useOutings";
+import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+
 
 const OutingView = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { data: outing, isLoading } = useOuting(id ?? "");
+
+  const participantsQuery = useQuery({
+    queryKey: ["outing-participants", id],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("get-outing-participants", {
+        body: { outingId: id },
+      });
+      if (error) throw error;
+      return data as {
+        organizerId: string | null;
+        confirmed: any[];
+        waitlist: any[];
+      };
+    },
+    enabled: !!id && !!user,
+  });
+
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
-  
+
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(0);
 
@@ -72,16 +107,23 @@ const OutingView = () => {
     );
   }
 
-  const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") ?? [];
-  const waitlistedReservations = outing.reservations?.filter(r => r.status === "en_attente") ?? [];
+  const organizerId = participantsQuery.data?.organizerId ?? outing.organizer_id;
+
+  const confirmedReservations =
+    (participantsQuery.data?.confirmed ??
+      outing.reservations?.filter((r) => r.status === "confirmé") ??
+      []) as any[];
+
+  const waitlistedReservations =
+    (participantsQuery.data?.waitlist ??
+      outing.reservations?.filter((r) => r.status === "en_attente") ??
+      []) as any[];
   
   const outingDate = new Date(outing.date_time);
   const now = new Date();
   const isPast = outingDate < now;
   const isFull = confirmedReservations.length >= outing.max_participants;
-  
-  const mapsUrl = outing.location_details?.maps_url;
-  
+
   // Check if user is already registered
   const userReservation = outing.reservations?.find(
     r => r.user_id === user.id && r.status !== "annulé"
