@@ -38,7 +38,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     try {
       await client.send({
-        from: "Team Oxygen <noreply@teamoxygen.fr>",
+        from: "Team Oxygen <karimsaari.com@gmail.com>",
         to: to,
         subject: "✅ Test SMTP Brevo - Team Oxygen",
         content: "auto",
