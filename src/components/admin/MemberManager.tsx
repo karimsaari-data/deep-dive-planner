@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -182,34 +183,17 @@ const MemberManager = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {isUserAdmin(profile.id) && (
-                      <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
-                        <Crown className="h-3 w-3 mr-1" />
-                        Admin
-                      </Badge>
-                    )}
-                    
+                  <div className="flex items-center gap-3">
                     <Select
-                      value={isUserAdmin(profile.id) ? "admin" : (profile.member_status ?? "Membre")}
-                      onValueChange={(value) => {
-                        if (value === "admin") {
-                          toggleAdminRole.mutate({ userId: profile.id, isAdmin: false });
-                        } else if (isUserAdmin(profile.id) && value !== "admin") {
-                          toggleAdminRole.mutate({ userId: profile.id, isAdmin: true });
-                          updateMemberStatus.mutate({
-                            userId: profile.id,
-                            status: value as "Membre" | "Encadrant",
-                          });
-                        } else {
-                          updateMemberStatus.mutate({
-                            userId: profile.id,
-                            status: value as "Membre" | "Encadrant",
-                          });
-                        }
-                      }}
+                      value={profile.member_status ?? "Membre"}
+                      onValueChange={(value) =>
+                        updateMemberStatus.mutate({
+                          userId: profile.id,
+                          status: value as "Membre" | "Encadrant",
+                        })
+                      }
                     >
-                      <SelectTrigger className="w-[140px]">
+                      <SelectTrigger className="w-[130px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -225,14 +209,18 @@ const MemberManager = () => {
                             Encadrant
                           </div>
                         </SelectItem>
-                        <SelectItem value="admin">
-                          <div className="flex items-center gap-2">
-                            <Crown className="h-3 w-3 text-amber-500" />
-                            Admin
-                          </div>
-                        </SelectItem>
                       </SelectContent>
                     </Select>
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={isUserAdmin(profile.id)}
+                        onCheckedChange={(checked) =>
+                          toggleAdminRole.mutate({ userId: profile.id, isAdmin: !checked })
+                        }
+                      />
+                      <Crown className={`h-4 w-4 ${isUserAdmin(profile.id) ? "text-amber-500" : "text-muted-foreground"}`} />
+                    </div>
                   </div>
                 </div>
               );
