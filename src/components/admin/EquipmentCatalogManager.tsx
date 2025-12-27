@@ -1,25 +1,52 @@
 import { useState } from "react";
-import { Package, Plus, Trash2, Upload, Loader2 } from "lucide-react";
+import { Package, Plus, Trash2, Pencil, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useEquipmentCatalog, useCreateCatalogItem, useDeleteCatalogItem } from "@/hooks/useEquipment";
+import { useEquipmentCatalog, useCreateCatalogItem, useUpdateCatalogItem, useDeleteCatalogItem, EquipmentCatalogItem } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const EquipmentCatalogManager = () => {
   const { data: catalog, isLoading } = useEquipmentCatalog();
   const createItem = useCreateCatalogItem();
+  const updateItem = useUpdateCatalogItem();
   const deleteItem = useDeleteCatalogItem();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<EquipmentCatalogItem | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setPhotoFile(null);
+    setEditingItem(null);
+  };
+
+  const openAddDialog = () => {
+    resetForm();
+    setIsOpen(true);
+  };
+
+  const openEditDialog = (item: EquipmentCatalogItem) => {
+    setEditingItem(item);
+    setName(item.name);
+    setDescription(item.description || "");
+    setPhotoFile(null);
+    setIsOpen(true);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    resetForm();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,18 +78,35 @@ const EquipmentCatalogManager = () => {
       setUploading(false);
     }
 
-    createItem.mutate(
-      { name: name.trim(), description: description.trim() || undefined, photo_url },
-      {
-        onSuccess: () => {
-          setIsOpen(false);
-          setName("");
-          setDescription("");
-          setPhotoFile(null);
+    if (editingItem) {
+      // Update existing item
+      updateItem.mutate(
+        {
+          id: editingItem.id,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          photo_url: photo_url || editingItem.photo_url || undefined,
         },
-      }
-    );
+        {
+          onSuccess: () => {
+            handleClose();
+          },
+        }
+      );
+    } else {
+      // Create new item
+      createItem.mutate(
+        { name: name.trim(), description: description.trim() || undefined, photo_url },
+        {
+          onSuccess: () => {
+            handleClose();
+          },
+        }
+      );
+    }
   };
+
+  const isPending = createItem.isPending || updateItem.isPending || uploading;
 
   return (
     <Card className="shadow-card">
@@ -72,16 +116,18 @@ const EquipmentCatalogManager = () => {
             <Package className="h-5 w-5 text-primary" />
             Catalogue du matériel
           </CardTitle>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); else setIsOpen(true); }}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" onClick={openAddDialog}>
                 <Plus className="mr-2 h-4 w-4" />
                 Ajouter
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Ajouter un article au catalogue</DialogTitle>
+                <DialogTitle>
+                  {editingItem ? "Modifier l'article" : "Ajouter un article au catalogue"}
+                </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
@@ -105,7 +151,16 @@ const EquipmentCatalogManager = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="photo">Photo</Label>
+                  <Label htmlFor="photo">Photo {editingItem?.photo_url && "(laisser vide pour conserver l'actuelle)"}</Label>
+                  {editingItem?.photo_url && (
+                    <div className="mb-2">
+                      <img
+                        src={editingItem.photo_url}
+                        alt={editingItem.name}
+                        className="h-16 w-16 rounded-md object-cover"
+                      />
+                    </div>
+                  )}
                   <Input
                     id="photo"
                     type="file"
@@ -113,9 +168,9 @@ const EquipmentCatalogManager = () => {
                     onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={createItem.isPending || uploading}>
-                  {(createItem.isPending || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Ajouter au catalogue
+                <Button type="submit" className="w-full" disabled={isPending}>
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editingItem ? "Enregistrer les modifications" : "Ajouter au catalogue"}
                 </Button>
               </form>
             </DialogContent>
@@ -155,18 +210,28 @@ const EquipmentCatalogManager = () => {
                     <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (confirm("Supprimer cet article du catalogue ?")) {
-                      deleteItem.mutate(item.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => openEditDialog(item)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      if (confirm("Supprimer cet article du catalogue ?")) {
+                        deleteItem.mutate(item.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

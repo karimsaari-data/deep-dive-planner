@@ -85,6 +85,31 @@ export const useCreateCatalogItem = () => {
   });
 };
 
+export const useUpdateCatalogItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, name, description, photo_url }: { id: string; name: string; description?: string; photo_url?: string }) => {
+      const { data, error } = await supabase
+        .from("equipment_catalog")
+        .update({ name, description, photo_url })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["equipment-catalog"] });
+      toast.success("Article modifié !");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la modification");
+    },
+  });
+};
+
 export const useDeleteCatalogItem = () => {
   const queryClient = useQueryClient();
 
