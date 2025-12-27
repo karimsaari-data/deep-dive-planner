@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, Share2, Check, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCreateOuting, OutingType } from "@/hooks/useOutings";
 import { useLocations } from "@/hooks/useLocations";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const outingSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
@@ -37,6 +39,9 @@ const CreateOutingForm = () => {
   const createOuting = useCreateOuting();
   const { data: locations } = useLocations();
   const [isDateOpen, setIsDateOpen] = useState(false);
+  const [createdOutingId, setCreatedOutingId] = useState<string | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const form = useForm<OutingFormData>({
     resolver: zodResolver(outingSchema),
@@ -88,11 +93,36 @@ const CreateOutingForm = () => {
         organizer_id: user?.id,
       },
       {
-        onSuccess: () => {
+        onSuccess: (newOuting) => {
           form.reset();
+          if (newOuting?.id) {
+            setCreatedOutingId(newOuting.id);
+            setShowShareDialog(true);
+          }
         },
       }
     );
+  };
+
+  const getShareLink = () => {
+    return `${window.location.origin}/sorties/${createdOutingId}`;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareLink());
+      setLinkCopied(true);
+      toast.success("Lien copié !");
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast.error("Impossible de copier le lien");
+    }
+  };
+
+  const handleCloseShareDialog = () => {
+    setShowShareDialog(false);
+    setCreatedOutingId(null);
+    setLinkCopied(false);
   };
 
   return (
@@ -336,6 +366,43 @@ const CreateOutingForm = () => {
           </form>
         </Form>
       </CardContent>
+
+      {/* Share Dialog */}
+      <Dialog open={showShareDialog} onOpenChange={handleCloseShareDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-primary" />
+              Sortie créée !
+            </DialogTitle>
+            <DialogDescription>
+              Partagez le lien de cette sortie sur WhatsApp ou par email.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 mt-4">
+            <Input
+              readOnly
+              value={getShareLink()}
+              className="flex-1"
+            />
+            <Button variant="ocean" size="icon" onClick={handleCopyLink}>
+              {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </Button>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Nouvelle sortie ! ${getShareLink()}`)}`, "_blank")}
+            >
+              Partager sur WhatsApp
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={handleCloseShareDialog}>
+              Fermer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
