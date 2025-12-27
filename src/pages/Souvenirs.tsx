@@ -18,40 +18,60 @@ const Souvenirs = () => {
   const [search, setSearch] = useState("");
 
   const { data: pastOutings, isLoading } = useQuery({
-    queryKey: ["past-outings-souvenirs"],
+    queryKey: ["past-outings-souvenirs", user?.id],
     queryFn: async () => {
+      if (!user) return [];
+      
       const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("outings")
+      
+      // First get the user's past reservations where they were present
+      const { data: myReservations, error: resError } = await supabase
+        .from("reservations")
         .select(`
-          id,
-          title,
-          outing_type,
-          date_time,
-          location,
-          photos,
-          location_details:locations(name),
-          reservations!inner(
+          outing_id,
+          outing:outings(
             id,
-            is_present,
-            status,
-            profile:profiles(id, first_name, last_name, avatar_url, apnea_level)
+            title,
+            outing_type,
+            date_time,
+            location,
+            photos,
+            is_deleted,
+            location_details:locations(name)
           )
         `)
-        .lt("date_time", now)
-        .order("date_time", { ascending: false });
-
-      if (error) throw error;
+        .eq("user_id", user.id)
+        .eq("status", "confirmé")
+        .eq("is_present", true);
       
-      // Filter to only show outings with at least 2 confirmed present participants
-      return data
-        ?.map(outing => ({
-          ...outing,
-          presentParticipants: outing.reservations?.filter(
-            (r: any) => r.status === "confirmé" && r.is_present
-          ) ?? []
-        }))
-        ?.filter(outing => outing.presentParticipants.length >= 2) ?? [];
+      if (resError) throw resError;
+      
+      // Filter to past outings only
+      const pastOutingsData = myReservations
+        ?.filter(r => 
+          r.outing && 
+          !r.outing.is_deleted && 
+          new Date(r.outing.date_time) < new Date(now)
+        )
+        .map(r => r.outing) ?? [];
+      
+      // Fetch participants for each outing using SECURITY DEFINER function
+      const outingsWithParticipants = await Promise.all(
+        pastOutingsData.map(async (outing: any) => {
+          const { data: participants } = await supabase
+            .rpc('get_outing_participants', { outing_uuid: outing.id });
+          
+          return {
+            ...outing,
+            presentParticipants: participants ?? [],
+          };
+        })
+      );
+      
+      // Sort by date descending
+      return outingsWithParticipants.sort((a, b) => 
+        new Date(b.date_time).getTime() - new Date(a.date_time).getTime()
+      );
     },
     enabled: !!user,
   });
@@ -158,12 +178,11 @@ const Souvenirs = () => {
 
                         {/* Mini avatars */}
                         <div className="mt-4 flex -space-x-2">
-                          {outing.presentParticipants.slice(0, 5).map((r: any) => {
-                            const profile = r.profile;
-                            const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`;
+                          {outing.presentParticipants.slice(0, 5).map((p: any) => {
+                            const initials = `${p.first_name?.[0] ?? ""}${p.last_name?.[0] ?? ""}`;
                             return (
-                              <Avatar key={r.id} className="h-8 w-8 border-2 border-background">
-                                <AvatarImage src={profile?.avatar_url ?? undefined} />
+                              <Avatar key={p.id} className="h-8 w-8 border-2 border-background">
+                                <AvatarImage src={p.avatar_url ?? undefined} />
                                 <AvatarFallback className="text-xs bg-primary/10 text-primary">
                                   {initials}
                                 </AvatarFallback>
@@ -226,23 +245,30 @@ const Souvenirs = () => {
                         Participants présents ({outing.presentParticipants.length})
                       </h4>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {outing.presentParticipants.map((r: any) => {
-                          const profile = r.profile;
-                          const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`;
+                        {outing.presentParticipants.map((p: any) => {
+                          const initials = `${p.first_name?.[0] ?? ""}${p.last_name?.[0] ?? ""}`;
+                          const isEncadrant = p.member_status === "Encadrant";
                           return (
-                            <div key={r.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-2">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={profile?.avatar_url ?? undefined} />
-                                <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                                  {initials}
-                                </AvatarFallback>
-                              </Avatar>
+                            <div key={p.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-2">
+                              <div className="relative">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={p.avatar_url ?? undefined} />
+                                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                    {initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {isEncadrant && (
+                                  <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background">
+                                    <span className="text-[8px]">★</span>
+                                  </div>
+                                )}
+                              </div>
                               <div>
                                 <p className="text-sm font-medium text-foreground">
-                                  {profile?.first_name} {profile?.last_name}
+                                  {p.first_name} {p.last_name}
                                 </p>
-                                {profile?.apnea_level && (
-                                  <Badge variant="outline" className="text-xs">{profile.apnea_level}</Badge>
+                                {isEncadrant && (
+                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Encadrant</Badge>
                                 )}
                               </div>
                             </div>
