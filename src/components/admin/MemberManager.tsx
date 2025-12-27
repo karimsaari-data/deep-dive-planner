@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Shield, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Users, Search, Shield, User, Crown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +21,12 @@ interface Profile {
   member_code: string | null;
 }
 
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: "admin" | "organizer" | "member";
+}
+
 const MemberManager = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,6 +41,18 @@ const MemberManager = () => {
 
       if (error) throw error;
       return data as Profile[];
+    },
+  });
+
+  const { data: userRoles } = useQuery({
+    queryKey: ["user-roles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("*");
+
+      if (error) throw error;
+      return data as UserRole[];
     },
   });
 
@@ -62,6 +79,39 @@ const MemberManager = () => {
       toast.error(error.message || "Erreur lors de la mise à jour");
     },
   });
+
+  const toggleAdminRole = useMutation({
+    mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
+      if (isAdmin) {
+        // Remove admin role
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", userId)
+          .eq("role", "admin");
+
+        if (error) throw error;
+      } else {
+        // Add admin role
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role: "admin" });
+
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, { isAdmin }) => {
+      queryClient.invalidateQueries({ queryKey: ["user-roles"] });
+      toast.success(isAdmin ? "Rôle admin retiré" : "Promu administrateur !");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour du rôle");
+    },
+  });
+
+  const isUserAdmin = (userId: string) => {
+    return userRoles?.some((role) => role.user_id === userId && role.role === "admin");
+  };
 
   const filteredProfiles = profiles?.filter((profile) => {
     const fullName = `${profile.first_name} ${profile.last_name}`.toLowerCase();
@@ -132,33 +182,58 @@ const MemberManager = () => {
                     </div>
                   </div>
 
-                  <Select
-                    value={profile.member_status ?? "Membre"}
-                    onValueChange={(value) =>
-                      updateMemberStatus.mutate({
-                        userId: profile.id,
-                        status: value as "Membre" | "Encadrant",
-                      })
-                    }
-                  >
-                    <SelectTrigger className="w-[130px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Membre">
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3" />
-                          Membre
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="Encadrant">
-                        <div className="flex items-center gap-2">
-                          <Shield className="h-3 w-3" />
-                          Encadrant
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center gap-2">
+                    {isUserAdmin(profile.id) && (
+                      <Badge className="bg-amber-500/20 text-amber-700 border-amber-500/30">
+                        <Crown className="h-3 w-3 mr-1" />
+                        Admin
+                      </Badge>
+                    )}
+                    
+                    <Select
+                      value={isUserAdmin(profile.id) ? "admin" : (profile.member_status ?? "Membre")}
+                      onValueChange={(value) => {
+                        if (value === "admin") {
+                          toggleAdminRole.mutate({ userId: profile.id, isAdmin: false });
+                        } else if (isUserAdmin(profile.id) && value !== "admin") {
+                          toggleAdminRole.mutate({ userId: profile.id, isAdmin: true });
+                          updateMemberStatus.mutate({
+                            userId: profile.id,
+                            status: value as "Membre" | "Encadrant",
+                          });
+                        } else {
+                          updateMemberStatus.mutate({
+                            userId: profile.id,
+                            status: value as "Membre" | "Encadrant",
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Membre">
+                          <div className="flex items-center gap-2">
+                            <User className="h-3 w-3" />
+                            Membre
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="Encadrant">
+                          <div className="flex items-center gap-2">
+                            <Shield className="h-3 w-3" />
+                            Encadrant
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <div className="flex items-center gap-2">
+                            <Crown className="h-3 w-3 text-amber-500" />
+                            Admin
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               );
             })}
