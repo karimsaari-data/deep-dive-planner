@@ -25,8 +25,8 @@ import { Navigate } from "react-router-dom";
 // Marseille coordinates (default location)
 const LOCATIONS = [
   { name: "Marseille", lat: 43.2965, lon: 5.3698 },
-  { name: "Cassis", lat: 43.2141, lon: 5.5367 },
   { name: "La Ciotat", lat: 43.1748, lon: 5.6048 },
+  { name: "Côte Bleue", lat: 43.3308, lon: 5.1047 },
 ];
 
 interface MarineWeatherData {
