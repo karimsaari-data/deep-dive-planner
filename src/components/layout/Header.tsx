@@ -18,10 +18,14 @@ const Header = () => {
   ];
 
   if (isOrganizer) {
+    navItems.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
     navItems.push({ to: "/weather", label: "Météo", icon: CloudSun });
-    navItems.push({ to: "/admin", label: "Administration", icon: Settings });
     navItems.push({ to: "/equipment", label: "Matériel", icon: Package });
     navItems.push({ to: "/archives", label: "Archives", icon: FileText });
+  }
+
+  if (isAdmin) {
+    navItems.push({ to: "/admin", label: "Administration", icon: Settings });
   }
 
   if (isAdmin) {
