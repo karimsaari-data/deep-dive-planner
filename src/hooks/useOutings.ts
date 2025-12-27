@@ -233,6 +233,11 @@ export const useCreateReservation = () => {
         if (error) throw error;
       }
 
+      // Send confirmation email in background
+      supabase.functions.invoke("send-reservation-confirmation", {
+        body: { outingId, type: isFull ? "waitlist" : "registration" },
+      }).catch(err => console.error("Error sending confirmation email:", err));
+
       return { waitlisted: isFull };
     },
     onSuccess: (result) => {
@@ -268,6 +273,11 @@ export const useCancelReservation = () => {
         .eq("user_id", user.id);
 
       if (error) throw error;
+
+      // Send cancellation email in background
+      supabase.functions.invoke("send-reservation-confirmation", {
+        body: { outingId, type: "cancellation" },
+      }).catch(err => console.error("Error sending cancellation email:", err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
