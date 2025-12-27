@@ -404,6 +404,16 @@ export type Database = {
         Args: { outing_uuid: string }
         Returns: number
       }
+      get_outing_participants: {
+        Args: { outing_uuid: string }
+        Returns: {
+          avatar_url: string
+          first_name: string
+          id: string
+          last_name: string
+          member_status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

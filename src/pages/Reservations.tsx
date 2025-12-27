@@ -104,26 +104,16 @@ const Reservations = () => {
                           </div>
 
                           {/* Participants trombinoscope */}
-                          {reservation.outing?.reservations && (
+                          {reservation.participants && reservation.participants.length > 0 && (
                             <div className="mt-4 pt-3 border-t border-border/50">
                               <div className="flex items-center gap-2 mb-2">
                                 <Users className="h-4 w-4 text-primary" />
                                 <span className="text-xs font-medium text-muted-foreground">
-                                  Participants ({reservation.outing.reservations.filter((r: any) => r.status === "confirmé").length})
+                                  Participants ({reservation.participants.length})
                                 </span>
                               </div>
                               <ParticipantsList
-                                participants={
-                                  reservation.outing.reservations
-                                    .filter((r: any) => r.status === "confirmé" && r.profile)
-                                    .map((r: any) => ({
-                                      id: r.profile.id,
-                                      first_name: r.profile.first_name,
-                                      last_name: r.profile.last_name,
-                                      avatar_url: r.profile.avatar_url,
-                                      member_status: r.profile.member_status,
-                                    }))
-                                }
+                                participants={reservation.participants}
                                 maxVisible={5}
                                 size="sm"
                               />
