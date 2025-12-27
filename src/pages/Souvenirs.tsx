@@ -43,17 +43,15 @@ const Souvenirs = () => {
 
       if (error) throw error;
       
-      // Filter to only show outings with at least 1 confirmed reservation
+      // Filter to only show outings with at least 2 confirmed present participants
       return data
-        ?.filter(outing => 
-          outing.reservations?.some((r: any) => r.status === "confirmé")
-        )
         ?.map(outing => ({
           ...outing,
           presentParticipants: outing.reservations?.filter(
             (r: any) => r.status === "confirmé" && r.is_present
           ) ?? []
-        })) ?? [];
+        }))
+        ?.filter(outing => outing.presentParticipants.length >= 2) ?? [];
     },
     enabled: !!user,
   });
