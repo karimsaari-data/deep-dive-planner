@@ -43,6 +43,7 @@ const Archives = () => {
           location,
           photos,
           session_report,
+          is_deleted,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
           location_details:locations(name),
           reservations(
@@ -52,6 +53,7 @@ const Archives = () => {
             profile:profiles(id, first_name, last_name, email, avatar_url, apnea_level)
           )
         `)
+        .eq("is_deleted", false)
         .lt("date_time", now)
         .order("date_time", { ascending: false });
 

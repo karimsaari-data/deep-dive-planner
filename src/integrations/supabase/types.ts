@@ -66,6 +66,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_deleted: boolean
           location: string
           location_id: string | null
           max_participants: number
@@ -83,6 +84,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_deleted?: boolean
           location: string
           location_id?: string | null
           max_participants?: number
@@ -100,6 +102,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_deleted?: boolean
           location?: string
           location_id?: string | null
           max_participants?: number
