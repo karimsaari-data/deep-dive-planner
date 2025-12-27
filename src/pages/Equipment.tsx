@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter } from "lucide-react";
+import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter, Camera, Upload, Hash } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
@@ -23,8 +24,10 @@ import {
   useEquipmentHistory,
   EquipmentInventoryItem,
 } from "@/hooks/useEquipment";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { toast } from "sonner";
 
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   disponible: { label: "Disponible", variant: "default" },
@@ -106,19 +109,79 @@ const MyInventoryTab = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedCatalogId, setSelectedCatalogId] = useState("");
   const [notes, setNotes] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAdd = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadPhoto = async (file: File): Promise<string | null> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `inventory/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("outings_gallery")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      toast.error("Erreur lors de l'upload de la photo");
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("outings_gallery")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  };
+
+  const handleAdd = async () => {
     if (!selectedCatalogId) return;
+    setIsUploading(true);
+
+    let photoUrl: string | undefined;
+    if (photoFile) {
+      const url = await uploadPhoto(photoFile);
+      if (url) photoUrl = url;
+    }
+
     addToInventory.mutate(
-      { catalogId: selectedCatalogId, notes: notes.trim() || undefined },
+      { catalogId: selectedCatalogId, notes: notes.trim() || undefined, photoUrl },
       {
         onSuccess: () => {
           setIsAddOpen(false);
           setSelectedCatalogId("");
           setNotes("");
+          setPhotoFile(null);
+          setPhotoPreview(null);
+          setIsUploading(false);
+        },
+        onError: () => {
+          setIsUploading(false);
         },
       }
     );
+  };
+
+  const resetForm = () => {
+    setSelectedCatalogId("");
+    setNotes("");
+    setPhotoFile(null);
+    setPhotoPreview(null);
   };
 
   return (
@@ -129,14 +192,14 @@ const MyInventoryTab = () => {
             <Package className="h-5 w-5 text-primary" />
             Mon matériel
           </CardTitle>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+          <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="mr-2 h-4 w-4" />
                 Ajouter
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Ajouter du matériel à mon inventaire</DialogTitle>
               </DialogHeader>
@@ -156,6 +219,67 @@ const MyInventoryTab = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Photo de l'article</Label>
+                  {photoPreview ? (
+                    <div className="relative">
+                      <img
+                        src={photoPreview}
+                        alt="Aperçu"
+                        className="w-full h-48 object-cover rounded-lg border border-border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => {
+                          setPhotoFile(null);
+                          setPhotoPreview(null);
+                        }}
+                      >
+                        Supprimer
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        ref={cameraInputRef}
+                        onChange={handleFileChange}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => cameraInputRef.current?.click()}
+                      >
+                        <Camera className="mr-2 h-4 w-4" />
+                        Prendre photo
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Importer
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label>Notes (optionnel)</Label>
                   <Textarea
@@ -165,8 +289,20 @@ const MyInventoryTab = () => {
                     rows={2}
                   />
                 </div>
-                <Button onClick={handleAdd} className="w-full" disabled={!selectedCatalogId || addToInventory.isPending}>
-                  {addToInventory.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+
+                <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    <span>Un identifiant unique sera généré automatiquement</span>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleAdd} 
+                  className="w-full" 
+                  disabled={!selectedCatalogId || addToInventory.isPending || isUploading}
+                >
+                  {(addToInventory.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Ajouter à mon inventaire
                 </Button>
               </div>
@@ -236,11 +372,14 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
   const status = statusLabels[item.status] || { label: item.status, variant: "outline" as const };
   const isOwner = item.owner_id === user?.id;
 
+  // Use item-specific photo if available, otherwise fall back to catalog photo
+  const displayPhoto = item.photo_url || item.catalog?.photo_url;
+
   return (
     <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
-      {item.catalog?.photo_url ? (
+      {displayPhoto ? (
         <img
-          src={item.catalog.photo_url}
+          src={displayPhoto}
           alt={item.catalog?.name}
           className="h-12 w-12 rounded-md object-cover"
         />
@@ -250,7 +389,14 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground">{item.catalog?.name}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-foreground">{item.catalog?.name}</p>
+          {item.unique_code && (
+            <Badge variant="outline" className="text-xs font-mono">
+              {item.unique_code}
+            </Badge>
+          )}
+        </div>
         {item.owner && (
           <p className="text-xs text-muted-foreground">
             Détenteur: {item.owner.first_name} {item.owner.last_name}
@@ -373,8 +519,9 @@ const GlobalInventoryTab = () => {
   const exportToCsv = () => {
     if (!inventory) return;
 
-    const headers = ["Article", "Détenteur", "Statut", "Notes", "Date d'acquisition"];
+    const headers = ["ID Unique", "Article", "Détenteur", "Statut", "Notes", "Date d'acquisition"];
     const rows = inventory.map((item) => [
+      item.unique_code || "",
       item.catalog?.name || "",
       item.owner ? `${item.owner.first_name} ${item.owner.last_name}` : "",
       item.status,

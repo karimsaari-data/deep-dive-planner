@@ -18,6 +18,8 @@ export interface EquipmentInventoryItem {
   owner_id: string;
   status: "disponible" | "prêté" | "perdu" | "cassé" | "rebuté";
   notes: string | null;
+  photo_url: string | null;
+  unique_code: string;
   acquired_at: string;
   created_at: string;
   updated_at: string;
@@ -184,7 +186,7 @@ export const useAddToInventory = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ catalogId, notes }: { catalogId: string; notes?: string }) => {
+    mutationFn: async ({ catalogId, notes, photoUrl }: { catalogId: string; notes?: string; photoUrl?: string }) => {
       if (!user) throw new Error("Non authentifié");
 
       const { data, error } = await supabase
@@ -193,7 +195,8 @@ export const useAddToInventory = () => {
           catalog_id: catalogId,
           owner_id: user.id,
           notes,
-        })
+          photo_url: photoUrl,
+        } as any)
         .select()
         .single();
 
