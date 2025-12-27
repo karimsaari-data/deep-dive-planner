@@ -563,16 +563,19 @@ const Stats = () => {
                           <TableHeader>
                             <TableRow>
                               <TableHead className="min-w-[150px]">Encadrant</TableHead>
+                              <TableHead className="text-center font-bold">Total</TableHead>
                               {MONTHS.map((month) => (
                                 <TableHead key={month} className="text-center w-12">{month}</TableHead>
                               ))}
-                              <TableHead className="text-center font-bold">Total</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {organizerMonthly?.map((organizer) => (
                               <TableRow key={organizer.id}>
                                 <TableCell className="font-medium">{organizer.name}</TableCell>
+                                <TableCell className="text-center">
+                                  <Badge variant="default">{organizer.total}</Badge>
+                                </TableCell>
                                 {organizer.months.map((count, index) => (
                                   <TableCell key={index} className="text-center">
                                     {count > 0 ? (
@@ -582,9 +585,6 @@ const Stats = () => {
                                     )}
                                   </TableCell>
                                 ))}
-                                <TableCell className="text-center">
-                                  <Badge variant="default">{organizer.total}</Badge>
-                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
