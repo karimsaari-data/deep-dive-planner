@@ -1,32 +1,45 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function sendEmail(to: string, subject: string, html: string) {
-  console.log(`Attempting to send email to ${to}`);
+async function sendEmail(to: string, toName: string, subject: string, html: string) {
+  const apiKey = Deno.env.get("BREVO_SMTP_KEY")!;
   
-  const emailResponse = await resend.emails.send({
-    from: "Team Oxygen <onboarding@resend.dev>",
-    to: [to],
-    subject: subject,
-    html: html,
+  console.log(`Attempting to send email to ${to} via Brevo API`);
+  
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: {
+        name: "Team Oxygen",
+        email: "karimsaari.com@gmail.com",
+      },
+      to: [{ email: to, name: toName }],
+      subject: subject,
+      htmlContent: html,
+    }),
   });
 
-  if (emailResponse.error) {
-    console.error(`Failed to send email to ${to}:`, emailResponse.error);
-    throw new Error(emailResponse.error.message);
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`Brevo API error: ${response.status} - ${errorData}`);
+    throw new Error(`Brevo API error: ${response.status} - ${errorData}`);
   }
 
-  console.log(`Email sent successfully to ${to}:`, emailResponse.data);
-  return { success: true, id: emailResponse.data?.id };
+  const data = await response.json();
+  console.log(`Email sent successfully to ${to}:`, data);
+  return { success: true, messageId: data.messageId };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -144,9 +157,12 @@ const handler = async (req: Request): Promise<Response> => {
         const profile = reservation.profile as any;
         if (!profile?.email) continue;
 
+        const fullName = `${profile.first_name} ${profile.last_name}`;
+
         try {
           await sendEmail(
             profile.email,
+            fullName,
             `⏰ Rappel : ${outing.title} demain`,
             `
               <h1>Rappel de sortie</h1>
