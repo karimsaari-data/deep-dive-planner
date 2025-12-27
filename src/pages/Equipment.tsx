@@ -104,10 +104,12 @@ const Equipment = () => {
 
 const MyInventoryTab = () => {
   const { data: inventory, isLoading } = useMyEquipmentInventory();
-  const { data: catalog } = useEquipmentCatalog();
+  const { data: catalog, isLoading: catalogLoading } = useEquipmentCatalog();
   const addToInventory = useAddToInventory();
+  
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [selectedCatalogId, setSelectedCatalogId] = useState("");
+  const [step, setStep] = useState<"select" | "details">("select");
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState<typeof catalog extends (infer T)[] ? T : never | null>(null);
   const [notes, setNotes] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -149,8 +151,13 @@ const MyInventoryTab = () => {
     return urlData.publicUrl;
   };
 
+  const handleSelectItem = (item: NonNullable<typeof selectedCatalogItem>) => {
+    setSelectedCatalogItem(item);
+    setStep("details");
+  };
+
   const handleAdd = async () => {
-    if (!selectedCatalogId) return;
+    if (!selectedCatalogItem) return;
     setIsUploading(true);
 
     let photoUrl: string | undefined;
@@ -160,15 +167,11 @@ const MyInventoryTab = () => {
     }
 
     addToInventory.mutate(
-      { catalogId: selectedCatalogId, notes: notes.trim() || undefined, photoUrl },
+      { catalogId: selectedCatalogItem.id, notes: notes.trim() || undefined, photoUrl },
       {
         onSuccess: () => {
+          resetForm();
           setIsAddOpen(false);
-          setSelectedCatalogId("");
-          setNotes("");
-          setPhotoFile(null);
-          setPhotoPreview(null);
-          setIsUploading(false);
         },
         onError: () => {
           setIsUploading(false);
@@ -178,7 +181,17 @@ const MyInventoryTab = () => {
   };
 
   const resetForm = () => {
-    setSelectedCatalogId("");
+    setStep("select");
+    setSelectedCatalogItem(null);
+    setNotes("");
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setIsUploading(false);
+  };
+
+  const handleBack = () => {
+    setStep("select");
+    setSelectedCatalogItem(null);
     setNotes("");
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -199,113 +212,174 @@ const MyInventoryTab = () => {
                 Ajouter
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Ajouter du matériel à mon inventaire</DialogTitle>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>
+                  {step === "select" 
+                    ? "Sélectionner un type de matériel" 
+                    : `Ajouter : ${selectedCatalogItem?.name}`}
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Type de matériel</Label>
-                  <Select value={selectedCatalogId} onValueChange={setSelectedCatalogId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir un article..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {catalog?.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          {item.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Photo de l'article</Label>
-                  {photoPreview ? (
-                    <div className="relative">
-                      <img
-                        src={photoPreview}
-                        alt="Aperçu"
-                        className="w-full h-48 object-cover rounded-lg border border-border"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => {
-                          setPhotoFile(null);
-                          setPhotoPreview(null);
-                        }}
-                      >
-                        Supprimer
-                      </Button>
+              
+              {step === "select" ? (
+                <div className="flex-1 overflow-y-auto">
+                  {catalogLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
+                  ) : catalog?.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      Aucun article dans le catalogue
+                    </p>
                   ) : (
-                    <div className="flex gap-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                      />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="hidden"
-                        ref={cameraInputRef}
-                        onChange={handleFileChange}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => cameraInputRef.current?.click()}
-                      >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Prendre photo
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Importer
-                      </Button>
+                    <div className="grid grid-cols-2 gap-3 pr-2">
+                      {catalog?.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => handleSelectItem(item)}
+                          className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/50 transition-colors text-left"
+                        >
+                          {item.photo_url ? (
+                            <img
+                              src={item.photo_url}
+                              alt={item.name}
+                              className="h-16 w-16 rounded-md object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-16 w-16 items-center justify-center rounded-md bg-muted">
+                              <Package className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="text-sm font-medium text-foreground text-center line-clamp-2">
+                            {item.name}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
+              ) : (
+                <div className="space-y-4 flex-1 overflow-y-auto pr-2">
+                  {/* Selected item preview */}
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                    {selectedCatalogItem?.photo_url ? (
+                      <img
+                        src={selectedCatalogItem.photo_url}
+                        alt={selectedCatalogItem.name}
+                        className="h-12 w-12 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-muted">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{selectedCatalogItem?.name}</p>
+                      {selectedCatalogItem?.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{selectedCatalogItem.description}</p>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={handleBack}>
+                      Changer
+                    </Button>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Notes (optionnel)</Label>
-                  <Textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Remarques sur cet article..."
-                    rows={2}
-                  />
-                </div>
+                  {/* Photo upload */}
+                  <div className="space-y-2">
+                    <Label>Photo de votre article</Label>
+                    {photoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={photoPreview}
+                          alt="Aperçu"
+                          className="w-full h-48 object-cover rounded-lg border border-border"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            setPhotoFile(null);
+                            setPhotoPreview(null);
+                          }}
+                        >
+                          Supprimer
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          className="hidden"
+                          ref={cameraInputRef}
+                          onChange={handleFileChange}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => cameraInputRef.current?.click()}
+                        >
+                          <Camera className="mr-2 h-4 w-4" />
+                          Prendre photo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          Importer
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-4 w-4" />
-                    <span>Un identifiant unique sera généré automatiquement</span>
+                  {/* Notes/Comments */}
+                  <div className="space-y-2">
+                    <Label>Commentaires / Annotations</Label>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="État du matériel, numéro de série, particularités..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Info about unique ID */}
+                  <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-4 w-4" />
+                      <span>Un identifiant unique sera généré automatiquement</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" onClick={handleBack} className="flex-1">
+                      Retour
+                    </Button>
+                    <Button 
+                      onClick={handleAdd} 
+                      className="flex-1" 
+                      disabled={addToInventory.isPending || isUploading}
+                    >
+                      {(addToInventory.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Ajouter
+                    </Button>
                   </div>
                 </div>
-
-                <Button 
-                  onClick={handleAdd} 
-                  className="w-full" 
-                  disabled={!selectedCatalogId || addToInventory.isPending || isUploading}
-                >
-                  {(addToInventory.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Ajouter à mon inventaire
-                </Button>
-              </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>
