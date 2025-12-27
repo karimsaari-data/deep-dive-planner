@@ -16,6 +16,7 @@ import Souvenirs from "./pages/Souvenirs";
 import Archives from "./pages/Archives";
 import Map from "./pages/Map";
 import Weather from "./pages/Weather";
+import Equipment from "./pages/Equipment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/archives" element={<Archives />} />
             <Route path="/map" element={<Map />} />
             <Route path="/weather" element={<Weather />} />
+            <Route path="/equipment" element={<Equipment />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
