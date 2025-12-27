@@ -117,7 +117,9 @@ export type Database = {
           id: string
           notes: string | null
           owner_id: string
+          photo_url: string | null
           status: Database["public"]["Enums"]["equipment_status"]
+          unique_code: string
           updated_at: string
         }
         Insert: {
@@ -127,7 +129,9 @@ export type Database = {
           id?: string
           notes?: string | null
           owner_id: string
+          photo_url?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
+          unique_code: string
           updated_at?: string
         }
         Update: {
@@ -137,7 +141,9 @@ export type Database = {
           id?: string
           notes?: string | null
           owner_id?: string
+          photo_url?: string | null
           status?: Database["public"]["Enums"]["equipment_status"]
+          unique_code?: string
           updated_at?: string
         }
         Relationships: [
