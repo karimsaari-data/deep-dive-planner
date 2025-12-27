@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Navigation, Trash2, Clock } from "lucide-react";
+import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Navigation, Trash2, Clock, Sun, CloudSun, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,14 @@ const typeIcons: Record<OutingType, typeof Waves> = {
   Piscine: Droplets,
   Étang: TreePine,
   Dépollution: Trash2,
+};
+
+const weatherIcons: Record<OutingType, typeof Sun> = {
+  Fosse: Building,
+  Mer: Sun,
+  Piscine: Droplets,
+  Étang: CloudSun,
+  Dépollution: Cloud,
 };
 
 const typeColors: Record<OutingType, string> = {
@@ -50,6 +58,7 @@ const OutingCard = ({ outing }: OutingCardProps) => {
   const spotsLeft = outing.max_participants - currentParticipants;
 
   const Icon = typeIcons[outing.outing_type];
+  const WeatherIcon = weatherIcons[outing.outing_type];
   const mapsUrl = outing.location_details?.maps_url;
 
   const handleRegister = () => {
@@ -84,9 +93,12 @@ const OutingCard = ({ outing }: OutingCardProps) => {
             </div>
             <div>
               <h3 className="font-semibold text-foreground">{outing.title}</h3>
-              <Badge variant="secondary" className="mt-1 text-xs">
-                {outing.outing_type}
-              </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="secondary" className="text-xs">
+                  {outing.outing_type}
+                </Badge>
+                <WeatherIcon className="h-4 w-4 text-primary" />
+              </div>
             </div>
           </div>
         </div>
