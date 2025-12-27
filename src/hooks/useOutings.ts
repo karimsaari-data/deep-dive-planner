@@ -40,6 +40,7 @@ export interface Outing {
   max_participants: number;
   session_report: string | null;
   created_at: string;
+  is_deleted?: boolean;
   organizer?: {
     first_name: string;
     last_name: string;
@@ -69,6 +70,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           location_details:locations(id, name, address, maps_url, latitude, longitude),
           reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
+        .eq("is_deleted", false)
         .order("date_time", { ascending: true });
 
       if (typeFilter) {
@@ -115,6 +117,7 @@ export const useOuting = (outingId: string) => {
           )
         `)
         .eq("id", outingId)
+        .eq("is_deleted", false)
         .maybeSingle();
 
       if (error) throw error;
@@ -147,7 +150,9 @@ export const useMyReservations = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      
+      // Filter out reservations for deleted outings
+      return data?.filter(r => r.outing && !r.outing.is_deleted) ?? [];
     },
     enabled: !!user,
   });
@@ -390,12 +395,22 @@ export const useCancelOuting = () => {
 
   return useMutation({
     mutationFn: async ({ outingId, reason }: { outingId: string; reason?: string }) => {
-      // Call the edge function to cancel and notify
-      const { error } = await supabase.functions.invoke("send-outing-notification", {
+      // Call the edge function to cancel and notify participants
+      const { error: notifyError } = await supabase.functions.invoke("send-outing-notification", {
         body: { outingId, type: "cancellation", reason },
       });
 
-      if (error) throw error;
+      if (notifyError) {
+        console.error("Error sending notifications:", notifyError);
+      }
+
+      // Soft delete the outing (mark as deleted for stats)
+      const { error: deleteError } = await supabase
+        .from("outings")
+        .update({ is_deleted: true })
+        .eq("id", outingId);
+
+      if (deleteError) throw deleteError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
