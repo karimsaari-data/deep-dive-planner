@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload } from "lucide-react";
+import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,11 +21,14 @@ import { toast } from "sonner";
 
 const Archives = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const [search, setSearch] = useState("");
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [uploadingOutingId, setUploadingOutingId] = useState<string | null>(null);
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [reportDraft, setReportDraft] = useState<string>("");
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -160,6 +164,39 @@ const Archives = () => {
     link.href = URL.createObjectURL(blob);
     link.download = `${outing.title.replace(/\s+/g, "_")}_participants.csv`;
     link.click();
+  };
+
+  const updateReportMutation = useMutation({
+    mutationFn: async ({ outingId, report }: { outingId: string; report: string }) => {
+      const { error } = await supabase
+        .from("outings")
+        .update({ session_report: report })
+        .eq("id", outingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Compte-rendu enregistré");
+      queryClient.invalidateQueries({ queryKey: ["past-outings-archives"] });
+      setEditingReportId(null);
+      setReportDraft("");
+    },
+    onError: (error: any) => {
+      toast.error("Erreur: " + error.message);
+    },
+  });
+
+  const handleEditReport = (outing: any) => {
+    setEditingReportId(outing.id);
+    setReportDraft(outing.session_report ?? "");
+  };
+
+  const handleSaveReport = (outingId: string) => {
+    updateReportMutation.mutate({ outingId, report: reportDraft });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingReportId(null);
+    setReportDraft("");
   };
 
   if (authLoading || roleLoading) {
@@ -394,11 +431,52 @@ const Archives = () => {
                               </TabsContent>
                               
                               <TabsContent value="report" className="mt-4">
-                                <h4 className="font-medium mb-3 flex items-center gap-2">
-                                  <FileText className="h-4 w-4 text-primary" />
-                                  Compte-rendu de séance
-                                </h4>
-                                {outing.session_report ? (
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-medium flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                    Compte-rendu de séance
+                                  </h4>
+                                  {editingReportId !== outing.id && (
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={() => handleEditReport(outing)}
+                                    >
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      {outing.session_report ? "Modifier" : "Rédiger"}
+                                    </Button>
+                                  )}
+                                </div>
+                                {editingReportId === outing.id ? (
+                                  <div className="space-y-3">
+                                    <Textarea
+                                      value={reportDraft}
+                                      onChange={(e) => setReportDraft(e.target.value)}
+                                      placeholder="Rédigez le compte-rendu de la sortie..."
+                                      rows={8}
+                                      className="resize-none"
+                                    />
+                                    <div className="flex gap-2 justify-end">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={handleCancelEdit}
+                                      >
+                                        <X className="h-4 w-4 mr-2" />
+                                        Annuler
+                                      </Button>
+                                      <Button 
+                                        variant="ocean" 
+                                        size="sm" 
+                                        onClick={() => handleSaveReport(outing.id)}
+                                        disabled={updateReportMutation.isPending}
+                                      >
+                                        <Save className="h-4 w-4 mr-2" />
+                                        {updateReportMutation.isPending ? "Enregistrement..." : "Enregistrer"}
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : outing.session_report ? (
                                   <div className="rounded-lg border border-border bg-muted/30 p-4 whitespace-pre-wrap">
                                     {outing.session_report}
                                   </div>
