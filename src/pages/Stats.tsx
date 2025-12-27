@@ -32,6 +32,7 @@ interface ClubStats {
 interface MemberPresence {
   id: string;
   name: string;
+  memberCode: string;
   outings: Array<{ id: string; title: string; date: string }>;
   totalPresences: number;
 }
@@ -98,20 +99,22 @@ const Stats = () => {
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name");
+        .select("id, first_name, last_name, member_code");
 
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name}`]));
+      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '' }]));
 
       // Group by user
       const memberMap = new Map<string, MemberPresence>();
       reservations?.forEach((r: any) => {
         const userId = r.user_id;
         if (!memberMap.has(userId)) {
+          const profile = profileMap.get(userId);
           memberMap.set(userId, {
             id: userId,
-            name: profileMap.get(userId) || "Inconnu",
+            name: profile?.name || "Inconnu",
+            memberCode: profile?.code || "",
             outings: [],
             totalPresences: 0
           });
@@ -508,7 +511,10 @@ const Stats = () => {
                       <div className="space-y-2">
                         {memberPresences?.map((member) => (
                           <div key={member.id} className="flex items-center justify-between border border-border rounded-lg p-3">
-                            <span className="font-medium text-foreground">{member.name}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-xs font-mono">{member.memberCode}</Badge>
+                              <span className="font-medium text-foreground">{member.name}</span>
+                            </div>
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
