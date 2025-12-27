@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Users, Calendar, MapPin } from "lucide-react";
+import { Loader2, Users, Calendar, MapPin, Sun, Waves, Droplets, Building2, Leaf, User } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
 import LocationManager from "@/components/admin/LocationManager";
@@ -90,6 +90,19 @@ const Admin = () => {
                           .slice(0, 5)
                           .map((outing) => {
                           const confirmedCount = outing.reservations?.filter(r => r.status === "confirmé").length ?? 0;
+                          
+                          // Weather/type icons based on outing type
+                          const getTypeIcon = (type: string) => {
+                            switch (type) {
+                              case "Mer": return <Waves className="h-4 w-4 text-primary" />;
+                              case "Fosse": return <Droplets className="h-4 w-4 text-blue-500" />;
+                              case "Piscine": return <Building2 className="h-4 w-4 text-cyan-500" />;
+                              case "Étang": return <Leaf className="h-4 w-4 text-emerald-500" />;
+                              case "Dépollution": return <Leaf className="h-4 w-4 text-green-600" />;
+                              default: return <Sun className="h-4 w-4 text-yellow-500" />;
+                            }
+                          };
+                          
                           return (
                             <Link
                               key={outing.id}
@@ -107,15 +120,27 @@ const Admin = () => {
                                     })}
                                   </p>
                                 </div>
-                                <Badge variant="secondary">{outing.outing_type}</Badge>
+                                <div className="flex items-center gap-2">
+                                  {getTypeIcon(outing.outing_type)}
+                                  <Badge variant="secondary">{outing.outing_type}</Badge>
+                                </div>
                               </div>
 
-                              <div className="flex items-center gap-2 text-sm">
-                                <Users className="h-4 w-4 text-primary" />
-                                <span className="font-medium">
-                                  {confirmedCount}/{outing.max_participants}
-                                </span>
-                                <span className="text-muted-foreground">inscrits</span>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Users className="h-4 w-4 text-primary" />
+                                  <span className="font-medium">
+                                    {confirmedCount}/{outing.max_participants}
+                                  </span>
+                                  <span className="text-muted-foreground">inscrits</span>
+                                </div>
+                                
+                                {outing.organizer && (
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <User className="h-3.5 w-3.5" />
+                                    <span>Organisateur : {outing.organizer.first_name} {outing.organizer.last_name}</span>
+                                  </div>
+                                )}
                               </div>
                             </Link>
                           );
