@@ -3,16 +3,27 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInHours } from "date-fns";
 
 const COLORS = ["#0c4a6e", "#0284c7", "#14b8a6", "#22c55e", "#eab308"];
+
+interface ClubStats {
+  totalOutings: number;
+  avgOccupation: number;
+  presenceRate: number;
+  totalParticipants: number;
+  typeData: Array<{ name: string; value: number }>;
+  monthlyData: Array<{ name: string; sorties: number }>;
+  organizerData: Array<{ name: string; count: number }>;
+  lateCancellationData: Array<{ name: string; count: number; userId: string }>;
+  presenceComparisonData: Array<{ name: string; inscrits: number; présents: number }>;
+}
 
 const Stats = () => {
   const navigate = useNavigate();
@@ -27,167 +38,20 @@ const Stats = () => {
     (_, i) => 2025 + i
   );
 
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ["enhanced-stats", selectedYear],
+  // Use RPC function for server-side authorization
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ["club-stats", selectedYear],
     queryFn: async () => {
-      const startOfYear = new Date(selectedYear, 0, 1).toISOString();
-      const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
-
-      // Get all outings with reservations
-      const { data: outings, error: outingsError } = await supabase
-        .from("outings")
-        .select(`
-          id,
-          title,
-          outing_type,
-          max_participants,
-          date_time,
-          organizer_id,
-          organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          reservations(id, status, is_present, cancelled_at, user_id)
-        `)
-        .gte("date_time", startOfYear)
-        .lte("date_time", endOfYear);
-
-      if (outingsError) throw outingsError;
-
-      // Filter past outings to only include "realized" ones (2+ people present)
-      // Also exclude cancelled outings from statistics
-      const pastOutings = outings?.filter(o => {
-        const isPast = new Date(o.date_time) < new Date();
-        if (!isPast) return false;
-        
-        // Count present people
-        const presentCount = o.reservations?.filter(r => r.status === "confirmé" && r.is_present).length ?? 0;
-        
-        // Rule of 2: must have at least 2 people present (organizer + 1 participant)
-        return presentCount >= 2;
-      }) ?? [];
+      const { data, error } = await supabase.rpc('get_club_stats', {
+        p_year: selectedYear
+      });
       
-      const allOutings = outings ?? [];
-
-      // Total outings
-      const totalOutings = allOutings.length;
-
-      // Average occupation rate (confirmed reservations)
-      const occupationRates = allOutings.map((o) => {
-        const confirmed = o.reservations?.filter(r => r.status === "confirmé").length ?? 0;
-        return (confirmed / o.max_participants) * 100;
-      });
-      const avgOccupation = occupationRates.length > 0
-        ? Math.round(occupationRates.reduce((a, b) => a + b, 0) / occupationRates.length)
-        : 0;
-
-      // Presence rate (is_present vs confirmed for past outings)
-      let totalConfirmed = 0;
-      let totalPresent = 0;
-      pastOutings.forEach(o => {
-        const confirmed = o.reservations?.filter(r => r.status === "confirmé") ?? [];
-        totalConfirmed += confirmed.length;
-        totalPresent += confirmed.filter(r => r.is_present).length;
-      });
-      const presenceRate = totalConfirmed > 0 ? Math.round((totalPresent / totalConfirmed) * 100) : 0;
-
-      // Outings by type
-      const byType = allOutings.reduce((acc, o) => {
-        acc[o.outing_type] = (acc[o.outing_type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const typeData = Object.entries(byType)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value);
-
-      // Monthly data
-      const byMonth = allOutings.reduce((acc, o) => {
-        const month = new Date(o.date_time).toLocaleString("fr-FR", { month: "short" });
-        acc[month] = (acc[month] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const monthlyData = Object.entries(byMonth).map(([name, sorties]) => ({
-        name,
-        sorties,
-      }));
-
-      // Total participants
-      const totalParticipants = allOutings.reduce(
-        (acc, o) => acc + (o.reservations?.filter(r => r.status === "confirmé").length ?? 0),
-        0
-      );
-
-      // Organizer stats (outings per organizer)
-      const organizerCounts: Record<string, { name: string; count: number }> = {};
-      allOutings.forEach(o => {
-        if (o.organizer_id && o.organizer) {
-          const name = `${o.organizer.first_name} ${o.organizer.last_name}`;
-          if (!organizerCounts[o.organizer_id]) {
-            organizerCounts[o.organizer_id] = { name, count: 0 };
-          }
-          organizerCounts[o.organizer_id].count++;
-        }
-      });
-      const organizerData = Object.values(organizerCounts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
-
-      // Late cancellations (less than 24h before outing)
-      const lateCancellations: Record<string, { name: string; count: number; userId: string }> = {};
+      if (error) {
+        console.error("Error fetching stats:", error);
+        throw error;
+      }
       
-      // Get all profiles for name lookup
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name");
-      
-      const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name}`]) ?? []);
-
-      allOutings.forEach(o => {
-        const cancelled = o.reservations?.filter(r => 
-          r.status === "annulé" && r.cancelled_at
-        ) ?? [];
-        
-        cancelled.forEach(r => {
-          const hoursBeforeOuting = differenceInHours(
-            new Date(o.date_time), 
-            new Date(r.cancelled_at!)
-          );
-          
-          if (hoursBeforeOuting >= 0 && hoursBeforeOuting < 24) {
-            const userName = profileMap.get(r.user_id) || "Inconnu";
-            if (!lateCancellations[r.user_id]) {
-              lateCancellations[r.user_id] = { name: userName, count: 0, userId: r.user_id };
-            }
-            lateCancellations[r.user_id].count++;
-          }
-        });
-      });
-
-      const lateCancellationData = Object.values(lateCancellations)
-        .filter(c => c.count >= 3)
-        .sort((a, b) => b.count - a.count);
-
-      // Presence comparison data for chart
-      const presenceComparisonData = pastOutings.slice(-10).map(o => {
-        const confirmed = o.reservations?.filter(r => r.status === "confirmé").length ?? 0;
-        const present = o.reservations?.filter(r => r.status === "confirmé" && r.is_present).length ?? 0;
-        return {
-          name: o.title.substring(0, 15) + (o.title.length > 15 ? "..." : ""),
-          inscrits: confirmed,
-          présents: present,
-        };
-      });
-
-      return {
-        totalOutings,
-        avgOccupation,
-        presenceRate,
-        totalParticipants,
-        typeData,
-        monthlyData,
-        organizerData,
-        lateCancellationData,
-        presenceComparisonData,
-      };
+      return data as unknown as ClubStats;
     },
     enabled: isAdmin,
   });
