@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2 } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import MarineWeather from "@/components/weather/MarineWeather";
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
@@ -25,10 +25,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting } from "@/hooks/useOutings";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const OutingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +44,7 @@ const OutingDetail = () => {
   const archiveOuting = useArchiveOuting();
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (outing?.session_report) {
@@ -112,6 +115,21 @@ const OutingDetail = () => {
     archiveOuting.mutate(outing.id);
   };
 
+  const getShareLink = () => {
+    return `${window.location.origin}/sorties/${id}`;
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareLink());
+      setLinkCopied(true);
+      toast.success("Lien copié !");
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast.error("Impossible de copier le lien");
+    }
+  };
+
   return (
     <Layout>
       <section className="py-12">
@@ -119,6 +137,34 @@ const OutingDetail = () => {
           <div className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="secondary">{outing.outing_type}</Badge>
+              {!isPast && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Share2 className="h-4 w-4" />
+                      Partager
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium">Partager cette sortie</p>
+                      <div className="flex gap-2">
+                        <Input readOnly value={getShareLink()} className="flex-1 text-xs" />
+                        <Button variant="ocean" size="icon" onClick={handleCopyLink}>
+                          {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${outing.title} - ${format(new Date(outing.date_time), "d MMMM yyyy", { locale: fr })} ${getShareLink()}`)}`, "_blank")}
+                      >
+                        Partager sur WhatsApp
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               {!isPast && canCancelOuting && (
                 <EditOutingDialog outing={outing} />
               )}
