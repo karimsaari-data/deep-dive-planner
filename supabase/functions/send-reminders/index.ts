@@ -50,12 +50,15 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Authorization check: either cron secret or admin user
+    // Authorization check: cron secret, service role key, or admin user
     const authHeader = req.headers.get("Authorization");
     
     // Check for cron secret authorization
     if (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) {
       console.log("Authorized via CRON_SECRET");
+    } else if (authHeader === `Bearer ${supabaseServiceKey}`) {
+      // Allow service role key for internal cron calls
+      console.log("Authorized via SERVICE_ROLE_KEY (cron job)");
     } else if (authHeader) {
       // Check for admin user authorization
       const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
