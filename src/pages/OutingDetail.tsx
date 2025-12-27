@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import MarineWeather from "@/components/weather/MarineWeather";
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting } from "@/hooks/useOutings";
 import { cn } from "@/lib/utils";
 
 const OutingDetail = () => {
@@ -39,6 +39,7 @@ const OutingDetail = () => {
   const updatePresence = useUpdateReservationPresence();
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
+  const archiveOuting = useArchiveOuting();
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
 
@@ -94,12 +95,21 @@ const OutingDetail = () => {
   const canEditPresenceAndReport = isOutingOrganizer || isAdmin;
   // Only the organizer of the outing or admin can cancel it
   const canCancelOuting = isOutingOrganizer || isAdmin;
+  
+  // Check if outing can be archived (past, has attendance marked, not already archived)
+  const hasAttendanceMarked = confirmedReservations.some(r => r.is_present);
+  const canArchiveOuting = isPast && canEditPresenceAndReport && hasAttendanceMarked && !outing.is_archived;
+
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });
   };
 
   const handleCancelOuting = () => {
     cancelOuting.mutate({ outingId: outing.id, reason: cancelReason });
+  };
+
+  const handleArchiveOuting = () => {
+    archiveOuting.mutate(outing.id);
   };
 
   return (
@@ -317,14 +327,52 @@ const OutingDetail = () => {
                     onChange={(e) => setSessionReport(e.target.value)}
                     className="min-h-[200px]"
                   />
-                  <Button
-                    variant="ocean"
-                    className="mt-4 w-full"
-                    onClick={handleSaveReport}
-                    disabled={updateSessionReport.isPending}
-                  >
-                    {updateSessionReport.isPending ? "Enregistrement..." : "Enregistrer le compte-rendu"}
-                  </Button>
+                  <div className="flex gap-3 mt-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={handleSaveReport}
+                      disabled={updateSessionReport.isPending}
+                    >
+                      {updateSessionReport.isPending ? "Enregistrement..." : "Enregistrer le compte-rendu"}
+                    </Button>
+                    {canArchiveOuting && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ocean" className="flex-1 gap-2">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Valider la sortie
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5 text-primary" />
+                              Valider et archiver cette sortie ?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              La sortie sera archivée et n'apparaîtra plus dans les sorties à venir. L'appel et le compte-rendu seront conservés.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleArchiveOuting}
+                              disabled={archiveOuting.isPending}
+                            >
+                              {archiveOuting.isPending ? "Archivage..." : "Confirmer"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    {outing.is_archived && (
+                      <Badge variant="secondary" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Archivée
+                      </Badge>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}

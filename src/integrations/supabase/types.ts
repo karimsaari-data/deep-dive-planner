@@ -215,6 +215,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_archived: boolean
           is_deleted: boolean
           location: string
           location_id: string | null
@@ -233,6 +234,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           is_deleted?: boolean
           location: string
           location_id?: string | null
@@ -251,6 +253,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_archived?: boolean
           is_deleted?: boolean
           location?: string
           location_id?: string | null
