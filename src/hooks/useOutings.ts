@@ -156,7 +156,13 @@ export const useMyReservations = () => {
           outing:outings(
             *,
             organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-            location_details:locations(id, name, address, maps_url)
+            location_details:locations(id, name, address, maps_url),
+            reservations(
+              id,
+              user_id,
+              status,
+              profile:profiles(id, first_name, last_name, avatar_url, member_status)
+            )
           )
         `)
         .eq("user_id", user.id)
