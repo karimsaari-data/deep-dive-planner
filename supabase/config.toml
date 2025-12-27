@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-test-email]
 verify_jwt = false
+
+[functions.get-outing-participants]
+verify_jwt = false
