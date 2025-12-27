@@ -217,12 +217,19 @@ const Profile = () => {
                   />
                 </div>
 
-                {/* Member Status Badge (Read-only) */}
-                {profile?.member_status && (
-                  <Badge variant={profile.member_status === "Encadrant" ? "default" : "secondary"}>
-                    {profile.member_status}
-                  </Badge>
-                )}
+                {/* Member Code & Status Badges */}
+                <div className="flex items-center gap-2">
+                  {profile?.member_code && (
+                    <Badge variant="outline" className="font-mono">
+                      {profile.member_code}
+                    </Badge>
+                  )}
+                  {profile?.member_status && (
+                    <Badge variant={profile.member_status === "Encadrant" ? "default" : "secondary"}>
+                      {profile.member_status}
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <Form {...form}>
