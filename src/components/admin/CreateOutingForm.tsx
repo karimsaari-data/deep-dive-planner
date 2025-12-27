@@ -105,7 +105,7 @@ const CreateOutingForm = () => {
   };
 
   const getShareLink = () => {
-    return `${window.location.origin}/sorties/${createdOutingId}`;
+    return `${window.location.origin}/outing/${createdOutingId}`;
   };
 
   const handleCopyLink = async () => {
