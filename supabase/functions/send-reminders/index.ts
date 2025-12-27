@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,53 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Authorization check: either cron secret or admin user
+    const authHeader = req.headers.get("Authorization");
+    
+    // Check for cron secret authorization
+    if (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) {
+      console.log("Authorized via CRON_SECRET");
+    } else if (authHeader) {
+      // Check for admin user authorization
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+      if (userError || !user) {
+        console.error("Unauthorized: Invalid token", userError);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: Invalid token" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // Use service role to check if user is admin
+      const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: userRoles } = await supabaseService
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const isAdmin = userRoles?.some(r => r.role === "admin");
+      if (!isAdmin) {
+        console.error(`User ${user.id} is not an admin`);
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: Admin access required" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      console.log(`Authorized via admin user: ${user.id}`);
+    } else {
+      console.error("Unauthorized: No authorization provided");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: No authorization provided" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("Starting reminder check...");
