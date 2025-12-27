@@ -14,6 +14,149 @@ export type Database = {
   }
   public: {
     Tables: {
+      equipment_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment_history: {
+        Row: {
+          action_type: string
+          created_at: string
+          created_by: string
+          from_user_id: string | null
+          id: string
+          inventory_id: string
+          new_status: Database["public"]["Enums"]["equipment_status"] | null
+          notes: string | null
+          old_status: Database["public"]["Enums"]["equipment_status"] | null
+          to_user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          created_by: string
+          from_user_id?: string | null
+          id?: string
+          inventory_id: string
+          new_status?: Database["public"]["Enums"]["equipment_status"] | null
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["equipment_status"] | null
+          to_user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          created_by?: string
+          from_user_id?: string | null
+          id?: string
+          inventory_id?: string
+          new_status?: Database["public"]["Enums"]["equipment_status"] | null
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["equipment_status"] | null
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_history_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_history_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_history_inventory_id_fkey"
+            columns: ["inventory_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_history_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment_inventory: {
+        Row: {
+          acquired_at: string
+          catalog_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          owner_id: string
+          status: Database["public"]["Enums"]["equipment_status"]
+          updated_at: string
+        }
+        Insert: {
+          acquired_at?: string
+          catalog_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          status?: Database["public"]["Enums"]["equipment_status"]
+          updated_at?: string
+        }
+        Update: {
+          acquired_at?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          status?: Database["public"]["Enums"]["equipment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_inventory_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_inventory_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
@@ -261,6 +404,7 @@ export type Database = {
       app_role: "admin" | "organizer" | "member"
       booking_status: "confirmé" | "annulé" | "en_attente"
       carpool_option: "none" | "driver" | "passenger"
+      equipment_status: "disponible" | "prêté" | "perdu" | "cassé" | "rebuté"
       member_status: "Membre" | "Encadrant"
       outing_type: "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution"
     }
@@ -393,6 +537,7 @@ export const Constants = {
       app_role: ["admin", "organizer", "member"],
       booking_status: ["confirmé", "annulé", "en_attente"],
       carpool_option: ["none", "driver", "passenger"],
+      equipment_status: ["disponible", "prêté", "perdu", "cassé", "rebuté"],
       member_status: ["Membre", "Encadrant"],
       outing_type: ["Fosse", "Mer", "Piscine", "Étang", "Dépollution"],
     },

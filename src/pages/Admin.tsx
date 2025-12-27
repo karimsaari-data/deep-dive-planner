@@ -5,6 +5,7 @@ import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
 import LocationManager from "@/components/admin/LocationManager";
 import MemberManager from "@/components/admin/MemberManager";
+import EquipmentCatalogManager from "@/components/admin/EquipmentCatalogManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -60,6 +61,7 @@ const Admin = () => {
             <TabsList>
               <TabsTrigger value="outings">Sorties</TabsTrigger>
               <TabsTrigger value="locations">Lieux</TabsTrigger>
+              {isAdmin && <TabsTrigger value="catalog">Catalogue Matériel</TabsTrigger>}
               {isAdmin && <TabsTrigger value="members">Membres</TabsTrigger>}
             </TabsList>
 
@@ -155,6 +157,12 @@ const Admin = () => {
             <TabsContent value="locations">
               <LocationManager />
             </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="catalog">
+                <EquipmentCatalogManager />
+              </TabsContent>
+            )}
 
             {isAdmin && (
               <TabsContent value="members">

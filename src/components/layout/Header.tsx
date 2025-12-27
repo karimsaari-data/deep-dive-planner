@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, BarChart3, Users, Image, FileText, MapIcon, CloudSun } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, BarChart3, Users, Image, FileText, MapIcon, CloudSun, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -20,6 +20,7 @@ const Header = () => {
   if (isOrganizer) {
     navItems.push({ to: "/weather", label: "Météo", icon: CloudSun });
     navItems.push({ to: "/admin", label: "Administration", icon: Settings });
+    navItems.push({ to: "/equipment", label: "Matériel", icon: Package });
     navItems.push({ to: "/archives", label: "Archives", icon: FileText });
   }
 
