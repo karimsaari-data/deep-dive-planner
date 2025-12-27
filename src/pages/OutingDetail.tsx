@@ -116,7 +116,7 @@ const OutingDetail = () => {
   };
 
   const getShareLink = () => {
-    return `${window.location.origin}/sorties/${id}`;
+    return `${window.location.origin}/outing/${id}`;
   };
 
   const handleCopyLink = async () => {
