@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
 
 const CRON_SECRET = Deno.env.get("CRON_SECRET");
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,34 +11,22 @@ const corsHeaders = {
 };
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const client = new SMTPClient({
-    connection: {
-      hostname: "smtp-relay.brevo.com",
-      port: 587,
-      tls: true,
-      auth: {
-        username: Deno.env.get("BREVO_SMTP_USER")!,
-        password: Deno.env.get("BREVO_SMTP_KEY")!,
-      },
-    },
+  console.log(`Attempting to send email to ${to}`);
+  
+  const emailResponse = await resend.emails.send({
+    from: "Team Oxygen <onboarding@resend.dev>",
+    to: [to],
+    subject: subject,
+    html: html,
   });
 
-  try {
-    await client.send({
-      from: "Team Oxygen <karimsaari.com@gmail.com>",
-      to: to,
-      subject: subject,
-      content: "auto",
-      html: html,
-    });
-    console.log(`Email sent successfully to ${to}`);
-    return { success: true };
-  } catch (error) {
-    console.error(`Failed to send email to ${to}:`, error);
-    throw error;
-  } finally {
-    await client.close();
+  if (emailResponse.error) {
+    console.error(`Failed to send email to ${to}:`, emailResponse.error);
+    throw new Error(emailResponse.error.message);
   }
+
+  console.log(`Email sent successfully to ${to}:`, emailResponse.data);
+  return { success: true, id: emailResponse.data?.id };
 }
 
 const handler = async (req: Request): Promise<Response> => {
