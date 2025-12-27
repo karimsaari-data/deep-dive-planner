@@ -106,16 +106,17 @@ const Reservations = () => {
                           {/* Participants trombinoscope */}
                           {reservation.participants && reservation.participants.length > 0 && (
                             <div className="mt-4 pt-3 border-t border-border/50">
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-2 mb-3">
                                 <Users className="h-4 w-4 text-primary" />
-                                <span className="text-xs font-medium text-muted-foreground">
+                                <span className="text-sm font-medium text-foreground">
                                   Participants ({reservation.participants.length})
                                 </span>
                               </div>
                               <ParticipantsList
                                 participants={reservation.participants}
-                                maxVisible={5}
-                                size="sm"
+                                maxVisible={10}
+                                size="lg"
+                                showNames
                               />
                             </div>
                           )}

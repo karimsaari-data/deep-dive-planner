@@ -12,12 +12,14 @@ interface ParticipantsListProps {
   participants: Participant[];
   maxVisible?: number;
   size?: "sm" | "md" | "lg";
+  showNames?: boolean;
 }
 
 const ParticipantsList = ({
   participants,
   maxVisible = 6,
   size = "sm",
+  showNames = false,
 }: ParticipantsListProps) => {
   if (participants.length === 0) {
     return (
@@ -36,6 +38,34 @@ const ParticipantsList = ({
 
   const visibleParticipants = sortedParticipants.slice(0, maxVisible);
   const remainingCount = participants.length - maxVisible;
+
+  if (showNames) {
+    return (
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-3">
+          {visibleParticipants.map((participant) => (
+            <div key={participant.id} className="flex flex-col items-center gap-1">
+              <ParticipantAvatar
+                firstName={participant.first_name}
+                lastName={participant.last_name}
+                avatarUrl={participant.avatar_url}
+                memberStatus={participant.member_status}
+                size={size}
+              />
+              <span className="text-xs text-muted-foreground text-center max-w-[60px] truncate">
+                {participant.first_name}
+              </span>
+            </div>
+          ))}
+        </div>
+        {remainingCount > 0 && (
+          <p className="text-xs text-muted-foreground">
+            +{remainingCount} autres participants
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center">
