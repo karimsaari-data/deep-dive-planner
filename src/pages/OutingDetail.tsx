@@ -52,11 +52,15 @@ const OutingDetail = () => {
     }
   }, [outing?.session_report]);
 
+  // Redirect if not the organizer of this specific outing or admin
   useEffect(() => {
-    if (!authLoading && !roleLoading && !isOrganizer && !isAdmin) {
-      navigate("/");
+    if (!authLoading && !roleLoading && !isLoading && outing) {
+      const isOutingOrganizerCheck = user?.id === outing.organizer_id;
+      if (!isOutingOrganizerCheck && !isAdmin) {
+        navigate("/");
+      }
     }
-  }, [authLoading, roleLoading, isOrganizer, isAdmin, navigate]);
+  }, [authLoading, roleLoading, isLoading, outing, user, isAdmin, navigate]);
 
   if (authLoading || roleLoading || isLoading) {
     return (
