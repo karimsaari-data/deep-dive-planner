@@ -400,6 +400,10 @@ export type Database = {
     }
     Functions: {
       get_club_stats: { Args: { p_year?: number }; Returns: Json }
+      get_outing_confirmed_count: {
+        Args: { outing_uuid: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

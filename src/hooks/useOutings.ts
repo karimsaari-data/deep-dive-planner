@@ -42,6 +42,7 @@ export interface Outing {
   created_at: string;
   is_deleted?: boolean;
   is_archived?: boolean;
+  confirmed_count?: number; // Real count from SECURITY DEFINER function
   organizer?: {
     first_name: string;
     last_name: string;
@@ -88,7 +89,19 @@ export const useOutings = (typeFilter?: OutingType | null) => {
         return endDate > now;
       }) ?? [];
       
-      return upcomingOutings as Outing[];
+      // Fetch real confirmed counts using SECURITY DEFINER function (bypasses RLS)
+      const outingsWithCounts = await Promise.all(
+        upcomingOutings.map(async (outing) => {
+          const { data: countData } = await supabase
+            .rpc('get_outing_confirmed_count', { outing_uuid: outing.id });
+          return {
+            ...outing,
+            confirmed_count: countData ?? 0,
+          };
+        })
+      );
+      
+      return outingsWithCounts as Outing[];
     },
   });
 };
