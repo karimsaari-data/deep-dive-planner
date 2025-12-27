@@ -137,6 +137,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          member_code: string | null
           member_status: Database["public"]["Enums"]["member_status"] | null
           specialty: string | null
           updated_at: string | null
@@ -149,6 +150,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          member_code?: string | null
           member_status?: Database["public"]["Enums"]["member_status"] | null
           specialty?: string | null
           updated_at?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          member_code?: string | null
           member_status?: Database["public"]["Enums"]["member_status"] | null
           specialty?: string | null
           updated_at?: string | null
