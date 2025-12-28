@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2 } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useLocations } from "@/hooks/useLocations";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -37,6 +39,8 @@ const Map = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const { data: locations, isLoading } = useLocations();
   const [mapReady, setMapReady] = useState(false);
+  const { isOrganizer } = useUserRole();
+  const navigate = useNavigate();
 
   // Filter locations with valid coordinates
   const locationsWithCoords = locations?.filter(
@@ -86,6 +90,11 @@ const Map = () => {
           ? `<img src="${location.photo_url}" alt="${location.name}" style="width: 100%; height: 80px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.style.display='none'" />`
           : `<div style="width: 100%; height: 80px; background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%); border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 12px;">📍 ${location.name}</span></div>`;
 
+        // Button for organizers to create an outing
+        const createOutingBtn = isOrganizer 
+          ? `<button id="create-outing-${location.id}" style="margin-top: 8px; width: 100%; padding: 6px 12px; background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">➕ Organiser une sortie ici</button>`
+          : "";
+
         const popupContent = `
           <div style="min-width: 200px;">
             ${photoHtml}
@@ -97,10 +106,22 @@ const Map = () => {
               <a href="/location/${location.id}" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
               ${location.maps_url ? `<a href="${location.maps_url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">📍 Itinéraire</a>` : ""}
             </div>
+            ${createOutingBtn}
           </div>
         `;
 
-        marker.bindPopup(popupContent);
+        const popup = L.popup().setContent(popupContent);
+        marker.bindPopup(popup);
+
+        // Add event listener for the create outing button
+        marker.on('popupopen', () => {
+          const btn = document.getElementById(`create-outing-${location.id}`);
+          if (btn) {
+            btn.onclick = () => {
+              navigate(`/mes-sorties?createFor=${location.id}`);
+            };
+          }
+        });
       }
     });
 
@@ -111,7 +132,7 @@ const Map = () => {
       );
       mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [locationsWithCoords, mapReady]);
+  }, [locationsWithCoords, mapReady, isOrganizer, navigate]);
 
   if (isLoading) {
     return (
@@ -160,52 +181,67 @@ const Map = () => {
                 <CardContent>
                   <div className="space-y-3 max-h-[440px] overflow-y-auto pr-2">
                     {locations?.map((location) => (
-                      <Link
+                      <div
                         key={location.id}
-                        to={`/location/${location.id}`}
-                        className="flex items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
+                        className="rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
                       >
-                        {/* Thumbnail */}
-                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                          {location.photo_url ? (
-                            <img 
-                              src={location.photo_url} 
-                              alt={location.name}
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="h-full w-full bg-gradient-to-br from-ocean-deep to-ocean-light flex items-center justify-center">
-                              {getTypeIcon(location.type)}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">
-                            {location.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {location.type && (
-                              <Badge variant="outline" className="text-xs">
-                                {location.type}
-                              </Badge>
-                            )}
-                            {location.max_depth && (
-                              <Badge variant="secondary" className="text-xs">
-                                {location.max_depth}m
-                              </Badge>
+                        <Link
+                          to={`/location/${location.id}`}
+                          className="flex items-start gap-3"
+                        >
+                          {/* Thumbnail */}
+                          <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                            {location.photo_url ? (
+                              <img 
+                                src={location.photo_url} 
+                                alt={location.name}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-full w-full bg-gradient-to-br from-ocean-deep to-ocean-light flex items-center justify-center">
+                                {getTypeIcon(location.type)}
+                              </div>
                             )}
                           </div>
-                          {!location.latitude && !location.longitude && (
-                            <p className="mt-1 text-xs text-amber-600">
-                              GPS manquant
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">
+                              {location.name}
                             </p>
-                          )}
-                        </div>
-                      </Link>
+                            <div className="flex items-center gap-2 mt-1">
+                              {location.type && (
+                                <Badge variant="outline" className="text-xs">
+                                  {location.type}
+                                </Badge>
+                              )}
+                              {location.max_depth && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {location.max_depth}m
+                                </Badge>
+                              )}
+                            </div>
+                            {!location.latitude && !location.longitude && (
+                              <p className="mt-1 text-xs text-amber-600">
+                                GPS manquant
+                              </p>
+                            )}
+                          </div>
+                        </Link>
+                        {isOrganizer && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2 text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => navigate(`/mes-sorties?createFor=${location.id}`)}
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Créer une sortie
+                          </Button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </CardContent>

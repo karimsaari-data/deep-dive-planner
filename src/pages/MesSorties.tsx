@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Loader2, Users, Calendar, Sun, Waves, Droplets, Building2, Leaf, User, Share2, Copy, Check, Plus } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
@@ -11,17 +11,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useOutings } from "@/hooks/useOutings";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocations } from "@/hooks/useLocations";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 
 const MesSorties = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { isOrganizer, loading: roleLoading } = useUserRole();
   const { data: outings, isLoading } = useOutings();
+  const { data: locations } = useLocations();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  // Check if we need to pre-fill a location
+  const prefilledLocationId = searchParams.get("createFor");
 
   const getShareLink = (outingId: string) => {
     return `${window.location.origin}/outing/${outingId}`;
@@ -47,6 +53,13 @@ const MesSorties = () => {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
+  // Auto-show form if createFor param is present
+  useEffect(() => {
+    if (prefilledLocationId) {
+      setShowForm(true);
+    }
+  }, [prefilledLocationId]);
+
   useEffect(() => {
     if (!authLoading && !roleLoading) {
       if (!user) {
@@ -56,6 +69,19 @@ const MesSorties = () => {
       }
     }
   }, [user, isOrganizer, authLoading, roleLoading, navigate]);
+
+  // Clear prefilled location after form closes
+  const handleFormClose = () => {
+    setShowForm(false);
+    if (prefilledLocationId) {
+      setSearchParams({});
+    }
+  };
+
+  // Get the prefilled location details
+  const prefilledLocation = prefilledLocationId 
+    ? locations?.find(l => l.id === prefilledLocationId)
+    : undefined;
 
   if (authLoading || roleLoading) {
     return (
@@ -104,7 +130,11 @@ const MesSorties = () => {
 
           {showForm && (
             <div className="mb-8">
-              <CreateOutingForm />
+              <CreateOutingForm 
+                prefilledLocationId={prefilledLocationId || undefined}
+                prefilledLocationName={prefilledLocation?.name}
+                onClose={handleFormClose}
+              />
             </div>
           )}
 
