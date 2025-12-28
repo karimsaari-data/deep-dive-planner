@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -34,7 +34,13 @@ const outingSchema = z.object({
 
 type OutingFormData = z.infer<typeof outingSchema>;
 
-const CreateOutingForm = () => {
+interface CreateOutingFormProps {
+  prefilledLocationId?: string;
+  prefilledLocationName?: string;
+  onClose?: () => void;
+}
+
+const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose }: CreateOutingFormProps) => {
   const { user } = useAuth();
   const createOuting = useCreateOuting();
   const { data: locations } = useLocations();
@@ -50,12 +56,20 @@ const CreateOutingForm = () => {
       description: "",
       startTime: "10:00",
       endTime: "12:00",
-      location: "",
-      location_id: "",
+      location: prefilledLocationName || "",
+      location_id: prefilledLocationId || "",
       outing_type: "Mer",
       max_participants: 10,
     },
   });
+
+  // Pre-fill location when props change
+  useEffect(() => {
+    if (prefilledLocationId && prefilledLocationName) {
+      form.setValue("location_id", prefilledLocationId);
+      form.setValue("location", prefilledLocationName);
+    }
+  }, [prefilledLocationId, prefilledLocationName, form]);
 
   const selectedLocationId = form.watch("location_id");
 
@@ -99,6 +113,7 @@ const CreateOutingForm = () => {
             setCreatedOutingId(newOuting.id);
             setShowShareDialog(true);
           }
+          onClose?.();
         },
       }
     );
