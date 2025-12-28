@@ -69,7 +69,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
         .select(`
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          location_details:locations(id, name, address, maps_url, latitude, longitude),
+          location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth),
           reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
         .eq("is_deleted", false)
@@ -117,9 +117,9 @@ export const useOuting = (outingId: string) => {
         .select(`
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          location_details:locations(id, name, address, maps_url, latitude, longitude),
+          location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth),
           reservations(
-            id, 
+            id,
             user_id, 
             status, 
             carpool_option, 

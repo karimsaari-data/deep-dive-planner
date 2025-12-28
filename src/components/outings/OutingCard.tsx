@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { format, differenceInHours } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Navigation, Trash2, Clock, Sun, CloudSun, Cloud } from "lucide-react";
+import { Link } from "react-router-dom";
+import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Outing, OutingType, useCreateReservation, useCancelReservation, CarpoolOption } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import NavigationButton from "@/components/locations/NavigationButton";
+
+// Default placeholder image
+const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&auto=format&fit=crop&q=60";
 
 const typeIcons: Record<OutingType, typeof Waves> = {
   Fosse: Building,
@@ -38,7 +43,7 @@ const typeColors: Record<OutingType, string> = {
 };
 
 interface OutingCardProps {
-  outing: Outing;
+  outing: Outing & { location_details?: { photo_url?: string | null } | null };
 }
 
 const OutingCard = ({ outing }: OutingCardProps) => {
@@ -59,7 +64,12 @@ const OutingCard = ({ outing }: OutingCardProps) => {
 
   const Icon = typeIcons[outing.outing_type];
   const WeatherIcon = weatherIcons[outing.outing_type];
-  const mapsUrl = outing.location_details?.maps_url;
+  const locationPhoto = (outing.location_details as any)?.photo_url || null;
+  const locationCoords = {
+    latitude: outing.location_details?.latitude,
+    longitude: outing.location_details?.longitude,
+    mapsUrl: outing.location_details?.maps_url,
+  };
 
   const handleRegister = () => {
     if (!user) return;
@@ -83,24 +93,30 @@ const OutingCard = ({ outing }: OutingCardProps) => {
 
   return (
     <Card className="group overflow-hidden shadow-card transition-all duration-300 hover:shadow-elevated animate-fade-in">
-      <div className={cn("h-2", typeColors[outing.outing_type])} />
+      {/* Location photo header */}
+      <div className="relative h-32 overflow-hidden">
+        <img
+          src={locationPhoto || PLACEHOLDER_IMAGE}
+          alt={displayLocation}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = PLACEHOLDER_IMAGE;
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
+        <div className={cn("absolute top-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl shadow-lg", typeColors[outing.outing_type])}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <Badge variant="secondary" className="absolute top-3 right-3 text-xs shadow-lg">
+          {outing.outing_type}
+        </Badge>
+      </div>
 
-      <CardContent className="p-5">
-        <div className="mb-4 flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl", typeColors[outing.outing_type])}>
-              <Icon className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground">{outing.title}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary" className="text-xs">
-                  {outing.outing_type}
-                </Badge>
-                <WeatherIcon className="h-4 w-4 text-primary" />
-              </div>
-            </div>
-          </div>
+      <CardContent className="p-5 -mt-6 relative">
+        <div className="mb-4">
+          <h3 className="font-semibold text-foreground text-lg">{outing.title}</h3>
         </div>
 
         {outing.description && (
@@ -129,18 +145,22 @@ const OutingCard = ({ outing }: OutingCardProps) => {
 
           <div className="flex items-center gap-2 text-muted-foreground">
             <MapPin className="h-4 w-4 text-primary" />
-            <span className="flex-1">{displayLocation}</span>
-            {mapsUrl && (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-primary hover:underline"
+            {outing.location_id ? (
+              <Link 
+                to={`/location/${outing.location_id}`} 
+                className="flex-1 hover:text-primary hover:underline transition-colors"
               >
-                <Navigation className="h-3 w-3" />
-                Itinéraire
-              </a>
+                {displayLocation}
+              </Link>
+            ) : (
+              <span className="flex-1">{displayLocation}</span>
             )}
+            <NavigationButton 
+              latitude={locationCoords.latitude}
+              longitude={locationCoords.longitude}
+              mapsUrl={locationCoords.mapsUrl}
+              variant="icon"
+            />
           </div>
 
           {outing.organizer && (

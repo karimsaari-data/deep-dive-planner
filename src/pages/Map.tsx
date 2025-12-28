@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapPin, Navigation, Waves, Droplets, Loader2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useLocations } from "@/hooks/useLocations";
 
 // Fix for default marker icons in Leaflet with Vite
@@ -81,12 +81,22 @@ const Map = () => {
         const marker = L.marker([location.latitude, location.longitude])
           .addTo(mapInstanceRef.current!);
 
+        // Create popup with photo thumbnail
+        const photoHtml = location.photo_url 
+          ? `<img src="${location.photo_url}" alt="${location.name}" style="width: 100%; height: 80px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.style.display='none'" />`
+          : `<div style="width: 100%; height: 80px; background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%); border-radius: 6px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;"><span style="color: white; font-size: 12px;">📍 ${location.name}</span></div>`;
+
         const popupContent = `
-          <div style="min-width: 180px;">
+          <div style="min-width: 200px;">
+            ${photoHtml}
             <h3 style="font-weight: 600; margin: 0 0 8px 0;">${location.name}</h3>
             ${location.type ? `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${location.type}</span>` : ""}
+            ${location.max_depth ? `<span style="background: #e0f2fe; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 4px;">Prof. ${location.max_depth}m</span>` : ""}
             ${location.address ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #64748b;">${location.address}</p>` : ""}
-            ${location.maps_url ? `<a href="${location.maps_url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; color: #0ea5e9; text-decoration: none; font-size: 14px;">📍 Itinéraire</a>` : ""}
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <a href="/location/${location.id}" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
+              ${location.maps_url ? `<a href="${location.maps_url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">📍 Itinéraire</a>` : ""}
+            </div>
           </div>
         `;
 
@@ -150,45 +160,52 @@ const Map = () => {
                 <CardContent>
                   <div className="space-y-3 max-h-[440px] overflow-y-auto pr-2">
                     {locations?.map((location) => (
-                      <div
+                      <Link
                         key={location.id}
-                        className="flex items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
+                        to={`/location/${location.id}`}
+                        className="flex items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
                       >
-                        <div className="mt-0.5">
-                          {getTypeIcon(location.type)}
+                        {/* Thumbnail */}
+                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          {location.photo_url ? (
+                            <img 
+                              src={location.photo_url} 
+                              alt={location.name}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-gradient-to-br from-ocean-deep to-ocean-light flex items-center justify-center">
+                              {getTypeIcon(location.type)}
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-foreground truncate">
                             {location.name}
                           </p>
-                          {location.type && (
-                            <Badge variant="outline" className="mt-1 text-xs">
-                              {location.type}
-                            </Badge>
-                          )}
-                          {location.address && (
-                            <p className="mt-1 text-xs text-muted-foreground truncate">
-                              {location.address}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {location.type && (
+                              <Badge variant="outline" className="text-xs">
+                                {location.type}
+                              </Badge>
+                            )}
+                            {location.max_depth && (
+                              <Badge variant="secondary" className="text-xs">
+                                {location.max_depth}m
+                              </Badge>
+                            )}
+                          </div>
                           {!location.latitude && !location.longitude && (
                             <p className="mt-1 text-xs text-amber-600">
-                              Coordonnées GPS manquantes
+                              GPS manquant
                             </p>
                           )}
                         </div>
-                        {location.maps_url && (
-                          <a
-                            href={location.maps_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Navigation className="h-4 w-4" />
-                            </Button>
-                          </a>
-                        )}
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </CardContent>
