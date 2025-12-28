@@ -19,6 +19,7 @@ import Map from "./pages/Map";
 import Weather from "./pages/Weather";
 import Equipment from "./pages/Equipment";
 import MesSorties from "./pages/MesSorties";
+import LocationDetail from "./pages/LocationDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/souvenirs" element={<Souvenirs />} />
             <Route path="/archives" element={<Archives />} />
             <Route path="/map" element={<Map />} />
+            <Route path="/location/:id" element={<LocationDetail />} />
             <Route path="/weather" element={<Weather />} />
             <Route path="/equipment" element={<Equipment />} />
             <Route path="/mes-sorties" element={<MesSorties />} />
