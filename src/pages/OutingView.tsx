@@ -43,6 +43,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
 import LocationImage from "@/components/locations/LocationImage";
+import WindyForecast from "@/components/weather/WindyForecast";
 
 
 const OutingView = () => {
@@ -244,6 +245,14 @@ const OutingView = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Windy Weather Forecast */}
+          <div className="mb-6">
+            <WindyForecast
+              latitude={locationCoords.latitude}
+              longitude={locationCoords.longitude}
+            />
+          </div>
 
           {/* Registration Card */}
           {!isPast && (
