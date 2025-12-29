@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus, Share2, Check, Copy } from "lucide-react";
+import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCreateOuting, OutingType } from "@/hooks/useOutings";
@@ -30,6 +31,7 @@ const outingSchema = z.object({
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères").max(200),
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
   max_participants: z.number().min(1).max(100),
+  is_staff_only: z.boolean().default(false),
 });
 
 type OutingFormData = z.infer<typeof outingSchema>;
@@ -60,6 +62,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       location_id: prefilledLocationId || "",
       outing_type: "Mer",
       max_participants: 10,
+      is_staff_only: false,
     },
   });
 
@@ -105,6 +108,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
         outing_type: data.outing_type as OutingType,
         max_participants: data.max_participants,
         organizer_id: user?.id,
+        is_staff_only: data.is_staff_only,
       },
       {
         onSuccess: (newOuting) => {
@@ -369,6 +373,31 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 )}
               />
             </div>
+
+            {/* Staff-only toggle */}
+            <FormField
+              control={form.control}
+              name="is_staff_only"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="flex items-center gap-2 text-base">
+                      <ShieldAlert className="h-4 w-4 text-amber-500" />
+                      Sortie réservée encadrants
+                    </FormLabel>
+                    <FormDescription>
+                      Cette sortie sera invisible pour les membres élèves
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <Button
               type="submit"
