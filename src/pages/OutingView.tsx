@@ -174,6 +174,9 @@ const OutingView = () => {
             <div className="absolute bottom-4 left-4 right-4">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <Badge variant="secondary">{outing.outing_type}</Badge>
+                {outing.is_staff_only && (
+                  <Badge className="bg-amber-500 text-white">PRIVÉ STAFF</Badge>
+                )}
                 {isPast && <Badge variant="outline" className="bg-background/80">Terminée</Badge>}
                 {isFull && !isPast && <Badge variant="destructive">Complet</Badge>}
               </div>

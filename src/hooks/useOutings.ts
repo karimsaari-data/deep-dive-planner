@@ -42,6 +42,7 @@ export interface Outing {
   created_at: string;
   is_deleted?: boolean;
   is_archived?: boolean;
+  is_staff_only?: boolean;
   confirmed_count?: number; // Real count from SECURITY DEFINER function
   organizer?: {
     first_name: string;
@@ -397,6 +398,7 @@ export const useCreateOuting = () => {
       outing_type: OutingType;
       max_participants: number;
       organizer_id?: string;
+      is_staff_only?: boolean;
     }) => {
       // Create the outing
       const { data: newOuting, error } = await supabase

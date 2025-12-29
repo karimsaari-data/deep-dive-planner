@@ -217,6 +217,7 @@ export type Database = {
           id: string
           is_archived: boolean
           is_deleted: boolean
+          is_staff_only: boolean
           location: string
           location_id: string | null
           max_participants: number
@@ -236,6 +237,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_deleted?: boolean
+          is_staff_only?: boolean
           location: string
           location_id?: string | null
           max_participants?: number
@@ -255,6 +257,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_deleted?: boolean
+          is_staff_only?: boolean
           location?: string
           location_id?: string | null
           max_participants?: number
@@ -422,6 +425,7 @@ export type Database = {
         Returns: boolean
       }
       is_encadrant_or_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "organizer" | "member"

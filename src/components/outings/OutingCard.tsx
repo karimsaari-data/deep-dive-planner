@@ -109,9 +109,16 @@ const OutingCard = ({ outing }: OutingCardProps) => {
         <div className={cn("absolute top-3 left-3 flex h-10 w-10 items-center justify-center rounded-xl shadow-lg", typeColors[outing.outing_type])}>
           <Icon className="h-5 w-5" />
         </div>
-        <Badge variant="secondary" className="absolute top-3 right-3 text-xs shadow-lg">
-          {outing.outing_type}
-        </Badge>
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          {outing.is_staff_only && (
+            <Badge className="bg-amber-500 text-white text-xs shadow-lg">
+              PRIVÉ STAFF
+            </Badge>
+          )}
+          <Badge variant="secondary" className="text-xs shadow-lg">
+            {outing.outing_type}
+          </Badge>
+        </div>
       </div>
 
       <CardContent className="p-5 -mt-6 relative">
