@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, BarChart3, Users, Image, FileText, MapIcon, CloudSun, Package } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -26,11 +26,6 @@ const Header = () => {
 
   if (isAdmin) {
     navItems.push({ to: "/admin", label: "Administration", icon: Settings });
-  }
-
-  if (isAdmin) {
-    navItems.push({ to: "/members", label: "Membres", icon: Users });
-    navItems.push({ to: "/stats", label: "Statistiques", icon: BarChart3 });
   }
 
   const isActive = (path: string) => location.pathname === path;
