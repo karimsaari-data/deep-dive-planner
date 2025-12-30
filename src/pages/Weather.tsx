@@ -12,8 +12,9 @@ import {
   Cloud,
   Sun,
   CloudRain,
-  ArrowDown,
-  Clock
+  Clock,
+  Map,
+  TableProperties
 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import WindyWeatherExplorer from "@/components/weather/WindyWeatherExplorer";
 
 // Marseille coordinates (default location)
 const LOCATIONS = [
@@ -264,6 +266,22 @@ const Weather = () => {
                 ))}
               </TabsList>
             </Tabs>
+          </div>
+
+          {/* Windy Weather Explorer - Main feature */}
+          <div className="mb-8">
+            <WindyWeatherExplorer 
+              latitude={selectedLocation.lat} 
+              longitude={selectedLocation.lon}
+              locationName={selectedLocation.name}
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-px bg-border"></div>
+            <span className="text-sm text-muted-foreground font-medium">Données Open-Meteo détaillées</span>
+            <div className="flex-1 h-px bg-border"></div>
           </div>
 
           {isLoading ? (
