@@ -20,7 +20,7 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
       zoom: 12,
       zoomControl: true,
       minZoom: 1,
-      maxZoom: 18,
+      maxZoom: 19,
     });
 
     mapRef.current = map;
@@ -29,8 +29,9 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
     const osmLayer = L.tileLayer(
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
-        attribution: '© OpenStreetMap contributors',
+        attribution: "© OpenStreetMap contributors",
         maxZoom: 19,
+        maxNativeZoom: 19,
       }
     );
 
@@ -39,8 +40,11 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
     const shomBathyLayer = L.tileLayer(
       "https://services.data.shom.fr/INSPIRE/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=RASTER_MARINE_3857_WMTS&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=3857&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
       {
-        attribution: '© SHOM - Service Hydrographique et Océanographique de la Marine',
-        maxZoom: 18,
+        attribution: "© SHOM - Service Hydrographique et Océanographique de la Marine",
+        // Many WMTS sources stop providing new tiles at some zoom levels.
+        // maxNativeZoom keeps the layer visible by upscaling tiles beyond that level.
+        maxNativeZoom: 18,
+        maxZoom: 19,
         minZoom: 1,
         opacity: 1,
       }
@@ -50,8 +54,10 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
     const gebcoLayer = L.tileLayer(
       "https://tiles.arcgis.com/tiles/C8EMgrsFcRFL6LrL/arcgis/rest/services/GEBCO_basemap_NCEI/MapServer/tile/{z}/{y}/{x}",
       {
-        attribution: '© GEBCO - General Bathymetric Chart of the Oceans',
-        maxZoom: 14,
+        attribution: "© GEBCO - General Bathymetric Chart of the Oceans",
+        // This tileset officially exposes LOD 0–10. Beyond that, we upscale.
+        maxNativeZoom: 10,
+        maxZoom: 19,
         minZoom: 0,
         opacity: 1,
       }
@@ -61,8 +67,9 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
     const esriOceanLayer = L.tileLayer(
       "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
       {
-        attribution: '© Esri, GEBCO, NOAA, National Geographic, DeLorme, NAVTEQ, Geonames.org',
-        maxZoom: 16,
+        attribution: "© Esri, GEBCO, NOAA, National Geographic, DeLorme, NAVTEQ, Geonames.org",
+        maxNativeZoom: 16,
+        maxZoom: 19,
         minZoom: 0,
         opacity: 1,
       }
@@ -72,8 +79,9 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
     const esriOceanRefLayer = L.tileLayer(
       "https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Reference/MapServer/tile/{z}/{y}/{x}",
       {
-        attribution: '',
-        maxZoom: 16,
+        attribution: "",
+        maxNativeZoom: 16,
+        maxZoom: 19,
         minZoom: 0,
         opacity: 1,
       }
@@ -83,8 +91,9 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
     const openSeaMapLayer = L.tileLayer(
       "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",
       {
-        attribution: '© OpenSeaMap contributors',
-        maxZoom: 18,
+        attribution: "© OpenSeaMap contributors",
+        maxNativeZoom: 18,
+        maxZoom: 19,
         minZoom: 1,
         opacity: 0.8,
       }
@@ -103,40 +112,9 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
       "Marques nautiques (OpenSeaMap)": openSeaMapLayer,
     };
 
-    // Keep map zoom levels within the active base-layer tile availability
-    // (prevents blank tiles / "Map data not yet available" when zooming)
-    const getLayerMaxZoom = (layer: L.Layer): number | undefined => {
-      const anyLayer = layer as any;
-      if (typeof anyLayer?.options?.maxZoom === "number") return anyLayer.options.maxZoom;
-
-      if (layer instanceof L.LayerGroup) {
-        let groupMax: number | undefined;
-        layer.eachLayer((child) => {
-          const childMax = getLayerMaxZoom(child);
-          if (typeof childMax === "number") {
-            groupMax = typeof groupMax === "number" ? Math.min(groupMax, childMax) : childMax;
-          }
-        });
-        return groupMax;
-      }
-
-      return undefined;
-    };
-
-    const applyBaseLayerZoomBounds = (baseLayer: L.Layer) => {
-      const maxZoom = getLayerMaxZoom(baseLayer);
-      if (typeof maxZoom === "number") map.setMaxZoom(maxZoom);
-    };
-
     // Add default layer (Esri Ocean with nautical marks)
-    const defaultBaseLayer = baseLayers["Carte Marine Esri"] as unknown as L.Layer;
-    defaultBaseLayer.addTo(map);
+    (baseLayers["Carte Marine Esri"] as unknown as L.Layer).addTo(map);
     openSeaMapLayer.addTo(map);
-    applyBaseLayerZoomBounds(defaultBaseLayer);
-
-    map.on("baselayerchange", (e: any) => {
-      applyBaseLayerZoomBounds(e.layer as L.Layer);
-    });
 
     // Add layer control
     L.control.layers(baseLayers, overlays, { position: "topright" }).addTo(map);
