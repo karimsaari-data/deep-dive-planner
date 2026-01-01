@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Map, TableProperties, Wind, Waves, Clock, Anchor } from "lucide-react";
+import { Map, TableProperties, Wind, Waves, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import MarineChartMap from "./MarineChartMap";
 
 interface WindyWeatherExplorerProps {
   latitude: number;
@@ -63,7 +62,7 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName }: WindyWeathe
       <CardContent className="p-0">
         <Tabs defaultValue="openmeteo" className="w-full">
           <div className="px-4 pb-2 pt-2">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="openmeteo" className="flex items-center gap-2">
                 <TableProperties className="h-4 w-4" />
                 <span className="hidden sm:inline">Prévisions 7j</span>
@@ -73,11 +72,6 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName }: WindyWeathe
                 <Map className="h-4 w-4" />
                 <span className="hidden sm:inline">Carte Météo</span>
                 <span className="sm:hidden">Météo</span>
-              </TabsTrigger>
-              <TabsTrigger value="marine" className="flex items-center gap-2">
-                <Anchor className="h-4 w-4" />
-                <span className="hidden sm:inline">Carte Marine</span>
-                <span className="sm:hidden">Marine</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -184,20 +178,6 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName }: WindyWeathe
             />
           </TabsContent>
 
-          {/* Onglet 3: Carte Marine Bathymétrique */}
-          <TabsContent value="marine" className="mt-0">
-            <div className="px-4 pb-3">
-              <p className="text-xs text-muted-foreground mb-3">
-                Fonds marins & profondeurs • Sources: GEBCO, OpenSeaMap, SHOM
-              </p>
-            </div>
-            <div className="border-t border-border">
-              <MarineChartMap 
-                latitude={latitude} 
-                longitude={longitude} 
-              />
-            </div>
-          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
