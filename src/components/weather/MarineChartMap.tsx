@@ -19,6 +19,8 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
       center: [latitude, longitude],
       zoom: 12,
       zoomControl: true,
+      minZoom: 1,
+      maxZoom: 18,
     });
 
     mapRef.current = map;
@@ -101,9 +103,40 @@ const MarineChartMap = ({ latitude, longitude }: MarineChartMapProps) => {
       "Marques nautiques (OpenSeaMap)": openSeaMapLayer,
     };
 
+    // Keep map zoom levels within the active base-layer tile availability
+    // (prevents blank tiles / "Map data not yet available" when zooming)
+    const getLayerMaxZoom = (layer: L.Layer): number | undefined => {
+      const anyLayer = layer as any;
+      if (typeof anyLayer?.options?.maxZoom === "number") return anyLayer.options.maxZoom;
+
+      if (layer instanceof L.LayerGroup) {
+        let groupMax: number | undefined;
+        layer.eachLayer((child) => {
+          const childMax = getLayerMaxZoom(child);
+          if (typeof childMax === "number") {
+            groupMax = typeof groupMax === "number" ? Math.min(groupMax, childMax) : childMax;
+          }
+        });
+        return groupMax;
+      }
+
+      return undefined;
+    };
+
+    const applyBaseLayerZoomBounds = (baseLayer: L.Layer) => {
+      const maxZoom = getLayerMaxZoom(baseLayer);
+      if (typeof maxZoom === "number") map.setMaxZoom(maxZoom);
+    };
+
     // Add default layer (Esri Ocean with nautical marks)
-    baseLayers["Carte Marine Esri"].addTo(map);
+    const defaultBaseLayer = baseLayers["Carte Marine Esri"] as unknown as L.Layer;
+    defaultBaseLayer.addTo(map);
     openSeaMapLayer.addTo(map);
+    applyBaseLayerZoomBounds(defaultBaseLayer);
+
+    map.on("baselayerchange", (e: any) => {
+      applyBaseLayerZoomBounds(e.layer as L.Layer);
+    });
 
     // Add layer control
     L.control.layers(baseLayers, overlays, { position: "topright" }).addTo(map);
