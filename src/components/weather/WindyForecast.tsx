@@ -1,12 +1,8 @@
-import { Anchor, CloudRain, Map, TableProperties, Waves, Wind } from "lucide-react";
+import { CloudRain, Map, TableProperties, Waves, Wind } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, lazy, Suspense } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-
-// Lazy load the marine chart map to avoid loading Leaflet unless needed
-const MarineChartMap = lazy(() => import("./MarineChartMap"));
 
 interface WindyForecastProps {
   latitude: number | null | undefined;
@@ -71,7 +67,7 @@ const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) 
       <CardContent className="p-0">
         <Tabs defaultValue="forecast" className="w-full">
           <div className="px-4 pb-2">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="forecast" className="flex items-center gap-2">
                 <TableProperties className="h-4 w-4" />
                 <span className="hidden sm:inline">Prévisions 7j</span>
@@ -81,11 +77,6 @@ const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) 
                 <Map className="h-4 w-4" />
                 <span className="hidden sm:inline">Carte Météo</span>
                 <span className="sm:hidden">Météo</span>
-              </TabsTrigger>
-              <TabsTrigger value="marine" className="flex items-center gap-2">
-                <Anchor className="h-4 w-4" />
-                <span className="hidden sm:inline">Carte Marine</span>
-                <span className="sm:hidden">Fonds</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -146,24 +137,6 @@ const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) 
             />
           </TabsContent>
 
-          <TabsContent value="marine" className="mt-0">
-            <div className="px-4 pb-2">
-              <p className="text-xs text-muted-foreground">
-                🗺️ Bathymétrie & profondeurs • Utilisez le sélecteur de couches pour basculer entre les cartes marines
-              </p>
-            </div>
-            <div className="border-t border-border">
-              <Suspense 
-                fallback={
-                  <div className="flex items-center justify-center h-[420px]">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                }
-              >
-                <MarineChartMap latitude={latitude} longitude={longitude} />
-              </Suspense>
-            </div>
-          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
