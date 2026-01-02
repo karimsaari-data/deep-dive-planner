@@ -20,33 +20,43 @@ const MarineChartMap = ({ latitude, longitude, siteName }: MarineChartMapProps) 
       center: [latitude, longitude],
       zoom: 12,
       minZoom: 5,
-      maxZoom: 18,
+      maxZoom: 19,
     });
 
     mapInstanceRef.current = map;
 
-    // IGN WMTS - SCAN Express Standard (data.geopf.fr - no API key required)
+    // IGN WMTS - Plan IGN v2 (Open Data, stable)
     const ignLayer = L.tileLayer(
       "https://data.geopf.fr/wmts?" +
         "SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
-        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-EXPRESS.STANDARD" +
+        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2" +
         "&STYLE=normal&TILEMATRIXSET=PM" +
         "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}" +
-        "&FORMAT=image/jpeg",
+        "&FORMAT=image/png",
       {
         attribution: '© <a href="https://geoservices.ign.fr/">IGN</a>',
-        maxZoom: 18,
-        maxNativeZoom: 16,
+        maxZoom: 19,
+        maxNativeZoom: 18,
       }
     );
 
-    // Esri Ocean Basemap (free, no API key)
+    // Esri Ocean Basemap (free, no API key) - with zoom fix
     const esriOceanLayer = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
       {
         attribution: '© <a href="https://www.esri.com/">Esri</a> Ocean Basemap',
-        maxZoom: 18,
         maxNativeZoom: 13,
+        maxZoom: 19,
+      }
+    );
+
+    // Esri World Imagery Satellite (free, no API key)
+    const esriSatelliteLayer = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: '© <a href="https://www.esri.com/">Esri</a> World Imagery',
+        maxZoom: 19,
+        maxNativeZoom: 18,
       }
     );
 
@@ -66,8 +76,9 @@ const MarineChartMap = ({ latitude, longitude, siteName }: MarineChartMapProps) 
 
     // Layer control
     const baseMaps = {
-      "Vue IGN Littoral": ignLayer,
-      "Vue Relief Sous-marin (Esri)": esriOceanLayer,
+      "Plan IGN": ignLayer,
+      "Relief Sous-marin": esriOceanLayer,
+      "Satellite": esriSatelliteLayer,
     };
 
     const overlays = {
