@@ -1,16 +1,18 @@
-import { CloudRain, Map, TableProperties, Waves, Wind } from "lucide-react";
+import { Anchor, CloudRain, Map, TableProperties, Waves, Wind } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import MarineChartMap from "./MarineChartMap";
 
 interface WindyForecastProps {
   latitude: number | null | undefined;
   longitude: number | null | undefined;
   outingDate?: string; // ISO date string of the outing
+  siteName?: string; // Name of the dive site for map marker
 }
 
-const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) => {
+const WindyForecast = ({ latitude, longitude, outingDate, siteName }: WindyForecastProps) => {
   const [mapLayer, setMapLayer] = useState<"wind" | "waves">("wind");
 
   if (!latitude || !longitude) {
@@ -67,7 +69,7 @@ const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) 
       <CardContent className="p-0">
         <Tabs defaultValue="forecast" className="w-full">
           <div className="px-4 pb-2">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="forecast" className="flex items-center gap-2">
                 <TableProperties className="h-4 w-4" />
                 <span className="hidden sm:inline">Prévisions 7j</span>
@@ -77,6 +79,11 @@ const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) 
                 <Map className="h-4 w-4" />
                 <span className="hidden sm:inline">Carte Météo</span>
                 <span className="sm:hidden">Météo</span>
+              </TabsTrigger>
+              <TabsTrigger value="marine" className="flex items-center gap-2">
+                <Anchor className="h-4 w-4" />
+                <span className="hidden sm:inline">Carte Marine</span>
+                <span className="sm:hidden">Marine</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -134,6 +141,19 @@ const WindyForecast = ({ latitude, longitude, outingDate }: WindyForecastProps) 
               style={{ minHeight: "380px", height: "420px" }}
               frameBorder="0"
               allowFullScreen
+            />
+          </TabsContent>
+
+          <TabsContent value="marine" className="mt-0">
+            <div className="px-4 pb-2">
+              <p className="text-xs text-muted-foreground">
+                🗺️ Fond IGN Littoral • Surcouche OpenSeaMap (balises, bouées, feux)
+              </p>
+            </div>
+            <MarineChartMap
+              latitude={latitude}
+              longitude={longitude}
+              siteName={siteName}
             />
           </TabsContent>
 

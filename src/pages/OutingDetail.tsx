@@ -244,6 +244,7 @@ const OutingDetail = () => {
                 latitude={outing.location_details.latitude}
                 longitude={outing.location_details.longitude}
                 outingDate={outing.date_time}
+                siteName={outing.location_details.name || outing.location}
               />
             </div>
           )}
