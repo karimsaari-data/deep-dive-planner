@@ -47,15 +47,78 @@ const Map = () => {
     (loc) => loc.latitude && loc.longitude
   ) ?? [];
 
-  // Initialize map
+  // Initialize map with marine chart layers
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    const map = L.map(mapRef.current).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
+    const map = L.map(mapRef.current, {
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      minZoom: 5,
+      maxZoom: 19,
+    });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    // IGN WMTS - Plan IGN v2 (Open Data, stable)
+    const ignLayer = L.tileLayer(
+      "https://data.geopf.fr/wmts?" +
+        "SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
+        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2" +
+        "&STYLE=normal&TILEMATRIXSET=PM" +
+        "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}" +
+        "&FORMAT=image/png",
+      {
+        attribution: '© <a href="https://geoservices.ign.fr/">IGN</a>',
+        maxZoom: 19,
+        maxNativeZoom: 18,
+      }
+    );
+
+    // Esri Ocean Basemap (free, no API key) - with zoom fix
+    const esriOceanLayer = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: '© <a href="https://www.esri.com/">Esri</a> Ocean Basemap',
+        maxNativeZoom: 13,
+        maxZoom: 19,
+      }
+    );
+
+    // Esri World Imagery Satellite (free, no API key)
+    const esriSatelliteLayer = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: '© <a href="https://www.esri.com/">Esri</a> World Imagery',
+        maxZoom: 19,
+        maxNativeZoom: 18,
+      }
+    );
+
+    // OpenSeaMap overlay (navigation marks, lighthouses)
+    const openSeaMapLayer = L.tileLayer(
+      "https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png",
+      {
+        attribution: '© <a href="https://www.openseamap.org/">OpenSeaMap</a>',
+        maxZoom: 19,
+        opacity: 0.8,
+      }
+    );
+
+    // Add default layer (Plan IGN)
+    ignLayer.addTo(map);
+    openSeaMapLayer.addTo(map);
+
+    // Layer control
+    const baseMaps = {
+      "Plan IGN": ignLayer,
+      "Relief Sous-marin": esriOceanLayer,
+      "Satellite": esriSatelliteLayer,
+    };
+
+    const overlays = {
+      "Balisage maritime (OpenSeaMap)": openSeaMapLayer,
+    };
+
+    L.control.layers(baseMaps, overlays, { position: "topright" }).addTo(map);
 
     mapInstanceRef.current = map;
     setMapReady(true);
