@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          estimated_value: number | null
           id: string
           name: string
           photo_url: string | null
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          estimated_value?: number | null
           id?: string
           name: string
           photo_url?: string | null
@@ -34,6 +36,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          estimated_value?: number | null
           id?: string
           name?: string
           photo_url?: string | null
