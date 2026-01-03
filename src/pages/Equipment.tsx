@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter, Camera, Upload, Hash } from "lucide-react";
+import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter, Camera, Upload, Hash, BarChart3, List } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
-
+import { EquipmentDetailSheet } from "@/components/equipment/EquipmentDetailSheet";
+import { EquipmentSynthesis } from "@/components/equipment/EquipmentSynthesis";
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   disponible: { label: "Disponible", variant: "default" },
   prêté: { label: "Prêté", variant: "secondary" },
@@ -117,6 +118,10 @@ const MyInventoryTab = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Detail sheet state
+  const [selectedItem, setSelectedItem] = useState<EquipmentInventoryItem | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -197,211 +202,267 @@ const MyInventoryTab = () => {
     setPhotoPreview(null);
   };
 
+  const handleItemClick = (item: EquipmentInventoryItem) => {
+    setSelectedItem(item);
+    setIsDetailOpen(true);
+  };
+
   return (
-    <Card className="shadow-card">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-primary" />
-            Mon matériel
-          </CardTitle>
-          <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) resetForm(); }}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
-              <DialogHeader className="flex-shrink-0">
-                <DialogTitle>
-                  {step === "select" 
-                    ? "Sélectionner un type de matériel" 
-                    : `Ajouter : ${selectedCatalogItem?.name}`}
-                </DialogTitle>
-              </DialogHeader>
-              
-              {step === "select" ? (
-                <div className="flex-1 overflow-y-auto">
-                  {catalogLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  ) : catalog?.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      Aucun article dans le catalogue
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3 pr-2">
-                      {catalog?.map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => handleSelectItem(item)}
-                          className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/50 transition-colors text-left"
-                        >
-                          {item.photo_url ? (
-                            <img
-                              src={item.photo_url}
-                              alt={item.name}
-                              className="h-16 w-16 rounded-md object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-16 w-16 items-center justify-center rounded-md bg-muted">
-                              <Package className="h-8 w-8 text-muted-foreground" />
-                            </div>
-                          )}
-                          <span className="text-sm font-medium text-foreground text-center line-clamp-2">
-                            {item.name}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4 flex-1 overflow-y-auto pr-2">
-                  {/* Selected item preview */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-                    {selectedCatalogItem?.photo_url ? (
-                      <img
-                        src={selectedCatalogItem.photo_url}
-                        alt={selectedCatalogItem.name}
-                        className="h-12 w-12 rounded-md object-cover"
-                      />
+    <>
+      <Card className="shadow-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              Mon matériel
+            </CardTitle>
+            <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) resetForm(); }}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogHeader className="flex-shrink-0">
+                  <DialogTitle>
+                    {step === "select" 
+                      ? "Sélectionner un type de matériel" 
+                      : `Ajouter : ${selectedCatalogItem?.name}`}
+                  </DialogTitle>
+                </DialogHeader>
+                
+                {step === "select" ? (
+                  <div className="flex-1 overflow-y-auto">
+                    {catalogLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : catalog?.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Aucun article dans le catalogue
+                      </p>
                     ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-muted">
-                        <Package className="h-6 w-6 text-muted-foreground" />
+                      <div className="grid grid-cols-2 gap-3 pr-2">
+                        {catalog?.map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => handleSelectItem(item)}
+                            className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 hover:border-primary/50 transition-colors text-left"
+                          >
+                            {item.photo_url ? (
+                              <img
+                                src={item.photo_url}
+                                alt={item.name}
+                                className="h-16 w-16 rounded-md object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-muted">
+                                <Package className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="text-sm font-medium text-foreground text-center line-clamp-2">
+                              {item.name}
+                            </span>
+                          </button>
+                        ))}
                       </div>
                     )}
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{selectedCatalogItem?.name}</p>
-                      {selectedCatalogItem?.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{selectedCatalogItem.description}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 flex-1 overflow-y-auto pr-2">
+                    {/* Selected item preview */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+                      {selectedCatalogItem?.photo_url ? (
+                        <img
+                          src={selectedCatalogItem.photo_url}
+                          alt={selectedCatalogItem.name}
+                          className="h-12 w-12 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-12 items-center justify-center rounded-md bg-muted">
+                          <Package className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{selectedCatalogItem?.name}</p>
+                        {selectedCatalogItem?.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1">{selectedCatalogItem.description}</p>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={handleBack}>
+                        Changer
+                      </Button>
+                    </div>
+
+                    {/* Photo upload */}
+                    <div className="space-y-2">
+                      <Label>Photo de votre article</Label>
+                      {photoPreview ? (
+                        <div className="relative">
+                          <img
+                            src={photoPreview}
+                            alt="Aperçu"
+                            className="w-full h-48 object-cover rounded-lg border border-border"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setPhotoFile(null);
+                              setPhotoPreview(null);
+                            }}
+                          >
+                            Supprimer
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                          />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            ref={cameraInputRef}
+                            onChange={handleFileChange}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => cameraInputRef.current?.click()}
+                          >
+                            <Camera className="mr-2 h-4 w-4" />
+                            Prendre photo
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Importer
+                          </Button>
+                        </div>
                       )}
                     </div>
-                    <Button variant="ghost" size="sm" onClick={handleBack}>
-                      Changer
-                    </Button>
-                  </div>
 
-                  {/* Photo upload */}
-                  <div className="space-y-2">
-                    <Label>Photo de votre article</Label>
-                    {photoPreview ? (
-                      <div className="relative">
-                        <img
-                          src={photoPreview}
-                          alt="Aperçu"
-                          className="w-full h-48 object-cover rounded-lg border border-border"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => {
-                            setPhotoFile(null);
-                            setPhotoPreview(null);
-                          }}
-                        >
-                          Supprimer
-                        </Button>
+                    {/* Notes/Comments */}
+                    <div className="space-y-2">
+                      <Label>Commentaires / Annotations</Label>
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="État du matériel, numéro de série, particularités..."
+                        rows={3}
+                      />
+                    </div>
+
+                    {/* Info about unique ID */}
+                    <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Hash className="h-4 w-4" />
+                        <span>Un identifiant unique sera généré automatiquement</span>
                       </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          ref={fileInputRef}
-                          onChange={handleFileChange}
-                        />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          ref={cameraInputRef}
-                          onChange={handleFileChange}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => cameraInputRef.current?.click()}
-                        >
-                          <Camera className="mr-2 h-4 w-4" />
-                          Prendre photo
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <Upload className="mr-2 h-4 w-4" />
-                          Importer
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Notes/Comments */}
-                  <div className="space-y-2">
-                    <Label>Commentaires / Annotations</Label>
-                    <Textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="État du matériel, numéro de série, particularités..."
-                      rows={3}
-                    />
-                  </div>
-
-                  {/* Info about unique ID */}
-                  <div className="rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Hash className="h-4 w-4" />
-                      <span>Un identifiant unique sera généré automatiquement</span>
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" onClick={handleBack} className="flex-1">
+                        Retour
+                      </Button>
+                      <Button 
+                        onClick={handleAdd} 
+                        className="flex-1" 
+                        disabled={addToInventory.isPending || isUploading}
+                      >
+                        {(addToInventory.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Ajouter
+                      </Button>
                     </div>
                   </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : inventory?.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              Aucun matériel dans votre inventaire
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {inventory?.map((item) => (
+                <ClickableInventoryItemCard 
+                  key={item.id} 
+                  item={item} 
+                  onClick={() => handleItemClick(item)}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button variant="outline" onClick={handleBack} className="flex-1">
-                      Retour
-                    </Button>
-                    <Button 
-                      onClick={handleAdd} 
-                      className="flex-1" 
-                      disabled={addToInventory.isPending || isUploading}
-                    >
-                      {(addToInventory.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Ajouter
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+      <EquipmentDetailSheet
+        item={selectedItem}
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+      />
+    </>
+  );
+};
+
+// Clickable card for "Mon matériel" tab
+const ClickableInventoryItemCard = ({ item, onClick }: { item: EquipmentInventoryItem; onClick: () => void }) => {
+  const status = statusLabels[item.status] || { label: item.status, variant: "outline" as const };
+  const displayPhoto = item.photo_url || item.catalog?.photo_url;
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3 hover:bg-muted/50 hover:border-primary/30 transition-colors text-left"
+    >
+      {displayPhoto ? (
+        <img
+          src={displayPhoto}
+          alt={item.catalog?.name}
+          className="h-12 w-12 rounded-md object-cover"
+        />
+      ) : (
+        <div className="flex h-12 w-12 items-center justify-center rounded-md bg-muted">
+          <Package className="h-6 w-6 text-muted-foreground" />
         </div>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : inventory?.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            Aucun matériel dans votre inventaire
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {inventory?.map((item) => (
-              <InventoryItemCard key={item.id} item={item} showActions />
-            ))}
-          </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-foreground">{item.catalog?.name}</p>
+          {item.unique_code && (
+            <Badge variant="outline" className="text-xs font-mono">
+              {item.unique_code}
+            </Badge>
+          )}
+        </div>
+        {item.notes && (
+          <p className="text-xs text-muted-foreground truncate">{item.notes}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+      <Badge variant={status.variant}>{status.label}</Badge>
+    </button>
   );
 };
 
@@ -583,11 +644,27 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
 
 const GlobalInventoryTab = () => {
   const { data: inventory, isLoading } = useGlobalEquipmentInventory();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [subTab, setSubTab] = useState<"synthesis" | "list">("synthesis");
+  const [ownerFilter, setOwnerFilter] = useState<string>("all");
+
+  // Get unique owners from inventory
+  const owners = useMemo(() => {
+    if (!inventory) return [];
+    const ownerMap = new Map<string, { id: string; name: string }>();
+    inventory.forEach((item) => {
+      if (item.owner && !ownerMap.has(item.owner.id)) {
+        ownerMap.set(item.owner.id, {
+          id: item.owner.id,
+          name: `${item.owner.first_name} ${item.owner.last_name}`,
+        });
+      }
+    });
+    return Array.from(ownerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [inventory]);
 
   const filteredInventory = inventory?.filter((item) => {
-    if (statusFilter === "all") return true;
-    return item.status === statusFilter;
+    if (ownerFilter === "all") return true;
+    return item.owner?.id === ownerFilter;
   });
 
   const exportToCsv = () => {
@@ -624,44 +701,77 @@ const GlobalInventoryTab = () => {
             <Users className="h-5 w-5 text-primary" />
             Inventaire global
           </CardTitle>
-          <div className="flex gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[150px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
-                <SelectItem value="disponible">Disponible</SelectItem>
-                <SelectItem value="prêté">Prêté</SelectItem>
-                <SelectItem value="perdu">Perdu</SelectItem>
-                <SelectItem value="cassé">Cassé</SelectItem>
-                <SelectItem value="rebuté">Rebuté</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={exportToCsv}>
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={exportToCsv}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : filteredInventory?.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            Aucun matériel trouvé
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {filteredInventory?.map((item) => (
-              <InventoryItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
+      <CardContent className="space-y-4">
+        {/* Sub-tabs */}
+        <Tabs value={subTab} onValueChange={(v) => setSubTab(v as typeof subTab)}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="synthesis" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Synthèse
+            </TabsTrigger>
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <List className="h-4 w-4" />
+              Liste détaillée
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="synthesis" className="mt-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <EquipmentSynthesis inventory={inventory || []} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="list" className="mt-4 space-y-4">
+            {/* Owner filter */}
+            <div className="flex items-center gap-2">
+              <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+                <SelectTrigger className="w-[220px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Filtrer par détenteur" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les détenteurs</SelectItem>
+                  {owners.map((owner) => (
+                    <SelectItem key={owner.id} value={owner.id}>
+                      {owner.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {ownerFilter !== "all" && (
+                <Button variant="ghost" size="sm" onClick={() => setOwnerFilter("all")}>
+                  Réinitialiser
+                </Button>
+              )}
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : filteredInventory?.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Aucun matériel trouvé
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {filteredInventory?.map((item) => (
+                  <InventoryItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
