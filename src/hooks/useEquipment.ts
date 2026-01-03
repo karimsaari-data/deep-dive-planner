@@ -8,6 +8,7 @@ export interface EquipmentCatalogItem {
   name: string;
   description: string | null;
   photo_url: string | null;
+  estimated_value: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,7 +68,7 @@ export const useCreateCatalogItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (item: { name: string; description?: string; photo_url?: string }) => {
+    mutationFn: async (item: { name: string; description?: string; photo_url?: string; estimated_value?: number }) => {
       const { data, error } = await supabase
         .from("equipment_catalog")
         .insert(item)
@@ -91,10 +92,10 @@ export const useUpdateCatalogItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, name, description, photo_url }: { id: string; name: string; description?: string; photo_url?: string }) => {
+    mutationFn: async ({ id, name, description, photo_url, estimated_value }: { id: string; name: string; description?: string; photo_url?: string; estimated_value?: number }) => {
       const { data, error } = await supabase
         .from("equipment_catalog")
-        .update({ name, description, photo_url })
+        .update({ name, description, photo_url, estimated_value })
         .eq("id", id)
         .select()
         .single();

@@ -20,12 +20,14 @@ const EquipmentCatalogManager = () => {
   const [editingItem, setEditingItem] = useState<EquipmentCatalogItem | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [estimatedValue, setEstimatedValue] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   const resetForm = () => {
     setName("");
     setDescription("");
+    setEstimatedValue("");
     setPhotoFile(null);
     setEditingItem(null);
   };
@@ -39,6 +41,7 @@ const EquipmentCatalogManager = () => {
     setEditingItem(item);
     setName(item.name);
     setDescription(item.description || "");
+    setEstimatedValue(item.estimated_value?.toString() || "");
     setPhotoFile(null);
     setIsOpen(true);
   };
@@ -78,6 +81,8 @@ const EquipmentCatalogManager = () => {
       setUploading(false);
     }
 
+    const parsedValue = estimatedValue ? parseFloat(estimatedValue) : undefined;
+
     if (editingItem) {
       // Update existing item
       updateItem.mutate(
@@ -86,6 +91,7 @@ const EquipmentCatalogManager = () => {
           name: name.trim(),
           description: description.trim() || undefined,
           photo_url: photo_url || editingItem.photo_url || undefined,
+          estimated_value: parsedValue,
         },
         {
           onSuccess: () => {
@@ -96,7 +102,7 @@ const EquipmentCatalogManager = () => {
     } else {
       // Create new item
       createItem.mutate(
-        { name: name.trim(), description: description.trim() || undefined, photo_url },
+        { name: name.trim(), description: description.trim() || undefined, photo_url, estimated_value: parsedValue },
         {
           onSuccess: () => {
             handleClose();
@@ -148,6 +154,18 @@ const EquipmentCatalogManager = () => {
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Description optionnelle..."
                     rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estimatedValue">Valeur unitaire estimée (€)</Label>
+                  <Input
+                    id="estimatedValue"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={estimatedValue}
+                    onChange={(e) => setEstimatedValue(e.target.value)}
+                    placeholder="Ex: 25.00"
                   />
                 </div>
                 <div className="space-y-2">
