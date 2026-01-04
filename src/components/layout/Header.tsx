@@ -15,11 +15,11 @@ const Header = () => {
     { to: "/reservations", label: "Mes Réservations", icon: Calendar },
     { to: "/souvenirs", label: "Souvenirs", icon: Image },
     { to: "/map", label: "Carte", icon: MapIcon },
+    { to: "/weather", label: "Météo", icon: CloudSun },
   ];
 
   if (isOrganizer) {
     navItems.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
-    navItems.push({ to: "/weather", label: "Météo", icon: CloudSun });
     navItems.push({ to: "/equipment", label: "Matériel", icon: Package });
     navItems.push({ to: "/archives", label: "Archives", icon: FileText });
   }

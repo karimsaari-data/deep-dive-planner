@@ -1,14 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2, Plus } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocations } from "@/hooks/useLocations";
+import { useLocations, Location } from "@/hooks/useLocations";
 import { useUserRole } from "@/hooks/useUserRole";
+import { toast } from "sonner";
+
+// Haversine formula to calculate distance between two GPS points (in km)
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -37,8 +51,11 @@ const getTypeIcon = (type: string | null) => {
 const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const { data: locations, isLoading } = useLocations();
   const [mapReady, setMapReady] = useState(false);
+  const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
 
@@ -46,6 +63,82 @@ const Map = () => {
   const locationsWithCoords = locations?.filter(
     (loc) => loc.latitude && loc.longitude
   ) ?? [];
+
+  // Sort locations by distance from user
+  const sortedLocations = useMemo(() => {
+    if (!locations) return [];
+    if (!userPosition) return locations;
+    
+    return [...locations].sort((a, b) => {
+      if (!a.latitude || !a.longitude) return 1;
+      if (!b.latitude || !b.longitude) return -1;
+      
+      const distA = calculateDistance(userPosition.lat, userPosition.lon, a.latitude, a.longitude);
+      const distB = calculateDistance(userPosition.lat, userPosition.lon, b.latitude, b.longitude);
+      return distA - distB;
+    });
+  }, [locations, userPosition]);
+
+  // Get user position on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserPosition({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.log("Geolocation not available:", error.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, []);
+
+  // Function to center map on user position
+  const centerOnUser = () => {
+    if (!navigator.geolocation) {
+      toast.error("La géolocalisation n'est pas disponible sur cet appareil");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserPosition({ lat: latitude, lon: longitude });
+        
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([latitude, longitude], 14);
+          
+          // Add or update user marker
+          if (userMarkerRef.current) {
+            userMarkerRef.current.setLatLng([latitude, longitude]);
+          } else {
+            const userIcon = L.divIcon({
+              className: 'user-location-marker',
+              html: `<div style="width: 20px; height: 20px; background: #3b82f6; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>`,
+              iconSize: [20, 20],
+              iconAnchor: [10, 10],
+            });
+            userMarkerRef.current = L.marker([latitude, longitude], { icon: userIcon })
+              .addTo(mapInstanceRef.current)
+              .bindPopup("📍 Vous êtes ici");
+          }
+        }
+        
+        toast.success("Position trouvée");
+        setIsLocating(false);
+      },
+      (error) => {
+        toast.error("Impossible de récupérer votre position");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   // Initialize map with marine chart layers
   useEffect(() => {
@@ -120,13 +213,26 @@ const Map = () => {
 
     L.control.layers(baseMaps, overlays, { position: "topright" }).addTo(map);
 
+    // Add scale control
+    L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(map);
+
     mapInstanceRef.current = map;
     setMapReady(true);
+
+    // Fix for gray/white screen on first load - force resize after mount
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 150);
 
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
+      }
+      if (userMarkerRef.current) {
+        userMarkerRef.current = null;
       }
     };
   }, []);
@@ -221,13 +327,28 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
             <div className="lg:col-span-2">
-              <Card className="overflow-hidden shadow-card">
+              <Card className="overflow-hidden shadow-card relative">
                 <CardContent className="p-0">
                   <div 
                     ref={mapRef} 
                     className="h-[500px] w-full"
                     style={{ zIndex: 0 }}
                   />
+                  {/* Geolocation button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-20 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                    onClick={centerOnUser}
+                    disabled={isLocating}
+                    title="Ma position"
+                  >
+                    {isLocating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Crosshair className="h-4 w-4 text-primary" />
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -243,69 +364,82 @@ const Map = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-[440px] overflow-y-auto pr-2">
-                    {locations?.map((location) => (
-                      <div
-                        key={location.id}
-                        className="rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
-                      >
-                        <Link
-                          to={`/location/${location.id}`}
-                          className="flex items-start gap-3"
+                    {sortedLocations.map((location) => {
+                      const distance = userPosition && location.latitude && location.longitude
+                        ? calculateDistance(userPosition.lat, userPosition.lon, location.latitude, location.longitude)
+                        : null;
+                      
+                      return (
+                        <div
+                          key={location.id}
+                          className="rounded-lg border border-border p-3 transition-colors hover:bg-muted/50 hover:border-primary/30"
                         >
-                          {/* Thumbnail */}
-                          <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                            {location.photo_url ? (
-                              <img 
-                                src={location.photo_url} 
-                                alt={location.name}
-                                className="h-full w-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <div className="h-full w-full bg-gradient-to-br from-ocean-deep to-ocean-light flex items-center justify-center">
-                                {getTypeIcon(location.type)}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">
-                              {location.name}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {location.type && (
-                                <Badge variant="outline" className="text-xs">
-                                  {location.type}
-                                </Badge>
-                              )}
-                              {location.max_depth && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {location.max_depth}m
-                                </Badge>
+                          <Link
+                            to={`/location/${location.id}`}
+                            className="flex items-start gap-3"
+                          >
+                            {/* Thumbnail */}
+                            <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                              {location.photo_url ? (
+                                <img 
+                                  src={location.photo_url} 
+                                  alt={location.name}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-gradient-to-br from-ocean-deep to-ocean-light flex items-center justify-center">
+                                  {getTypeIcon(location.type)}
+                                </div>
                               )}
                             </div>
-                            {!location.latitude && !location.longitude && (
-                              <p className="mt-1 text-xs text-amber-600">
-                                GPS manquant
-                              </p>
-                            )}
-                          </div>
-                        </Link>
-                        {isOrganizer && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="w-full mt-2 text-primary hover:text-primary hover:bg-primary/10"
-                            onClick={() => navigate(`/mes-sorties?createFor=${location.id}`)}
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Créer une sortie
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium text-foreground truncate">
+                                  {location.name}
+                                </p>
+                                {distance !== null && (
+                                  <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                                    📍 {distance < 1 ? `${(distance * 1000).toFixed(0)} m` : `${distance.toFixed(1)} km`}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                {location.type && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {location.type}
+                                  </Badge>
+                                )}
+                                {location.max_depth && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {location.max_depth}m
+                                  </Badge>
+                                )}
+                              </div>
+                              {!location.latitude && !location.longitude && (
+                                <p className="mt-1 text-xs text-amber-600">
+                                  GPS manquant
+                                </p>
+                              )}
+                            </div>
+                          </Link>
+                          {isOrganizer && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full mt-2 text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => navigate(`/mes-sorties?createFor=${location.id}`)}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Créer une sortie
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
