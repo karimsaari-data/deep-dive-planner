@@ -4,6 +4,7 @@ import { Loader2, BarChart3 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import LocationManager from "@/components/admin/LocationManager";
 import MemberManager from "@/components/admin/MemberManager";
+import ClubMembersDirectory from "@/components/admin/ClubMembersDirectory";
 import EquipmentCatalogManager from "@/components/admin/EquipmentCatalogManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -55,7 +56,8 @@ const Admin = () => {
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="locations">Lieux</TabsTrigger>
               <TabsTrigger value="catalog">Catalogue Matériel</TabsTrigger>
-              <TabsTrigger value="members">Membres</TabsTrigger>
+              <TabsTrigger value="directory">Fichier Adhérents</TabsTrigger>
+              <TabsTrigger value="accounts">Comptes App</TabsTrigger>
               <TabsTrigger value="stats">Statistiques</TabsTrigger>
             </TabsList>
 
@@ -67,7 +69,11 @@ const Admin = () => {
               <EquipmentCatalogManager />
             </TabsContent>
 
-            <TabsContent value="members">
+            <TabsContent value="directory">
+              <ClubMembersDirectory />
+            </TabsContent>
+
+            <TabsContent value="accounts">
               <MemberManager />
             </TabsContent>
 

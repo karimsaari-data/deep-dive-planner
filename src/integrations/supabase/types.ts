@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      club_members_directory: {
+        Row: {
+          address: string | null
+          apnea_level: string | null
+          birth_date: string | null
+          created_at: string
+          email: string
+          emergency_contact: string | null
+          first_name: string
+          id: string
+          joined_at: string | null
+          last_name: string
+          member_id: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          apnea_level?: string | null
+          birth_date?: string | null
+          created_at?: string
+          email: string
+          emergency_contact?: string | null
+          first_name: string
+          id?: string
+          joined_at?: string | null
+          last_name: string
+          member_id: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          apnea_level?: string | null
+          birth_date?: string | null
+          created_at?: string
+          email?: string
+          emergency_contact?: string | null
+          first_name?: string
+          id?: string
+          joined_at?: string | null
+          last_name?: string
+          member_id?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       equipment_catalog: {
         Row: {
           created_at: string

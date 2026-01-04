@@ -124,8 +124,9 @@ const MemberManager = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
-          Gestion des membres
+          Comptes App
         </CardTitle>
+        <p className="text-sm text-muted-foreground">Gestion des utilisateurs inscrits et de leurs rôles</p>
       </CardHeader>
       <CardContent>
         <div className="mb-4">
