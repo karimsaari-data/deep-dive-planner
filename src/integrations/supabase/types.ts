@@ -21,8 +21,10 @@ export type Database = {
           birth_date: string | null
           created_at: string
           email: string
-          emergency_contact: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
           first_name: string
+          gender: string | null
           id: string
           joined_at: string | null
           last_name: string
@@ -37,8 +39,10 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           email: string
-          emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           first_name: string
+          gender?: string | null
           id?: string
           joined_at?: string | null
           last_name: string
@@ -53,8 +57,10 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           email?: string
-          emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
           first_name?: string
+          gender?: string | null
           id?: string
           joined_at?: string | null
           last_name?: string

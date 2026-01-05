@@ -208,6 +208,94 @@ const Stats = () => {
     enabled: isAdmin,
   });
 
+  // Fetch demographics data from club_members_directory
+  const { data: demographicsData, isLoading: demographicsLoading } = useQuery({
+    queryKey: ["demographics"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("club_members_directory")
+        .select("birth_date, gender, joined_at");
+
+      if (error) throw error;
+
+      // Calculate age distribution
+      const now = new Date();
+      const ageRanges = {
+        "18-25": 0,
+        "26-35": 0,
+        "36-45": 0,
+        "46-55": 0,
+        "56-65": 0,
+        "65+": 0,
+      };
+
+      const genderCount = {
+        "Homme": 0,
+        "Femme": 0,
+        "Autre": 0,
+        "Non renseigné": 0,
+      };
+
+      let totalAge = 0;
+      let ageCount = 0;
+      let totalSeniority = 0;
+      let seniorityCount = 0;
+
+      data?.forEach((member) => {
+        // Age calculation
+        if (member.birth_date) {
+          const birthDate = new Date(member.birth_date);
+          const age = Math.floor((now.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+          totalAge += age;
+          ageCount++;
+
+          if (age >= 18 && age <= 25) ageRanges["18-25"]++;
+          else if (age <= 35) ageRanges["26-35"]++;
+          else if (age <= 45) ageRanges["36-45"]++;
+          else if (age <= 55) ageRanges["46-55"]++;
+          else if (age <= 65) ageRanges["56-65"]++;
+          else ageRanges["65+"]++;
+        }
+
+        // Gender count
+        if (member.gender) {
+          if (member.gender in genderCount) {
+            genderCount[member.gender as keyof typeof genderCount]++;
+          } else {
+            genderCount["Autre"]++;
+          }
+        } else {
+          genderCount["Non renseigné"]++;
+        }
+
+        // Seniority calculation
+        if (member.joined_at) {
+          const joinedDate = new Date(member.joined_at);
+          const years = (now.getTime() - joinedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+          totalSeniority += years;
+          seniorityCount++;
+        }
+      });
+
+      const ageData = Object.entries(ageRanges)
+        .map(([range, count]) => ({ name: range, value: count }))
+        .filter(d => d.value > 0);
+
+      const genderData = Object.entries(genderCount)
+        .map(([gender, count]) => ({ name: gender, value: count }))
+        .filter(d => d.value > 0);
+
+      return {
+        totalMembers: data?.length || 0,
+        averageAge: ageCount > 0 ? Math.round(totalAge / ageCount) : 0,
+        averageSeniority: seniorityCount > 0 ? Math.round(totalSeniority / seniorityCount * 10) / 10 : 0,
+        ageData,
+        genderData,
+      };
+    },
+    enabled: isAdmin,
+  });
+
   useEffect(() => {
     if (!authLoading && !roleLoading) {
       if (!user) {
@@ -258,8 +346,9 @@ const Stats = () => {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
+              <TabsTrigger value="demographics">Démographie</TabsTrigger>
               <TabsTrigger value="members">Participation</TabsTrigger>
               <TabsTrigger value="organizers">Encadrants</TabsTrigger>
             </TabsList>
@@ -486,6 +575,153 @@ const Stats = () => {
                       </CardContent>
                     </Card>
                   )}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Demographics Tab */}
+            <TabsContent value="demographics">
+              {demographicsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Demographics KPIs */}
+                  <div className="grid gap-6 sm:grid-cols-3">
+                    <Card className="shadow-card">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                          <Users className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total adhérents</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {demographicsData?.totalMembers ?? 0}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="shadow-card">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
+                          <Calendar className="h-6 w-6 text-accent" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Âge moyen</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {demographicsData?.averageAge ?? 0} ans
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="shadow-card">
+                      <CardContent className="flex items-center gap-4 p-6">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
+                          <TrendingUp className="h-6 w-6 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Ancienneté moyenne</p>
+                          <p className="text-2xl font-bold text-foreground">
+                            {demographicsData?.averageSeniority ?? 0} ans
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Charts */}
+                  <div className="grid gap-8 lg:grid-cols-2">
+                    {/* Age Pyramid */}
+                    <Card className="shadow-card">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5 text-primary" />
+                          Pyramide des âges
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {demographicsData?.ageData?.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-8">Aucune donnée d'âge</p>
+                        ) : (
+                          <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={demographicsData?.ageData ?? []} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
+                                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" width={60} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "hsl(var(--card))",
+                                    border: "1px solid hsl(var(--border))",
+                                    borderRadius: "8px",
+                                  }}
+                                  formatter={(value: number) => [`${value} adhérents`, "Nombre"]}
+                                />
+                                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Gender Parity Pie Chart */}
+                    <Card className="shadow-card">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-primary" />
+                          Parité (Mixité)
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {demographicsData?.genderData?.length === 0 ? (
+                          <p className="text-center text-muted-foreground py-8">Aucune donnée de genre</p>
+                        ) : (
+                          <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={demographicsData?.genderData ?? []}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={60}
+                                  outerRadius={100}
+                                  paddingAngle={5}
+                                  dataKey="value"
+                                  label={({ name, percent }) =>
+                                    `${name} (${(percent * 100).toFixed(0)}%)`
+                                  }
+                                >
+                                  {demographicsData?.genderData?.map((entry, index) => (
+                                    <Cell
+                                      key={`cell-${index}`}
+                                      fill={
+                                        entry.name === "Homme" ? "#0284c7" :
+                                        entry.name === "Femme" ? "#ec4899" :
+                                        entry.name === "Autre" ? "#8b5cf6" :
+                                        "#94a3b8"
+                                      }
+                                    />
+                                  ))}
+                                </Pie>
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "hsl(var(--card))",
+                                    border: "1px solid hsl(var(--border))",
+                                    borderRadius: "8px",
+                                  }}
+                                  formatter={(value: number) => [`${value} adhérents`, "Nombre"]}
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               )}
             </TabsContent>

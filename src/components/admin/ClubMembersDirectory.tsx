@@ -9,7 +9,6 @@ import {
   Edit,
   Mail,
   Check,
-  X,
   Loader2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -34,6 +33,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -46,7 +52,25 @@ import {
 import { toast } from "sonner";
 import { useClubMembersDirectory, ClubMember, ClubMemberInsert } from "@/hooks/useClubMembersDirectory";
 import { format } from "date-fns";
-import { fr } from "date-fns/locale";
+
+const GENDER_OPTIONS = ["Homme", "Femme", "Autre"];
+
+// Parse emergency contact string into name and phone
+const parseEmergencyContact = (contact: string): { name: string; phone: string } => {
+  if (!contact) return { name: "", phone: "" };
+  
+  // Regex to extract phone number (sequence of digits possibly separated by spaces, dots, or dashes)
+  const phoneRegex = /(\d[\d\s.\-]+\d)/;
+  const phoneMatch = contact.match(phoneRegex);
+  
+  if (phoneMatch) {
+    const phone = phoneMatch[1].replace(/[\s.\-]/g, ""); // Clean phone number
+    const name = contact.replace(phoneMatch[0], "").trim();
+    return { name, phone };
+  }
+  
+  return { name: contact, phone: "" };
+};
 
 const ClubMembersDirectory = () => {
   const {
@@ -75,7 +99,9 @@ const ClubMembersDirectory = () => {
     address: "",
     apnea_level: "",
     joined_at: "",
-    emergency_contact: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    gender: "",
     notes: "",
   });
 
@@ -89,7 +115,9 @@ const ClubMembersDirectory = () => {
       address: "",
       apnea_level: "",
       joined_at: "",
-      emergency_contact: "",
+      emergency_contact_name: "",
+      emergency_contact_phone: "",
+      gender: "",
       notes: "",
     });
     setEditingMember(null);
@@ -111,7 +139,9 @@ const ClubMembersDirectory = () => {
       address: member.address || "",
       apnea_level: member.apnea_level || "",
       joined_at: member.joined_at || "",
-      emergency_contact: member.emergency_contact || "",
+      emergency_contact_name: member.emergency_contact_name || "",
+      emergency_contact_phone: member.emergency_contact_phone || "",
+      gender: member.gender || "",
       notes: member.notes || "",
     });
     setIsFormOpen(true);
@@ -148,7 +178,7 @@ const ClubMembersDirectory = () => {
     setDeleteConfirm(null);
   };
 
-  // CSV Export
+  // CSV Export with new columns
   const exportCSV = () => {
     if (!members?.length) {
       toast.error("Aucun adhérent à exporter");
@@ -165,7 +195,9 @@ const ClubMembersDirectory = () => {
       "Adresse",
       "Niveau Apnée",
       "Date Arrivée",
-      "Contact Urgence",
+      "Genre",
+      "Contact Urgence - Nom",
+      "Contact Urgence - Tel",
       "Notes",
     ];
 
@@ -179,7 +211,9 @@ const ClubMembersDirectory = () => {
       m.address || "",
       m.apnea_level || "",
       m.joined_at || "",
-      m.emergency_contact || "",
+      m.gender || "",
+      m.emergency_contact_name || "",
+      m.emergency_contact_phone || "",
       m.notes || "",
     ]);
 
@@ -198,7 +232,7 @@ const ClubMembersDirectory = () => {
     toast.success("Export CSV réussi");
   };
 
-  // CSV Import
+  // CSV Import with intelligent parsing
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -221,31 +255,93 @@ const ClubMembersDirectory = () => {
           return;
         }
 
-        // Skip header row
+        // Parse header to find column indices
+        const headerLine = lines[0];
+        const headers = headerLine.match(/(".*?"|[^";]+)(?=\s*;|\s*$)/g)?.map(h => 
+          h.replace(/^"|"$/g, "").toLowerCase().trim()
+        ) || [];
+
+        // Find column indices
+        const getColIndex = (names: string[]) => {
+          for (const name of names) {
+            const idx = headers.findIndex(h => h.includes(name));
+            if (idx !== -1) return idx;
+          }
+          return -1;
+        };
+
+        const colMap = {
+          firstName: getColIndex(["prénom", "prenom", "first"]),
+          lastName: getColIndex(["nom", "last"]),
+          email: getColIndex(["email", "mail"]),
+          phone: getColIndex(["téléphone", "telephone", "phone", "tel"]),
+          birthDate: getColIndex(["naissance", "birth"]),
+          address: getColIndex(["adresse", "address"]),
+          apneaLevel: getColIndex(["niveau", "level", "apnée", "apnee"]),
+          joinedAt: getColIndex(["arrivée", "arrivee", "joined", "inscription"]),
+          gender: getColIndex(["genre", "gender", "sexe"]),
+          emergencyContact: getColIndex(["urgence", "emergency"]),
+          emergencyName: getColIndex(["urgence - nom", "contact urgence - nom"]),
+          emergencyPhone: getColIndex(["urgence - tel", "contact urgence - tel"]),
+          notes: getColIndex(["notes", "remarques", "commentaires"]),
+        };
+
         const dataRows = lines.slice(1);
         let created = 0;
         let updated = 0;
         let errors = 0;
 
         for (const line of dataRows) {
-          // Parse CSV line (handle quoted values with semicolons)
           const values = line.match(/(".*?"|[^";]+)(?=\s*;|\s*$)/g)?.map(v => 
             v.replace(/^"|"$/g, "").replace(/""/g, '"').trim()
           ) || [];
 
-          if (values.length < 4) continue; // Need at least first_name, last_name, email
+          if (values.length < 3) continue;
+
+          // Get values, skipping member_id if present
+          const hasId = headers[0]?.includes("id");
+          const offset = hasId ? 1 : 0;
+
+          const getValue = (idx: number) => {
+            if (idx === -1) return null;
+            return values[idx] || null;
+          };
+
+          // Parse emergency contact if combined column exists
+          let emergencyName = getValue(colMap.emergencyName);
+          let emergencyPhone = getValue(colMap.emergencyPhone);
+          
+          if (!emergencyName && !emergencyPhone && colMap.emergencyContact !== -1) {
+            const combined = getValue(colMap.emergencyContact);
+            if (combined) {
+              const parsed = parseEmergencyContact(combined);
+              emergencyName = parsed.name || null;
+              emergencyPhone = parsed.phone || null;
+            }
+          }
+
+          // Clean phone number
+          if (emergencyPhone) {
+            emergencyPhone = emergencyPhone.replace(/[\s.\-]/g, "");
+          }
+
+          const firstName = getValue(colMap.firstName) || values[offset] || "";
+          const lastName = getValue(colMap.lastName) || values[offset + 1] || "";
+          const email = getValue(colMap.email) || values[offset + 2] || "";
 
           const memberData: ClubMemberInsert = {
-            first_name: values[1] || values[0], // Skip member_id if present
-            last_name: values[2] || values[1],
-            email: values[3] || values[2],
-            phone: values[4] || null,
-            birth_date: values[5] || null,
-            address: values[6] || null,
-            apnea_level: values[7] || null,
-            joined_at: values[8] || null,
-            emergency_contact: values[9] || null,
-            notes: values[10] || null,
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            phone: getValue(colMap.phone),
+            birth_date: getValue(colMap.birthDate),
+            address: getValue(colMap.address),
+            apnea_level: getValue(colMap.apneaLevel),
+            joined_at: getValue(colMap.joinedAt),
+            gender: getValue(colMap.gender),
+            emergency_contact_name: emergencyName,
+            emergency_contact_phone: emergencyPhone,
+            notes: getValue(colMap.notes),
           };
 
           // Validate email
@@ -498,6 +594,33 @@ const ClubMembersDirectory = () => {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="gender">Genre</Label>
+                  <Select 
+                    value={formData.gender || ""} 
+                    onValueChange={(v) => setFormData({ ...formData, gender: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {GENDER_OPTIONS.map((g) => (
+                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="apnea_level">Niveau Apnée</Label>
+                  <Input
+                    id="apnea_level"
+                    value={formData.apnea_level || ""}
+                    onChange={(e) => setFormData({ ...formData, apnea_level: e.target.value })}
+                    placeholder="ex: A2, A3..."
+                  />
+                </div>
+              </div>
               <div>
                 <Label htmlFor="address">Adresse</Label>
                 <Input
@@ -507,34 +630,34 @@ const ClubMembersDirectory = () => {
                   placeholder="Adresse complète"
                 />
               </div>
+              <div>
+                <Label htmlFor="joined_at">Date d'arrivée</Label>
+                <Input
+                  id="joined_at"
+                  type="date"
+                  value={formData.joined_at || ""}
+                  onChange={(e) => setFormData({ ...formData, joined_at: e.target.value })}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label htmlFor="apnea_level">Niveau Apnée</Label>
+                  <Label htmlFor="emergency_contact_name">Contact urgence - Nom</Label>
                   <Input
-                    id="apnea_level"
-                    value={formData.apnea_level || ""}
-                    onChange={(e) => setFormData({ ...formData, apnea_level: e.target.value })}
-                    placeholder="ex: A2, A3, Initiateur..."
+                    id="emergency_contact_name"
+                    value={formData.emergency_contact_name || ""}
+                    onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+                    placeholder="Nom du contact"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="joined_at">Date d'arrivée</Label>
+                  <Label htmlFor="emergency_contact_phone">Contact urgence - Tél</Label>
                   <Input
-                    id="joined_at"
-                    type="date"
-                    value={formData.joined_at || ""}
-                    onChange={(e) => setFormData({ ...formData, joined_at: e.target.value })}
+                    id="emergency_contact_phone"
+                    value={formData.emergency_contact_phone || ""}
+                    onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                    placeholder="06..."
                   />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="emergency_contact">Contact d'urgence</Label>
-                <Input
-                  id="emergency_contact"
-                  value={formData.emergency_contact || ""}
-                  onChange={(e) => setFormData({ ...formData, emergency_contact: e.target.value })}
-                  placeholder="Nom et téléphone"
-                />
               </div>
               <div>
                 <Label htmlFor="notes">Notes</Label>
