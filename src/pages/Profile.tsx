@@ -4,36 +4,29 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save, Upload, Camera } from "lucide-react";
+import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfileDirectory } from "@/hooks/useProfileDirectory";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const APNEA_LEVELS = [
-  "AIDA 1",
-  "AIDA 2",
-  "AIDA 3",
-  "AIDA 4",
-  "Initiateur",
-  "MEF1",
-  "MEF2",
-  "BPJEPS",
-  "DEJEPS",
-  "FSGT EA2",
-];
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const profileSchema = z.object({
   first_name: z.string().min(2, "Le prénom doit faire au moins 2 caractères").max(50),
   last_name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(50),
-  apnea_level: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  emergency_contact_name: z.string().optional(),
+  emergency_contact_phone: z.string().optional(),
 });
 
 type ProfileData = z.infer<typeof profileSchema>;
@@ -45,7 +38,8 @@ const Profile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
-  const { data: profile, isLoading } = useQuery({
+  // Fetch app profile
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -61,39 +55,58 @@ const Profile = () => {
     enabled: !!user,
   });
 
+  // Fetch directory profile (club_members_directory)
+  const { directoryProfile, isLoading: directoryLoading, updateDirectoryProfile } = useProfileDirectory(user?.email);
+
   const form = useForm<ProfileData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       first_name: "",
       last_name: "",
-      apnea_level: "",
+      phone: "",
+      address: "",
+      emergency_contact_name: "",
+      emergency_contact_phone: "",
     },
   });
 
   useEffect(() => {
-    if (profile) {
+    if (profile || directoryProfile) {
       form.reset({
-        first_name: profile.first_name ?? "",
-        last_name: profile.last_name ?? "",
-        apnea_level: profile.apnea_level ?? "",
+        first_name: profile?.first_name ?? directoryProfile?.first_name ?? "",
+        last_name: profile?.last_name ?? directoryProfile?.last_name ?? "",
+        phone: directoryProfile?.phone ?? "",
+        address: directoryProfile?.address ?? "",
+        emergency_contact_name: directoryProfile?.emergency_contact_name ?? "",
+        emergency_contact_phone: directoryProfile?.emergency_contact_phone ?? "",
       });
     }
-  }, [profile, form]);
+  }, [profile, directoryProfile, form]);
 
   const updateProfile = useMutation({
     mutationFn: async (data: ProfileData) => {
       if (!user) throw new Error("Non connecté");
 
-      const { error } = await supabase
+      // Update app profile (names only)
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           first_name: data.first_name,
           last_name: data.last_name,
-          apnea_level: data.apnea_level || null,
         })
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update directory profile if exists
+      if (directoryProfile) {
+        await updateDirectoryProfile.mutateAsync({
+          phone: data.phone || null,
+          address: data.address || null,
+          emergency_contact_name: data.emergency_contact_name || null,
+          emergency_contact_phone: data.emergency_contact_phone || null,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
@@ -108,13 +121,11 @@ const Profile = () => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast.error("Veuillez sélectionner une image");
       return;
     }
 
-    // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast.error("L'image doit faire moins de 2MB");
       return;
@@ -125,19 +136,16 @@ const Profile = () => {
       const fileExt = file.name.split(".").pop();
       const filePath = `${user.id}/avatar.${fileExt}`;
 
-      // Upload to storage
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
 
-      // Update profile with avatar URL
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: urlData.publicUrl })
@@ -160,7 +168,7 @@ const Profile = () => {
     }
   }, [user, authLoading, navigate]);
 
-  if (authLoading || isLoading) {
+  if (authLoading || profileLoading || directoryLoading) {
     return (
       <Layout>
         <div className="flex min-h-[50vh] items-center justify-center">
@@ -173,6 +181,15 @@ const Profile = () => {
   const initials = profile
     ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}`
     : "?";
+
+  const formatBirthDate = (date: string | null) => {
+    if (!date) return "-";
+    try {
+      return format(new Date(date), "d MMMM yyyy", { locale: fr });
+    } catch {
+      return date;
+    }
+  };
 
   return (
     <Layout>
@@ -219,7 +236,12 @@ const Profile = () => {
 
                 {/* Member Code & Status Badges */}
                 <div className="flex items-center gap-2">
-                  {profile?.member_code && (
+                  {directoryProfile?.member_id && (
+                    <Badge variant="outline" className="font-mono">
+                      {directoryProfile.member_id}
+                    </Badge>
+                  )}
+                  {profile?.member_code && !directoryProfile?.member_id && (
                     <Badge variant="outline" className="font-mono">
                       {profile.member_code}
                     </Badge>
@@ -231,6 +253,43 @@ const Profile = () => {
                   )}
                 </div>
               </div>
+
+              {/* Read-only info from directory */}
+              {directoryProfile && (
+                <div className="mb-6 rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <UserCircle className="h-4 w-4" />
+                    Informations du fichier adhérent
+                  </h4>
+                  <div className="grid gap-3 sm:grid-cols-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Naissance:</span>
+                      <span>{formatBirthDate(directoryProfile.birth_date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Arrivée:</span>
+                      <span>{directoryProfile.joined_at || "-"}</span>
+                    </div>
+                    {directoryProfile.gender && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Genre:</span>
+                        <span>{directoryProfile.gender}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        Niveau: {directoryProfile.apnea_level || profile?.apnea_level || "-"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Ces informations sont gérées par l'administration du club.
+                  </p>
+                </div>
+              )}
 
               <Form {...form}>
                 <form
@@ -267,38 +326,92 @@ const Profile = () => {
                     />
                   </div>
 
-                  <FormField
-                    control={form.control}
-                    name="apnea_level"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Niveau d'apnée</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner un niveau" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {APNEA_LEVELS.map((level) => (
-                              <SelectItem key={level} value={level}>
-                                {level}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {directoryProfile && (
+                    <>
+                      <Separator />
+                      <h4 className="text-sm font-medium">Mes coordonnées</h4>
+                      
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <Phone className="h-4 w-4" />
+                              Téléphone
+                            </FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="06 12 34 56 78" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4" />
+                              Adresse
+                            </FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Adresse complète" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <Separator />
+                      <h4 className="text-sm font-medium flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-destructive" />
+                        Contact d'urgence
+                      </h4>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <FormField
+                          control={form.control}
+                          name="emergency_contact_name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nom du contact</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Nom" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="emergency_contact_phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Téléphone</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="06..." />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
 
                   <div className="rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">
                       <strong>Email :</strong> {user?.email}
                     </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Le statut (Membre/Encadrant) ne peut être modifié que par un administrateur.
-                    </p>
+                    {!directoryProfile && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Votre email ne figure pas encore dans le fichier adhérents. Contactez l'administration pour y être ajouté.
+                      </p>
+                    )}
                   </div>
 
                   <Button

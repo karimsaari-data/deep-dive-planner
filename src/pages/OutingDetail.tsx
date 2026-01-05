@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import WindyForecast from "@/components/weather/WindyForecast";
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
@@ -31,6 +31,9 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting } from "@/hooks/useOutings";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const OutingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +48,58 @@ const OutingDetail = () => {
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [sosModalOpen, setSosModalOpen] = useState(false);
+
+  // Compute derived values for the query
+  const outingDate = outing ? new Date(outing.date_time) : new Date();
+  const now = new Date();
+  const oneHourBefore = new Date(outingDate.getTime() - 60 * 60 * 1000);
+  const canMarkAttendance = now >= oneHourBefore;
+
+  // Fetch emergency contacts for participants
+  const { data: participantsEmergency } = useQuery({
+    queryKey: ["participants-emergency", id],
+    queryFn: async () => {
+      if (!outing?.reservations) return [];
+      
+      const confirmedUserIds = outing.reservations
+        .filter(r => r.status === "confirmé" && r.is_present)
+        .map(r => r.user_id);
+      
+      if (confirmedUserIds.length === 0) return [];
+
+      // Get emails from profiles
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, avatar_url, apnea_level, email")
+        .in("id", confirmedUserIds);
+
+      if (!profiles) return [];
+
+      // Get emergency contacts from club_members_directory
+      const emails = profiles.map(p => p.email.toLowerCase());
+      const { data: directory } = await supabase
+        .from("club_members_directory")
+        .select("email, emergency_contact_name, emergency_contact_phone, apnea_level")
+        .in("email", emails);
+
+      const directoryMap = new Map(directory?.map(d => [d.email.toLowerCase(), d]) || []);
+
+      return profiles.map(p => {
+        const dirEntry = directoryMap.get(p.email.toLowerCase());
+        return {
+          id: p.id,
+          first_name: p.first_name,
+          last_name: p.last_name,
+          avatar_url: p.avatar_url,
+          apnea_level: dirEntry?.apnea_level || p.apnea_level,
+          emergency_contact_name: dirEntry?.emergency_contact_name || null,
+          emergency_contact_phone: dirEntry?.emergency_contact_phone || null,
+        };
+      });
+    },
+    enabled: !!outing?.reservations && canMarkAttendance,
+  });
 
   useEffect(() => {
     if (outing?.session_report) {
@@ -86,13 +141,7 @@ const OutingDetail = () => {
   const waitlistedReservations = outing.reservations?.filter(r => r.status === "en_attente") ?? [];
   const cancelledReservations = outing.reservations?.filter(r => r.status === "annulé") ?? [];
 
-  const outingDate = new Date(outing.date_time);
-  const now = new Date();
   const isPast = outingDate < now;
-  
-  // Attendance module available 1 hour before start time
-  const oneHourBefore = new Date(outingDate.getTime() - 60 * 60 * 1000);
-  const canMarkAttendance = now >= oneHourBefore;
   
   const mapsUrl = outing.location_details?.maps_url;
   const hasActiveReservations = confirmedReservations.length > 0 || waitlistedReservations.length > 0;
@@ -141,6 +190,17 @@ const OutingDetail = () => {
           <div className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="secondary">{outing.outing_type}</Badge>
+              {canMarkAttendance && canEditPresenceAndReport && (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setSosModalOpen(true)}
+                >
+                  <Phone className="h-4 w-4" />
+                  🚨 SOS / Urgence
+                </Button>
+              )}
               {!isPast && (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -430,6 +490,14 @@ const OutingDetail = () => {
           </div>
         </div>
       </section>
+
+      {/* Emergency SOS Modal */}
+      <EmergencySOSModal
+        isOpen={sosModalOpen}
+        onClose={() => setSosModalOpen(false)}
+        participants={participantsEmergency || []}
+        outingTitle={outing.title}
+      />
     </Layout>
   );
 };
