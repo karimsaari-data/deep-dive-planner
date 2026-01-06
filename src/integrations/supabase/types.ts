@@ -280,6 +280,50 @@ export type Database = {
         }
         Relationships: []
       }
+      membership_yearly_status: {
+        Row: {
+          buddies_charter_signed: boolean
+          created_at: string
+          fsgt_insurance_ok: boolean
+          id: string
+          medical_certificate_ok: boolean
+          member_id: string
+          payment_status: boolean
+          season_year: number
+          updated_at: string
+        }
+        Insert: {
+          buddies_charter_signed?: boolean
+          created_at?: string
+          fsgt_insurance_ok?: boolean
+          id?: string
+          medical_certificate_ok?: boolean
+          member_id: string
+          payment_status?: boolean
+          season_year: number
+          updated_at?: string
+        }
+        Update: {
+          buddies_charter_signed?: boolean
+          created_at?: string
+          fsgt_insurance_ok?: boolean
+          id?: string
+          medical_certificate_ok?: boolean
+          member_id?: string
+          payment_status?: boolean
+          season_year?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_yearly_status_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "club_members_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outings: {
         Row: {
           created_at: string | null

@@ -14,6 +14,7 @@ import {
   ArrowUp,
   ArrowDown,
   AlertTriangle,
+  Calendar,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,13 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useClubMembersDirectory, ClubMember, ClubMemberInsert } from "@/hooks/useClubMembersDirectory";
+import { 
+  useMembershipYearlyStatus, 
+  getCurrentSeasonYear, 
+  getSeasonLabel, 
+  getAvailableSeasons,
+  StatusField 
+} from "@/hooks/useMembershipYearlyStatus";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -98,6 +106,16 @@ const ClubMembersDirectory = () => {
     upsertMember,
     isEmailRegistered,
   } = useClubMembersDirectory();
+
+  const [selectedSeason, setSelectedSeason] = useState(getCurrentSeasonYear());
+  const availableSeasons = getAvailableSeasons();
+
+  const {
+    statuses,
+    isLoading: isLoadingStatuses,
+    getStatusForMember,
+    upsertStatus,
+  } = useMembershipYearlyStatus(selectedSeason);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -198,16 +216,26 @@ const ClubMembersDirectory = () => {
     setDeleteConfirm(null);
   };
 
-  // Toggle checkbox status
-  const handleCheckboxToggle = async (member: ClubMember, field: "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok") => {
+  // Toggle checkbox status - uses the yearly status table
+  const handleCheckboxToggle = async (member: ClubMember, field: StatusField) => {
+    const currentStatus = getStatusForMember(member.id);
+    const currentValue = currentStatus?.[field] ?? false;
+    
     try {
-      await updateMember.mutateAsync({
-        id: member.id,
-        [field]: !member[field],
+      await upsertStatus.mutateAsync({
+        memberId: member.id,
+        field,
+        value: !currentValue,
       });
     } catch (error) {
-      // Error handled in hook
+      toast.error("Erreur lors de la mise à jour");
     }
+  };
+
+  // Get status value for a member (with fallback to false if no record exists)
+  const getMemberStatusValue = (memberId: string, field: StatusField): boolean => {
+    const status = getStatusForMember(memberId);
+    return status?.[field] ?? false;
   };
 
   // Sort handler
@@ -227,7 +255,7 @@ const ClubMembersDirectory = () => {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
-  // CSV Export with new columns
+  // CSV Export with new columns (exports for selected season)
   const exportCSV = () => {
     if (!members?.length) {
       toast.error("Aucun adhérent à exporter");
@@ -247,32 +275,35 @@ const ClubMembersDirectory = () => {
       "Genre",
       "Contact Urgence - Nom",
       "Contact Urgence - Tel",
-      "Cotisation Payée",
-      "Certificat Médical",
-      "Charte Signée",
-      "Assurance FSGT",
+      `Cotisation Payée (${getSeasonLabel(selectedSeason)})`,
+      `Certificat Médical (${getSeasonLabel(selectedSeason)})`,
+      `Charte Signée (${getSeasonLabel(selectedSeason)})`,
+      `Assurance FSGT (${getSeasonLabel(selectedSeason)})`,
       "Notes",
     ];
 
-    const rows = members.map((m) => [
-      m.member_id,
-      m.first_name,
-      m.last_name,
-      m.email,
-      m.phone || "",
-      m.birth_date || "",
-      m.address || "",
-      m.apnea_level || "",
-      m.joined_at || "",
-      m.gender || "",
-      m.emergency_contact_name || "",
-      m.emergency_contact_phone || "",
-      m.payment_status ? "Oui" : "Non",
-      m.medical_certificate_ok ? "Oui" : "Non",
-      m.buddies_charter_signed ? "Oui" : "Non",
-      m.fsgt_insurance_ok ? "Oui" : "Non",
-      m.notes || "",
-    ]);
+    const rows = members.map((m) => {
+      const status = getStatusForMember(m.id);
+      return [
+        m.member_id,
+        m.first_name,
+        m.last_name,
+        m.email,
+        m.phone || "",
+        m.birth_date || "",
+        m.address || "",
+        m.apnea_level || "",
+        m.joined_at || "",
+        m.gender || "",
+        m.emergency_contact_name || "",
+        m.emergency_contact_phone || "",
+        status?.payment_status ? "Oui" : "Non",
+        status?.medical_certificate_ok ? "Oui" : "Non",
+        status?.buddies_charter_signed ? "Oui" : "Non",
+        status?.fsgt_insurance_ok ? "Oui" : "Non",
+        m.notes || "",
+      ];
+    });
 
     const csvContent = [
       headers.join(";"),
@@ -283,7 +314,7 @@ const ClubMembersDirectory = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `fichier_adherents_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `fichier_adherents_${getSeasonLabel(selectedSeason).replace("/", "-")}_${format(new Date(), "yyyy-MM-dd")}.csv`;
     link.click();
     URL.revokeObjectURL(url);
     toast.success("Export CSV réussi");
@@ -440,7 +471,7 @@ const ClubMembersDirectory = () => {
     reader.readAsText(file, "UTF-8");
   };
 
-  // Filter and sort members
+  // Filter and sort members (sorting on status uses the yearly status data)
   const filteredAndSortedMembers = useMemo(() => {
     let result = members?.filter((member) => {
       const searchLower = searchTerm.toLowerCase();
@@ -461,8 +492,8 @@ const ClubMembersDirectory = () => {
         case "medical_certificate_ok":
         case "buddies_charter_signed":
         case "fsgt_insurance_ok":
-          aValue = a[sortField];
-          bValue = b[sortField];
+          aValue = getMemberStatusValue(a.id, sortField);
+          bValue = getMemberStatusValue(b.id, sortField);
           break;
         case "joined_at":
           aValue = a.joined_at || "";
@@ -485,12 +516,17 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection]);
+  }, [members, searchTerm, sortField, sortDirection, statuses]);
 
   const getRowClassName = (member: ClubMember) => {
-    const allComplete = member.payment_status && member.medical_certificate_ok && member.buddies_charter_signed && member.fsgt_insurance_ok;
+    const payment = getMemberStatusValue(member.id, "payment_status");
+    const medical = getMemberStatusValue(member.id, "medical_certificate_ok");
+    const charter = getMemberStatusValue(member.id, "buddies_charter_signed");
+    const insurance = getMemberStatusValue(member.id, "fsgt_insurance_ok");
+    
+    const allComplete = payment && medical && charter && insurance;
     if (allComplete) return "bg-green-50 dark:bg-green-950/20";
-    if (!member.payment_status) return "bg-red-50 dark:bg-red-950/20";
+    if (!payment) return "bg-red-50 dark:bg-red-950/20";
     return "";
   };
 
@@ -511,6 +547,17 @@ const ClubMembersDirectory = () => {
     }
   };
 
+  // Count complete records for stats
+  const completeRecordsCount = useMemo(() => {
+    return members?.filter((m) => {
+      const payment = getMemberStatusValue(m.id, "payment_status");
+      const medical = getMemberStatusValue(m.id, "medical_certificate_ok");
+      const charter = getMemberStatusValue(m.id, "buddies_charter_signed");
+      const insurance = getMemberStatusValue(m.id, "fsgt_insurance_ok");
+      return payment && medical && charter && insurance;
+    }).length || 0;
+  }, [members, statuses]);
+
   return (
     <Card className="shadow-card">
       <CardHeader>
@@ -523,34 +570,56 @@ const ClubMembersDirectory = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* Actions bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher par nom, email ou ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        {/* Season selector + Actions bar */}
+        <div className="flex flex-col gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-sm font-medium">Saison :</Label>
+            <Select 
+              value={selectedSeason.toString()} 
+              onValueChange={(v) => setSelectedSeason(parseInt(v))}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSeasons.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {getSeasonLabel(year)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={openNewForm} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Ajouter
-            </Button>
-            <Button onClick={handleImportClick} variant="outline" size="sm" disabled={isImporting}>
-              {isImporting ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-1" />
-              )}
-              Import CSV
-            </Button>
-            <Button onClick={exportCSV} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-1" />
-              Export CSV
-            </Button>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par nom, email ou ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={openNewForm} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Ajouter
+              </Button>
+              <Button onClick={handleImportClick} variant="outline" size="sm" disabled={isImporting}>
+                {isImporting ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-1" />
+                )}
+                Import CSV
+              </Button>
+              <Button onClick={exportCSV} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-1" />
+                Export CSV
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -563,7 +632,7 @@ const ClubMembersDirectory = () => {
         />
 
         {/* Table */}
-        {isLoading ? (
+        {isLoading || isLoadingStatuses ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
@@ -657,29 +726,33 @@ const ClubMembersDirectory = () => {
                       <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
                       <TableCell className="text-center">
                         <Checkbox
-                          checked={member.payment_status}
+                          checked={getMemberStatusValue(member.id, "payment_status")}
                           onCheckedChange={() => handleCheckboxToggle(member, "payment_status")}
+                          disabled={upsertStatus.isPending}
                           className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                         />
                       </TableCell>
                       <TableCell className="text-center">
                         <Checkbox
-                          checked={member.medical_certificate_ok}
+                          checked={getMemberStatusValue(member.id, "medical_certificate_ok")}
                           onCheckedChange={() => handleCheckboxToggle(member, "medical_certificate_ok")}
+                          disabled={upsertStatus.isPending}
                           className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                         />
                       </TableCell>
                       <TableCell className="text-center">
                         <Checkbox
-                          checked={member.buddies_charter_signed}
+                          checked={getMemberStatusValue(member.id, "buddies_charter_signed")}
                           onCheckedChange={() => handleCheckboxToggle(member, "buddies_charter_signed")}
+                          disabled={upsertStatus.isPending}
                           className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                         />
                       </TableCell>
                       <TableCell className="text-center">
                         <Checkbox
-                          checked={member.fsgt_insurance_ok}
+                          checked={getMemberStatusValue(member.id, "fsgt_insurance_ok")}
                           onCheckedChange={() => handleCheckboxToggle(member, "fsgt_insurance_ok")}
+                          disabled={upsertStatus.isPending}
                           className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                         />
                       </TableCell>
@@ -737,7 +810,7 @@ const ClubMembersDirectory = () => {
             </span>
             <span>•</span>
             <span className="text-green-600">
-              {members.filter((m) => m.payment_status && m.medical_certificate_ok && m.buddies_charter_signed && m.fsgt_insurance_ok).length} dossiers complets
+              {completeRecordsCount} dossiers complets ({getSeasonLabel(selectedSeason)})
             </span>
           </div>
         )}
@@ -909,6 +982,7 @@ const ClubMembersDirectory = () => {
                 onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
+                {deleteMember.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Supprimer
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -924,29 +998,33 @@ const ClubMembersDirectory = () => {
                 Rapport d'import
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="flex gap-4 text-sm">
-                <span className="text-green-600 font-medium">{importReport.created} créés</span>
-                <span className="text-blue-600 font-medium">{importReport.updated} mis à jour</span>
-                <span className="text-red-600 font-medium">{importReport.errors.length} erreurs</span>
+            <div className="py-4">
+              <div className="flex gap-4 mb-4">
+                <Badge className="bg-green-500/20 text-green-700">
+                  {importReport.created} créés
+                </Badge>
+                <Badge className="bg-blue-500/20 text-blue-700">
+                  {importReport.updated} mis à jour
+                </Badge>
+                <Badge className="bg-red-500/20 text-red-700">
+                  {importReport.errors.length} erreurs
+                </Badge>
               </div>
               
               {importReport.errors.length > 0 && (
-                <div>
-                  <Label className="text-sm font-medium">Détail des erreurs :</Label>
-                  <ScrollArea className="h-48 mt-2 rounded border border-border">
-                    <div className="p-3 space-y-2">
-                      {importReport.errors.map((err, idx) => (
-                        <div key={idx} className="text-sm bg-red-50 dark:bg-red-950/20 p-2 rounded">
-                          <span className="font-mono text-xs">Ligne {err.line}</span>
-                          <span className="mx-2">•</span>
-                          <span className="text-muted-foreground">{err.email}</span>
-                          <div className="text-red-600 text-xs mt-1">{err.reason}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
+                <ScrollArea className="h-[200px] rounded-md border p-3">
+                  <div className="space-y-2">
+                    {importReport.errors.map((err, idx) => (
+                      <div key={idx} className="text-sm p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                        <span className="font-medium">Ligne {err.line}</span>
+                        {err.email !== "-" && (
+                          <span className="text-muted-foreground ml-1">({err.email})</span>
+                        )}
+                        <p className="text-red-600 dark:text-red-400">{err.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </div>
             <DialogFooter>
