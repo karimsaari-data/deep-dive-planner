@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Users,
   Search,
@@ -10,11 +10,16 @@ import {
   Mail,
   Check,
   Loader2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  AlertTriangle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -49,22 +54,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useClubMembersDirectory, ClubMember, ClubMemberInsert } from "@/hooks/useClubMembersDirectory";
 import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const GENDER_OPTIONS = ["Homme", "Femme", "Autre"];
+
+type SortField = "last_name" | "first_name" | "email" | "joined_at" | "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok";
+type SortDirection = "asc" | "desc";
+
+interface ImportError {
+  line: number;
+  email: string;
+  reason: string;
+}
 
 // Parse emergency contact string into name and phone
 const parseEmergencyContact = (contact: string): { name: string; phone: string } => {
   if (!contact) return { name: "", phone: "" };
   
-  // Regex to extract phone number (sequence of digits possibly separated by spaces, dots, or dashes)
   const phoneRegex = /(\d[\d\s.\-]+\d)/;
   const phoneMatch = contact.match(phoneRegex);
   
   if (phoneMatch) {
-    const phone = phoneMatch[1].replace(/[\s.\-]/g, ""); // Clean phone number
+    const phone = phoneMatch[1].replace(/[\s.\-]/g, "");
     const name = contact.replace(phoneMatch[0], "").trim();
     return { name, phone };
   }
@@ -88,6 +104,10 @@ const ClubMembersDirectory = () => {
   const [editingMember, setEditingMember] = useState<ClubMember | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [sortField, setSortField] = useState<SortField>("last_name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [importReportOpen, setImportReportOpen] = useState(false);
+  const [importReport, setImportReport] = useState<{ created: number; updated: number; errors: ImportError[] }>({ created: 0, updated: 0, errors: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<ClubMemberInsert>({
@@ -178,6 +198,35 @@ const ClubMembersDirectory = () => {
     setDeleteConfirm(null);
   };
 
+  // Toggle checkbox status
+  const handleCheckboxToggle = async (member: ClubMember, field: "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok") => {
+    try {
+      await updateMember.mutateAsync({
+        id: member.id,
+        [field]: !member[field],
+      });
+    } catch (error) {
+      // Error handled in hook
+    }
+  };
+
+  // Sort handler
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    return sortDirection === "asc" 
+      ? <ArrowUp className="h-3 w-3 ml-1" /> 
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
   // CSV Export with new columns
   const exportCSV = () => {
     if (!members?.length) {
@@ -198,6 +247,10 @@ const ClubMembersDirectory = () => {
       "Genre",
       "Contact Urgence - Nom",
       "Contact Urgence - Tel",
+      "Cotisation Payée",
+      "Certificat Médical",
+      "Charte Signée",
+      "Assurance FSGT",
       "Notes",
     ];
 
@@ -214,6 +267,10 @@ const ClubMembersDirectory = () => {
       m.gender || "",
       m.emergency_contact_name || "",
       m.emergency_contact_phone || "",
+      m.payment_status ? "Oui" : "Non",
+      m.medical_certificate_ok ? "Oui" : "Non",
+      m.buddies_charter_signed ? "Oui" : "Non",
+      m.fsgt_insurance_ok ? "Oui" : "Non",
       m.notes || "",
     ]);
 
@@ -232,7 +289,7 @@ const ClubMembersDirectory = () => {
     toast.success("Export CSV réussi");
   };
 
-  // CSV Import with intelligent parsing
+  // CSV Import
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
@@ -245,6 +302,10 @@ const ClubMembersDirectory = () => {
     const reader = new FileReader();
 
     reader.onload = async (event) => {
+      const errors: ImportError[] = [];
+      let created = 0;
+      let updated = 0;
+
       try {
         const text = event.target?.result as string;
         const lines = text.split("\n").filter((line) => line.trim());
@@ -255,13 +316,11 @@ const ClubMembersDirectory = () => {
           return;
         }
 
-        // Parse header to find column indices
         const headerLine = lines[0];
         const headers = headerLine.match(/(".*?"|[^";]+)(?=\s*;|\s*$)/g)?.map(h => 
           h.replace(/^"|"$/g, "").toLowerCase().trim()
         ) || [];
 
-        // Find column indices
         const getColIndex = (names: string[]) => {
           for (const name of names) {
             const idx = headers.findIndex(h => h.includes(name));
@@ -287,18 +346,19 @@ const ClubMembersDirectory = () => {
         };
 
         const dataRows = lines.slice(1);
-        let created = 0;
-        let updated = 0;
-        let errors = 0;
 
-        for (const line of dataRows) {
+        for (let i = 0; i < dataRows.length; i++) {
+          const line = dataRows[i];
+          const lineNumber = i + 2;
           const values = line.match(/(".*?"|[^";]+)(?=\s*;|\s*$)/g)?.map(v => 
             v.replace(/^"|"$/g, "").replace(/""/g, '"').trim()
           ) || [];
 
-          if (values.length < 3) continue;
+          if (values.length < 3) {
+            errors.push({ line: lineNumber, email: "-", reason: "Ligne incomplète" });
+            continue;
+          }
 
-          // Get values, skipping member_id if present
           const hasId = headers[0]?.includes("id");
           const offset = hasId ? 1 : 0;
 
@@ -307,7 +367,6 @@ const ClubMembersDirectory = () => {
             return values[idx] || null;
           };
 
-          // Parse emergency contact if combined column exists
           let emergencyName = getValue(colMap.emergencyName);
           let emergencyPhone = getValue(colMap.emergencyPhone);
           
@@ -320,7 +379,6 @@ const ClubMembersDirectory = () => {
             }
           }
 
-          // Clean phone number
           if (emergencyPhone) {
             emergencyPhone = emergencyPhone.replace(/[\s.\-]/g, "");
           }
@@ -344,9 +402,8 @@ const ClubMembersDirectory = () => {
             notes: getValue(colMap.notes),
           };
 
-          // Validate email
           if (!memberData.email || !memberData.email.includes("@")) {
-            errors++;
+            errors.push({ line: lineNumber, email: memberData.email || "-", reason: "Email invalide ou manquant" });
             continue;
           }
 
@@ -357,12 +414,19 @@ const ClubMembersDirectory = () => {
             } else {
               created++;
             }
-          } catch {
-            errors++;
+          } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
+            errors.push({ line: lineNumber, email: memberData.email, reason: errorMessage });
           }
         }
 
-        toast.success(`Import terminé: ${created} créés, ${updated} mis à jour, ${errors} erreurs`);
+        setImportReport({ created, updated, errors });
+        
+        if (errors.length > 0) {
+          setImportReportOpen(true);
+        } else {
+          toast.success(`Import terminé: ${created} créés, ${updated} mis à jour`);
+        }
       } catch (error) {
         toast.error("Erreur lors de l'import CSV");
       } finally {
@@ -376,15 +440,59 @@ const ClubMembersDirectory = () => {
     reader.readAsText(file, "UTF-8");
   };
 
-  const filteredMembers = members?.filter((member) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      member.first_name.toLowerCase().includes(searchLower) ||
-      member.last_name.toLowerCase().includes(searchLower) ||
-      member.email.toLowerCase().includes(searchLower) ||
-      member.member_id.toLowerCase().includes(searchLower)
-    );
-  });
+  // Filter and sort members
+  const filteredAndSortedMembers = useMemo(() => {
+    let result = members?.filter((member) => {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        member.first_name.toLowerCase().includes(searchLower) ||
+        member.last_name.toLowerCase().includes(searchLower) ||
+        member.email.toLowerCase().includes(searchLower) ||
+        member.member_id.toLowerCase().includes(searchLower)
+      );
+    }) || [];
+
+    result.sort((a, b) => {
+      let aValue: string | boolean | null;
+      let bValue: string | boolean | null;
+
+      switch (sortField) {
+        case "payment_status":
+        case "medical_certificate_ok":
+        case "buddies_charter_signed":
+        case "fsgt_insurance_ok":
+          aValue = a[sortField];
+          bValue = b[sortField];
+          break;
+        case "joined_at":
+          aValue = a.joined_at || "";
+          bValue = b.joined_at || "";
+          break;
+        default:
+          aValue = a[sortField]?.toLowerCase() || "";
+          bValue = b[sortField]?.toLowerCase() || "";
+      }
+
+      if (typeof aValue === "boolean" && typeof bValue === "boolean") {
+        return sortDirection === "asc" 
+          ? (aValue === bValue ? 0 : aValue ? -1 : 1)
+          : (aValue === bValue ? 0 : aValue ? 1 : -1);
+      }
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [members, searchTerm, sortField, sortDirection]);
+
+  const getRowClassName = (member: ClubMember) => {
+    const allComplete = member.payment_status && member.medical_certificate_ok && member.buddies_charter_signed && member.fsgt_insurance_ok;
+    if (allComplete) return "bg-green-50 dark:bg-green-950/20";
+    if (!member.payment_status) return "bg-red-50 dark:bg-red-950/20";
+    return "";
+  };
 
   const openMailto = (email: string, firstName: string) => {
     const subject = encodeURIComponent("Invitation à rejoindre l'application du club");
@@ -392,6 +500,15 @@ const ClubMembersDirectory = () => {
       `Bonjour ${firstName},\n\nNous vous invitons à créer votre compte sur notre application.\n\nCordialement`
     );
     window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return "-";
+    try {
+      return format(new Date(dateStr), "dd/MM/yyyy", { locale: fr });
+    } catch {
+      return dateStr;
+    }
   };
 
   return (
@@ -450,7 +567,7 @@ const ClubMembersDirectory = () => {
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : filteredMembers?.length === 0 ? (
+        ) : filteredAndSortedMembers?.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             Aucun adhérent trouvé
           </p>
@@ -460,26 +577,112 @@ const ClubMembersDirectory = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Téléphone</TableHead>
-                  <TableHead>Niveau</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("last_name")}
+                  >
+                    <div className="flex items-center">
+                      Identité
+                      {getSortIcon("last_name")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("email")}
+                  >
+                    <div className="flex items-center">
+                      Email
+                      {getSortIcon("email")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("joined_at")}
+                  >
+                    <div className="flex items-center">
+                      Inscription
+                      {getSortIcon("joined_at")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("payment_status")}
+                  >
+                    <div className="flex items-center justify-center" title="Cotisation réglée">
+                      💰
+                      {getSortIcon("payment_status")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("medical_certificate_ok")}
+                  >
+                    <div className="flex items-center justify-center" title="Certificat médical">
+                      🩺
+                      {getSortIcon("medical_certificate_ok")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("buddies_charter_signed")}
+                  >
+                    <div className="flex items-center justify-center" title="Charte signée">
+                      📜
+                      {getSortIcon("buddies_charter_signed")}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("fsgt_insurance_ok")}
+                  >
+                    <div className="flex items-center justify-center" title="Assurance FSGT">
+                      🛡️
+                      {getSortIcon("fsgt_insurance_ok")}
+                    </div>
+                  </TableHead>
                   <TableHead className="text-center">Statut App</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMembers?.map((member) => {
+                {filteredAndSortedMembers?.map((member) => {
                   const isRegistered = isEmailRegistered(member.email);
                   return (
-                    <TableRow key={member.id}>
+                    <TableRow key={member.id} className={cn(getRowClassName(member))}>
                       <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                       <TableCell className="font-medium">
-                        {member.first_name} {member.last_name}
+                        {member.last_name.toUpperCase()} {member.first_name}
                       </TableCell>
                       <TableCell className="text-sm">{member.email}</TableCell>
-                      <TableCell className="text-sm">{member.phone || "-"}</TableCell>
-                      <TableCell className="text-sm">{member.apnea_level || "-"}</TableCell>
+                      <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={member.payment_status}
+                          onCheckedChange={() => handleCheckboxToggle(member, "payment_status")}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={member.medical_certificate_ok}
+                          onCheckedChange={() => handleCheckboxToggle(member, "medical_certificate_ok")}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={member.buddies_charter_signed}
+                          onCheckedChange={() => handleCheckboxToggle(member, "buddies_charter_signed")}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={member.fsgt_insurance_ok}
+                          onCheckedChange={() => handleCheckboxToggle(member, "fsgt_insurance_ok")}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                        />
+                      </TableCell>
                       <TableCell className="text-center">
                         {isRegistered ? (
                           <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
@@ -526,11 +729,15 @@ const ClubMembersDirectory = () => {
 
         {/* Stats footer */}
         {members && members.length > 0 && (
-          <div className="mt-4 flex gap-4 text-sm text-muted-foreground">
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>{members.length} adhérents au total</span>
             <span>•</span>
             <span className="text-green-600">
               {members.filter((m) => isEmailRegistered(m.email)).length} inscrits à l'app
+            </span>
+            <span>•</span>
+            <span className="text-green-600">
+              {members.filter((m) => m.payment_status && m.medical_certificate_ok && m.buddies_charter_signed && m.fsgt_insurance_ok).length} dossiers complets
             </span>
           </div>
         )}
@@ -707,6 +914,46 @@ const ClubMembersDirectory = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Import Report Modal */}
+        <Dialog open={importReportOpen} onOpenChange={setImportReportOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Rapport d'import
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex gap-4 text-sm">
+                <span className="text-green-600 font-medium">{importReport.created} créés</span>
+                <span className="text-blue-600 font-medium">{importReport.updated} mis à jour</span>
+                <span className="text-red-600 font-medium">{importReport.errors.length} erreurs</span>
+              </div>
+              
+              {importReport.errors.length > 0 && (
+                <div>
+                  <Label className="text-sm font-medium">Détail des erreurs :</Label>
+                  <ScrollArea className="h-48 mt-2 rounded border border-border">
+                    <div className="p-3 space-y-2">
+                      {importReport.errors.map((err, idx) => (
+                        <div key={idx} className="text-sm bg-red-50 dark:bg-red-950/20 p-2 rounded">
+                          <span className="font-mono text-xs">Ligne {err.line}</span>
+                          <span className="mx-2">•</span>
+                          <span className="text-muted-foreground">{err.email}</span>
+                          <div className="text-red-600 text-xs mt-1">{err.reason}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button onClick={() => setImportReportOpen(false)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

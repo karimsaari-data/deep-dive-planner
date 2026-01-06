@@ -17,6 +17,10 @@ export interface ClubMember {
   emergency_contact_phone: string | null;
   gender: string | null;
   notes: string | null;
+  payment_status: boolean;
+  medical_certificate_ok: boolean;
+  buddies_charter_signed: boolean;
+  fsgt_insurance_ok: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +38,10 @@ export interface ClubMemberInsert {
   emergency_contact_phone?: string | null;
   gender?: string | null;
   notes?: string | null;
+  payment_status?: boolean;
+  medical_certificate_ok?: boolean;
+  buddies_charter_signed?: boolean;
+  fsgt_insurance_ok?: boolean;
 }
 
 export interface RegisteredEmail {
