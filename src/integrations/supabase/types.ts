@@ -19,17 +19,21 @@ export type Database = {
           address: string | null
           apnea_level: string | null
           birth_date: string | null
+          buddies_charter_signed: boolean
           created_at: string
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           first_name: string
+          fsgt_insurance_ok: boolean
           gender: string | null
           id: string
           joined_at: string | null
           last_name: string
+          medical_certificate_ok: boolean
           member_id: string
           notes: string | null
+          payment_status: boolean
           phone: string | null
           updated_at: string
         }
@@ -37,17 +41,21 @@ export type Database = {
           address?: string | null
           apnea_level?: string | null
           birth_date?: string | null
+          buddies_charter_signed?: boolean
           created_at?: string
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           first_name: string
+          fsgt_insurance_ok?: boolean
           gender?: string | null
           id?: string
           joined_at?: string | null
           last_name: string
+          medical_certificate_ok?: boolean
           member_id: string
           notes?: string | null
+          payment_status?: boolean
           phone?: string | null
           updated_at?: string
         }
@@ -55,17 +63,21 @@ export type Database = {
           address?: string | null
           apnea_level?: string | null
           birth_date?: string | null
+          buddies_charter_signed?: boolean
           created_at?: string
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           first_name?: string
+          fsgt_insurance_ok?: boolean
           gender?: string | null
           id?: string
           joined_at?: string | null
           last_name?: string
+          medical_certificate_ok?: boolean
           member_id?: string
           notes?: string | null
+          payment_status?: boolean
           phone?: string | null
           updated_at?: string
         }
