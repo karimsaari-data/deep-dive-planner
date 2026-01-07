@@ -68,6 +68,14 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { 
+  cleanCsvCell,
+  mapHeaderToFieldKey,
+  normalizePhone,
+  parseCsvText,
+  parseFlexibleDateToISO,
+  readCsvFileText,
+} from "@/lib/csvImport";
 
 const GENDER_OPTIONS = ["Homme", "Femme", "Autre"];
 
@@ -330,145 +338,129 @@ const ClubMembersDirectory = () => {
     if (!file) return;
 
     setIsImporting(true);
-    const reader = new FileReader();
 
-    reader.onload = async (event) => {
-      const errors: ImportError[] = [];
-      let created = 0;
-      let updated = 0;
+    const errors: ImportError[] = [];
+    let created = 0;
+    let updated = 0;
 
-      try {
-        const text = event.target?.result as string;
-        const lines = text.split("\n").filter((line) => line.trim());
-        
-        if (lines.length < 2) {
-          toast.error("Le fichier CSV est vide ou invalide");
-          setIsImporting(false);
-          return;
-        }
+    try {
+      // 1) Decode with fallback (UTF-8 / Windows-1252 / ISO-8859-1)
+      const rawText = await readCsvFileText(file);
 
-        const headerLine = lines[0];
-        const headers = headerLine.match(/(".*?"|[^";]+)(?=\s*;|\s*$)/g)?.map(h => 
-          h.replace(/^"|"$/g, "").toLowerCase().trim()
-        ) || [];
+      // 2) Robust parsing (delimiter auto + fallbacks) + header normalization
+      const parsed = parseCsvText(rawText);
 
-        const getColIndex = (names: string[]) => {
-          for (const name of names) {
-            const idx = headers.findIndex(h => h.includes(name));
-            if (idx !== -1) return idx;
-          }
-          return -1;
-        };
+      // Collect parser-level errors (delimiter/quotes…)
+      parsed.errors?.forEach((err) => {
+        const line = (err as any).row ? (err as any).row + 1 : 1;
+        errors.push({ line, email: "-", reason: `Parsing CSV : ${err.message}` });
+      });
 
-        const colMap = {
-          firstName: getColIndex(["prénom", "prenom", "first"]),
-          lastName: getColIndex(["nom", "last"]),
-          email: getColIndex(["email", "mail"]),
-          phone: getColIndex(["téléphone", "telephone", "phone", "tel"]),
-          birthDate: getColIndex(["naissance", "birth"]),
-          address: getColIndex(["adresse", "address"]),
-          apneaLevel: getColIndex(["niveau", "level", "apnée", "apnee"]),
-          joinedAt: getColIndex(["arrivée", "arrivee", "joined", "inscription"]),
-          gender: getColIndex(["genre", "gender", "sexe"]),
-          emergencyContact: getColIndex(["urgence", "emergency"]),
-          emergencyName: getColIndex(["urgence - nom", "contact urgence - nom"]),
-          emergencyPhone: getColIndex(["urgence - tel", "contact urgence - tel"]),
-          notes: getColIndex(["notes", "remarques", "commentaires"]),
-        };
+      const rows = (parsed.data || []).filter((r) => {
+        const values = Object.values(r || {}).map((v) => (v ?? "").toString().trim());
+        return values.some(Boolean);
+      });
 
-        const dataRows = lines.slice(1);
-
-        for (let i = 0; i < dataRows.length; i++) {
-          const line = dataRows[i];
-          const lineNumber = i + 2;
-          const values = line.match(/(".*?"|[^";]+)(?=\s*;|\s*$)/g)?.map(v => 
-            v.replace(/^"|"$/g, "").replace(/""/g, '"').trim()
-          ) || [];
-
-          if (values.length < 3) {
-            errors.push({ line: lineNumber, email: "-", reason: "Ligne incomplète" });
-            continue;
-          }
-
-          const hasId = headers[0]?.includes("id");
-          const offset = hasId ? 1 : 0;
-
-          const getValue = (idx: number) => {
-            if (idx === -1) return null;
-            return values[idx] || null;
-          };
-
-          let emergencyName = getValue(colMap.emergencyName);
-          let emergencyPhone = getValue(colMap.emergencyPhone);
-          
-          if (!emergencyName && !emergencyPhone && colMap.emergencyContact !== -1) {
-            const combined = getValue(colMap.emergencyContact);
-            if (combined) {
-              const parsed = parseEmergencyContact(combined);
-              emergencyName = parsed.name || null;
-              emergencyPhone = parsed.phone || null;
-            }
-          }
-
-          if (emergencyPhone) {
-            emergencyPhone = emergencyPhone.replace(/[\s.\-]/g, "");
-          }
-
-          const firstName = getValue(colMap.firstName) || values[offset] || "";
-          const lastName = getValue(colMap.lastName) || values[offset + 1] || "";
-          const email = getValue(colMap.email) || values[offset + 2] || "";
-
-          const memberData: ClubMemberInsert = {
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-            phone: getValue(colMap.phone),
-            birth_date: getValue(colMap.birthDate),
-            address: getValue(colMap.address),
-            apnea_level: getValue(colMap.apneaLevel),
-            joined_at: getValue(colMap.joinedAt),
-            gender: getValue(colMap.gender),
-            emergency_contact_name: emergencyName,
-            emergency_contact_phone: emergencyPhone,
-            notes: getValue(colMap.notes),
-          };
-
-          if (!memberData.email || !memberData.email.includes("@")) {
-            errors.push({ line: lineNumber, email: memberData.email || "-", reason: "Email invalide ou manquant" });
-            continue;
-          }
-
-          try {
-            const result = await upsertMember.mutateAsync(memberData);
-            if (result.updated) {
-              updated++;
-            } else {
-              created++;
-            }
-          } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
-            errors.push({ line: lineNumber, email: memberData.email, reason: errorMessage });
-          }
-        }
-
+      if (!rows.length) {
+        errors.push({ line: 1, email: "-", reason: "Le fichier CSV est vide ou invalide" });
         setImportReport({ created, updated, errors });
-        
-        if (errors.length > 0) {
-          setImportReportOpen(true);
-        } else {
-          toast.success(`Import terminé: ${created} créés, ${updated} mis à jour`);
+        setImportReportOpen(true);
+        return;
+      }
+
+      const fields = parsed.meta?.fields || [];
+      const required = ["first_name", "last_name", "email"];
+      const missingRequired = required.filter((f) => !fields.includes(f));
+      if (missingRequired.length) {
+        errors.push({
+          line: 1,
+          email: "-",
+          reason: `Colonnes obligatoires manquantes : ${missingRequired.join(", ")}`,
+        });
+      }
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const lineNumber = i + 2; // +1 header, +1 1-index
+
+        const reasons: string[] = [];
+
+        const firstName = cleanCsvCell((row as any).first_name) || "";
+        const lastName = cleanCsvCell((row as any).last_name) || "";
+        const email = (cleanCsvCell((row as any).email) || "").toLowerCase();
+
+        if (!email) reasons.push("Email manquant");
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) reasons.push("Email invalide");
+
+        if (!firstName) reasons.push("Prénom manquant");
+        if (!lastName) reasons.push("Nom manquant");
+
+        const phone = normalizePhone(cleanCsvCell((row as any).phone));
+        const address = cleanCsvCell((row as any).address);
+        const apneaLevel = cleanCsvCell((row as any).apnea_level);
+        const gender = cleanCsvCell((row as any).gender);
+        const notes = cleanCsvCell((row as any).notes);
+
+        const birthRaw = cleanCsvCell((row as any).birth_date);
+        const joinedRaw = cleanCsvCell((row as any).joined_at);
+
+        const birthParsed = parseFlexibleDateToISO(birthRaw);
+        if (birthRaw && birthParsed.error) reasons.push(`Date de naissance : ${birthParsed.error}`);
+
+        const joinedParsed = parseFlexibleDateToISO(joinedRaw);
+        if (joinedRaw && joinedParsed.error) reasons.push(`Date d'inscription : ${joinedParsed.error}`);
+
+        // Emergency contact: either split columns, or combined column (smart parsing)
+        let emergencyName = cleanCsvCell((row as any).emergency_contact_name);
+        let emergencyPhone = normalizePhone(cleanCsvCell((row as any).emergency_contact_phone));
+
+        if (!emergencyName && !emergencyPhone) {
+          const combined = cleanCsvCell((row as any).emergency_contact);
+          if (combined) {
+            const parsedContact = parseEmergencyContact(combined);
+            emergencyName = parsedContact.name || null;
+            emergencyPhone = normalizePhone(parsedContact.phone || null);
+          }
         }
-      } catch (error) {
-        toast.error("Erreur lors de l'import CSV");
-      } finally {
-        setIsImporting(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
+
+        if (reasons.length) {
+          errors.push({ line: lineNumber, email: email || "-", reason: reasons.join(" • ") });
+          continue;
+        }
+
+        const memberData: ClubMemberInsert = {
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone,
+          birth_date: birthParsed.iso,
+          address,
+          apnea_level: apneaLevel,
+          joined_at: joinedParsed.iso,
+          gender,
+          emergency_contact_name: emergencyName,
+          emergency_contact_phone: emergencyPhone,
+          notes,
+        };
+
+        try {
+          const result = await upsertMember.mutateAsync(memberData);
+          if (result.updated) updated++;
+          else created++;
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
+          errors.push({ line: lineNumber, email, reason: errorMessage });
         }
       }
-    };
 
-    reader.readAsText(file, "UTF-8");
+      setImportReport({ created, updated, errors });
+      setImportReportOpen(true);
+    } catch {
+      toast.error("Erreur lors de l'import CSV");
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   // Filter and sort members (sorting on status uses the yearly status data)
