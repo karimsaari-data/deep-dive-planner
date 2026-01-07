@@ -4,7 +4,7 @@ import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone } from "lucide-react";
 import Layout from "@/components/layout/Layout";
-import WindyForecast from "@/components/weather/WindyForecast";
+import WindyWeatherExplorer from "@/components/weather/WindyWeatherExplorer";
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -297,14 +297,14 @@ const OutingDetail = () => {
             </div>
           </div>
 
-          {/* Windy Weather Widget for future outings */}
+          {/* Weather Widget for future outings */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
             <div className="mb-8">
-              <WindyForecast
+              <WindyWeatherExplorer
                 latitude={outing.location_details.latitude}
                 longitude={outing.location_details.longitude}
+                locationName={outing.location_details.name || outing.location}
                 outingDate={outing.date_time}
-                siteName={outing.location_details.name || outing.location}
               />
             </div>
           )}

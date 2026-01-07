@@ -12,12 +12,32 @@ interface WindyWeatherExplorerProps {
   latitude: number;
   longitude: number;
   locationName: string;
+  outingDate?: string; // ISO date string - if provided, focuses on that specific date
 }
 
-const WindyWeatherExplorer = ({ latitude, longitude, locationName }: WindyWeatherExplorerProps) => {
+const WindyWeatherExplorer = ({ latitude, longitude, locationName, outingDate }: WindyWeatherExplorerProps) => {
   const [selectedDayOffset, setSelectedDayOffset] = useState(0);
   const [selectedHour, setSelectedHour] = useState(10);
   const [mapLayer, setMapLayer] = useState<"wind" | "waves">("wind");
+
+  // If outingDate is provided, compute the offset from today
+  const outingDayOffset = useMemo(() => {
+    if (!outingDate) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const outing = new Date(outingDate);
+    outing.setHours(0, 0, 0, 0);
+    const diffTime = outing.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.min(diffDays, 6)); // Clamp between 0-6
+  }, [outingDate]);
+
+  // Initialize selectedDayOffset based on outingDate
+  useMemo(() => {
+    if (outingDayOffset !== null) {
+      setSelectedDayOffset(outingDayOffset);
+    }
+  }, [outingDayOffset]);
 
   // Generate 7 days
   const days = useMemo(() => {
@@ -49,15 +69,22 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName }: WindyWeathe
 
   const selectedDay = days.find(d => d.offset === selectedDayOffset);
 
+  // Determine if we're in "outing mode" (focused on a specific date)
+  const isOutingMode = outingDate !== undefined;
+  const outingDateFormatted = outingDate ? format(new Date(outingDate), "EEEE d MMMM", { locale: fr }) : null;
+
   return (
     <Card className="shadow-card overflow-hidden">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2">
           <Waves className="h-5 w-5 text-primary" />
-          Station Météo - {locationName}
+          {isOutingMode ? `Météo - ${locationName}` : `Station Météo - ${locationName}`}
         </CardTitle>
         <CardDescription>
-          Prévisions détaillées et carte interactive
+          {isOutingMode && outingDateFormatted
+            ? `Prévisions pour le ${outingDateFormatted}`
+            : "Prévisions détaillées et carte interactive"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -66,8 +93,8 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName }: WindyWeathe
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="openmeteo" className="flex items-center gap-2">
                 <TableProperties className="h-4 w-4" />
-                <span className="hidden sm:inline">Prévisions 7j</span>
-                <span className="sm:hidden">7j</span>
+                <span className="hidden sm:inline">{isOutingMode ? "Jour J" : "Prévisions 7j"}</span>
+                <span className="sm:hidden">{isOutingMode ? "Jour J" : "7j"}</span>
               </TabsTrigger>
               <TabsTrigger value="map" className="flex items-center gap-2">
                 <Map className="h-4 w-4" />
