@@ -4,7 +4,7 @@ import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone } from "lucide-react";
 import Layout from "@/components/layout/Layout";
-import WindyWeatherExplorer from "@/components/weather/WindyWeatherExplorer";
+
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -297,15 +297,17 @@ const OutingDetail = () => {
             </div>
           </div>
 
-          {/* Weather Widget for future outings */}
+          {/* Widget Météo Windy - Version Iframe Stable */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
-            <div className="mb-8">
-              <WindyWeatherExplorer
-                latitude={outing.location_details.latitude}
-                longitude={outing.location_details.longitude}
-                locationName={outing.location_details.name || outing.location}
-                outingDate={outing.date_time}
-              />
+            <div className="w-full h-[500px] rounded-xl overflow-hidden shadow-lg border border-border my-6 bg-muted">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=default&metricTemp=default&metricWind=default&zoom=11&overlay=wind&product=ecmwf&level=surface&lat=${outing.location_details.latitude}&lon=${outing.location_details.longitude}&detailLat=${outing.location_details.latitude}&detailLon=${outing.location_details.longitude}&detail=true&message=true`}
+                frameBorder="0"
+                title="Météo Windy"
+                className="w-full h-full"
+              ></iframe>
             </div>
           )}
 
