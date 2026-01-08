@@ -1,14 +1,13 @@
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Loader2, BarChart3 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import LocationManager from "@/components/admin/LocationManager";
 import MemberManager from "@/components/admin/MemberManager";
 import ClubMembersDirectory from "@/components/admin/ClubMembersDirectory";
 import EquipmentCatalogManager from "@/components/admin/EquipmentCatalogManager";
+import StatsContent from "@/components/admin/StatsContent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -78,25 +77,7 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="stats">
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    Statistiques du club
-                  </CardTitle>
-                  <CardDescription>
-                    Consultez le tableau de bord annuel avec les métriques de participation et d'encadrement
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to="/stats">
-                    <Button variant="ocean" className="w-full sm:w-auto">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Accéder aux statistiques
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              <StatsContent isAdmin={isAdmin} />
             </TabsContent>
           </Tabs>
         </div>
