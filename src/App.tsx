@@ -20,6 +20,7 @@ import Weather from "./pages/Weather";
 import Equipment from "./pages/Equipment";
 import MesSorties from "./pages/MesSorties";
 import LocationDetail from "./pages/LocationDetail";
+import Trombinoscope from "./pages/Trombinoscope";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/weather" element={<Weather />} />
             <Route path="/equipment" element={<Equipment />} />
             <Route path="/mes-sorties" element={<MesSorties />} />
+            <Route path="/trombinoscope" element={<Trombinoscope />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
