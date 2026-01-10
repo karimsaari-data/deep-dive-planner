@@ -1,9 +1,9 @@
 import Layout from "@/components/layout/Layout";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users } from "lucide-react";
+import { Users, Crown, GraduationCap, UserCircle } from "lucide-react";
 
 // Generate a pastel color from initials
 const getAvatarColor = (name: string): string => {
@@ -23,21 +23,16 @@ const getInitials = (firstName: string, lastName: string): string => {
 
 interface MemberCardProps {
   member: TrombiMember;
+  showBoardRole?: boolean;
 }
 
-const MemberCard = ({ member }: MemberCardProps) => {
+const MemberCard = ({ member, showBoardRole = false }: MemberCardProps) => {
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
 
   return (
     <div className="flex flex-col items-center text-center group">
       <Avatar className="h-20 w-20 md:h-24 md:w-24 ring-2 ring-border/50 transition-transform duration-200 md:group-hover:scale-110">
-        <AvatarImage 
-          src={member.avatar_url || undefined} 
-          alt={member.first_name}
-          loading="lazy"
-          className="object-cover"
-        />
         <AvatarFallback className={`${avatarColor} text-foreground font-semibold text-lg md:text-xl`}>
           {initials}
         </AvatarFallback>
@@ -52,8 +47,15 @@ const MemberCard = ({ member }: MemberCardProps) => {
         {member.last_name}
       </p>
       
-      {/* Level badge - hidden on mobile */}
-      {member.apnea_level && (
+      {/* Board role for bureau members */}
+      {showBoardRole && member.board_role && (
+        <Badge variant="default" className="mt-1 text-[10px] px-1.5 py-0">
+          {member.board_role}
+        </Badge>
+      )}
+      
+      {/* Level badge for non-bureau members - hidden on mobile */}
+      {!showBoardRole && member.apnea_level && (
         <Badge variant="secondary" className="hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0">
           {member.apnea_level}
         </Badge>
@@ -69,6 +71,34 @@ const MemberSkeleton = () => (
   </div>
 );
 
+interface SectionProps {
+  title: string;
+  icon: React.ReactNode;
+  members: TrombiMember[];
+  showBoardRole?: boolean;
+  accentColor?: string;
+}
+
+const Section = ({ title, icon, members, showBoardRole = false, accentColor = "bg-primary" }: SectionProps) => {
+  if (!members.length) return null;
+  
+  return (
+    <section className="mb-8">
+      <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+        <span className={`h-1.5 w-1.5 rounded-full ${accentColor}`} />
+        {icon}
+        {title}
+        <span className="text-sm font-normal text-muted-foreground">({members.length})</span>
+      </h2>
+      <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
+        {members.map((member) => (
+          <MemberCard key={member.id} member={member} showBoardRole={showBoardRole} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
 
@@ -83,7 +113,7 @@ const Trombinoscope = () => {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Trombinoscope</h1>
             <p className="text-sm text-muted-foreground">
-              {data ? `${data.encadrants.length + data.membres.length} membres` : "Chargement..."}
+              {data ? `${data.total} membres` : "Chargement..."}
             </p>
           </div>
         </div>
@@ -96,35 +126,30 @@ const Trombinoscope = () => {
           </div>
         ) : (
           <>
+            {/* Bureau Section */}
+            <Section
+              title="Le Bureau"
+              icon={<Crown className="h-4 w-4 text-amber-500" />}
+              members={data?.bureau || []}
+              showBoardRole={true}
+              accentColor="bg-amber-500"
+            />
+
             {/* Encadrants Section */}
-            {data?.encadrants && data.encadrants.length > 0 && (
-              <section className="mb-8">
-                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Encadrants
-                </h2>
-                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
-                  {data.encadrants.map((member) => (
-                    <MemberCard key={member.id} member={member} />
-                  ))}
-                </div>
-              </section>
-            )}
+            <Section
+              title="Encadrants"
+              icon={<GraduationCap className="h-4 w-4 text-primary" />}
+              members={data?.encadrants || []}
+              accentColor="bg-primary"
+            />
 
             {/* Members Section */}
-            {data?.membres && data.membres.length > 0 && (
-              <section>
-                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-                  Membres
-                </h2>
-                <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
-                  {data.membres.map((member) => (
-                    <MemberCard key={member.id} member={member} />
-                  ))}
-                </div>
-              </section>
-            )}
+            <Section
+              title="Membres"
+              icon={<UserCircle className="h-4 w-4 text-muted-foreground" />}
+              members={data?.membres || []}
+              accentColor="bg-muted-foreground"
+            />
           </>
         )}
       </div>
