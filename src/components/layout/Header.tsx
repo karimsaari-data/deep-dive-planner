@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,24 +11,36 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const { isAdmin, isOrganizer } = useUserRole();
 
-  const navItems = [
-    { to: "/", label: "Sorties", icon: Waves },
-    { to: "/reservations", label: "Mes Réservations", icon: Calendar },
-    { to: "/trombinoscope", label: "Trombi", icon: Users },
-    { to: "/souvenirs", label: "Souvenirs", icon: Image },
-    { to: "/map", label: "Carte", icon: MapIcon },
-    { to: "/weather", label: "Météo", icon: CloudSun },
-  ];
+  const mobileNavRef = useRef<HTMLElement | null>(null);
 
-  if (isOrganizer) {
-    navItems.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
-    navItems.push({ to: "/equipment", label: "Matériel", icon: Package });
-    navItems.push({ to: "/archives", label: "Archives", icon: FileText });
-  }
+  const navItems = useMemo(() => {
+    const items = [
+      { to: "/", label: "Sorties", icon: Waves },
+      { to: "/reservations", label: "Mes Réservations", icon: Calendar },
+      { to: "/trombinoscope", label: "Trombi", icon: Users },
+      { to: "/souvenirs", label: "Souvenirs", icon: Image },
+      { to: "/map", label: "Carte", icon: MapIcon },
+      { to: "/weather", label: "Météo", icon: CloudSun },
+    ];
 
-  if (isAdmin) {
-    navItems.push({ to: "/admin", label: "Administration", icon: Settings });
-  }
+    if (isOrganizer) {
+      items.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
+      items.push({ to: "/equipment", label: "Matériel", icon: Package });
+      items.push({ to: "/archives", label: "Archives", icon: FileText });
+    }
+
+    if (isAdmin) {
+      items.push({ to: "/admin", label: "Administration", icon: Settings });
+    }
+
+    return items;
+  }, [isOrganizer, isAdmin]);
+
+  // Quand on change de compte / rôle, on remet la barre mobile au début pour éviter que
+  // certains onglets (ex: Trombi) soient hors-écran.
+  useEffect(() => {
+    mobileNavRef.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [user?.id, isOrganizer, isAdmin]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -78,13 +91,19 @@ const Header = () => {
       </div>
 
       {user && (
-        <nav className="flex justify-center gap-1 border-t border-border/50 bg-card p-2 md:hidden overflow-x-auto">
+        <nav
+          ref={mobileNavRef}
+          className="flex justify-center gap-1 border-t border-border/50 bg-card p-2 md:hidden overflow-x-auto"
+        >
           {navItems.map(({ to, label, icon: Icon }) => (
             <Link key={to} to={to}>
               <Button
                 variant={isActive(to) ? "secondary" : "ghost"}
                 size="sm"
-                className={cn("gap-1.5 text-xs whitespace-nowrap", isActive(to) && "bg-secondary text-secondary-foreground")}
+                className={cn(
+                  "gap-1.5 text-xs whitespace-nowrap",
+                  isActive(to) && "bg-secondary text-secondary-foreground"
+                )}
               >
                 <Icon className="h-4 w-4" />
                 {label}
