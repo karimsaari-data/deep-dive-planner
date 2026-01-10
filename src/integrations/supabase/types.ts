@@ -19,6 +19,7 @@ export type Database = {
           address: string | null
           apnea_level: string | null
           birth_date: string | null
+          board_role: string | null
           buddies_charter_signed: boolean
           created_at: string
           email: string
@@ -41,6 +42,7 @@ export type Database = {
           address?: string | null
           apnea_level?: string | null
           birth_date?: string | null
+          board_role?: string | null
           buddies_charter_signed?: boolean
           created_at?: string
           email: string
@@ -63,6 +65,7 @@ export type Database = {
           address?: string | null
           apnea_level?: string | null
           birth_date?: string | null
+          board_role?: string | null
           buddies_charter_signed?: boolean
           created_at?: string
           email?: string

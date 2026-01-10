@@ -78,6 +78,7 @@ import {
 } from "@/lib/csvImport";
 
 const GENDER_OPTIONS = ["Homme", "Femme", "Autre"];
+const BOARD_ROLE_OPTIONS = ["Président", "Vice-Président", "Trésorier", "Secrétaire", "Membre du bureau"];
 
 type SortField = "last_name" | "first_name" | "email" | "joined_at" | "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok";
 type SortDirection = "asc" | "desc";
@@ -149,6 +150,7 @@ const ClubMembersDirectory = () => {
     emergency_contact_phone: "",
     gender: "",
     notes: "",
+    board_role: "",
   });
 
   const resetForm = () => {
@@ -165,6 +167,7 @@ const ClubMembersDirectory = () => {
       emergency_contact_phone: "",
       gender: "",
       notes: "",
+      board_role: "",
     });
     setEditingMember(null);
   };
@@ -189,6 +192,7 @@ const ClubMembersDirectory = () => {
       emergency_contact_phone: member.emergency_contact_phone || "",
       gender: member.gender || "",
       notes: member.notes || "",
+      board_role: member.board_role || "",
     });
     setIsFormOpen(true);
   };
@@ -902,14 +906,33 @@ const ClubMembersDirectory = () => {
                   placeholder="Adresse complète"
                 />
               </div>
-              <div>
-                <Label htmlFor="joined_at">Date d'arrivée</Label>
-                <Input
-                  id="joined_at"
-                  type="date"
-                  value={formData.joined_at || ""}
-                  onChange={(e) => setFormData({ ...formData, joined_at: e.target.value })}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="joined_at">Date d'arrivée</Label>
+                  <Input
+                    id="joined_at"
+                    type="date"
+                    value={formData.joined_at || ""}
+                    onChange={(e) => setFormData({ ...formData, joined_at: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="board_role">Rôle au Bureau</Label>
+                  <Select 
+                    value={formData.board_role || ""} 
+                    onValueChange={(v) => setFormData({ ...formData, board_role: v === "none" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Aucun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Aucun</SelectItem>
+                      {BOARD_ROLE_OPTIONS.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
