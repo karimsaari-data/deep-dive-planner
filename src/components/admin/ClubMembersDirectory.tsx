@@ -78,7 +78,7 @@ import {
 } from "@/lib/csvImport";
 
 const GENDER_OPTIONS = ["Homme", "Femme", "Autre"];
-const BOARD_ROLE_OPTIONS = ["Président", "Vice-Président", "Trésorier", "Secrétaire", "Membre du bureau"];
+const BOARD_ROLE_OPTIONS = ["Président", "Vice-Président", "Trésorier", "Secrétaire", "Trésorier Adjoint", "Secrétaire Adjoint", "Membre du bureau"];
 
 type SortField = "last_name" | "first_name" | "email" | "joined_at" | "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok";
 type SortDirection = "asc" | "desc";
