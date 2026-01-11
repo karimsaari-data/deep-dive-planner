@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Shield, User, Crown } from "lucide-react";
+import { Users, Search, Crown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed: Select components - no longer needed
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,9 +15,7 @@ interface Profile {
   first_name: string;
   last_name: string;
   email: string;
-  apnea_level: string | null;
   avatar_url: string | null;
-  member_status: "Membre" | "Encadrant" | null;
   member_code: string | null;
 }
 
@@ -57,29 +54,7 @@ const MemberManager = () => {
     },
   });
 
-  const updateMemberStatus = useMutation({
-    mutationFn: async ({
-      userId,
-      status,
-    }: {
-      userId: string;
-      status: "Membre" | "Encadrant";
-    }) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ member_status: status })
-        .eq("id", userId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
-      toast.success("Statut mis à jour !");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de la mise à jour");
-    },
-  });
+  // Removed: updateMemberStatus mutation - role management moved to club_members_directory
 
   const toggleAdminRole = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
@@ -176,52 +151,18 @@ const MemberManager = () => {
                           {profile.member_code}
                         </p>
                       )}
-                      {profile.apnea_level && (
-                        <Badge variant="outline" className="mt-1 text-xs">
-                          {profile.apnea_level}
-                        </Badge>
-                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Select
-                      value={profile.member_status ?? "Membre"}
-                      onValueChange={(value) =>
-                        updateMemberStatus.mutate({
-                          userId: profile.id,
-                          status: value as "Membre" | "Encadrant",
-                        })
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground mr-2">Admin</span>
+                    <Switch
+                      checked={isUserAdmin(profile.id)}
+                      onCheckedChange={(checked) =>
+                        toggleAdminRole.mutate({ userId: profile.id, isAdmin: !checked })
                       }
-                    >
-                      <SelectTrigger className="w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Membre">
-                          <div className="flex items-center gap-2">
-                            <User className="h-3 w-3" />
-                            Membre
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="Encadrant">
-                          <div className="flex items-center gap-2">
-                            <Shield className="h-3 w-3" />
-                            Encadrant
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={isUserAdmin(profile.id)}
-                        onCheckedChange={(checked) =>
-                          toggleAdminRole.mutate({ userId: profile.id, isAdmin: !checked })
-                        }
-                      />
-                      <Crown className={`h-4 w-4 ${isUserAdmin(profile.id) ? "text-amber-500" : "text-muted-foreground"}`} />
-                    </div>
+                    />
+                    <Crown className={`h-4 w-4 ${isUserAdmin(profile.id) ? "text-amber-500" : "text-muted-foreground"}`} />
                   </div>
                 </div>
               );

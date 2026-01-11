@@ -29,6 +29,7 @@ export type Database = {
           fsgt_insurance_ok: boolean
           gender: string | null
           id: string
+          is_encadrant: boolean
           joined_at: string | null
           last_name: string
           medical_certificate_ok: boolean
@@ -52,6 +53,7 @@ export type Database = {
           fsgt_insurance_ok?: boolean
           gender?: string | null
           id?: string
+          is_encadrant?: boolean
           joined_at?: string | null
           last_name: string
           medical_certificate_ok?: boolean
@@ -75,6 +77,7 @@ export type Database = {
           fsgt_insurance_ok?: boolean
           gender?: string | null
           id?: string
+          is_encadrant?: boolean
           joined_at?: string | null
           last_name?: string
           medical_certificate_ok?: boolean

@@ -7,42 +7,62 @@ export interface TrombiMember {
   last_name: string;
   apnea_level: string | null;
   board_role: string | null;
+  is_encadrant: boolean;
+  avatar_url: string | null;
 }
-
-// Keywords to detect encadrants in apnea_level
-const ENCADRANT_KEYWORDS = ["E1", "E2", "E3", "E4", "MEF1", "MF1", "MF2", "GP"];
-
-const isEncadrant = (level: string | null): boolean => {
-  if (!level) return false;
-  const upperLevel = level.toUpperCase();
-  return ENCADRANT_KEYWORDS.some(keyword => upperLevel.includes(keyword));
-};
 
 export const useTrombinoscope = () => {
   return useQuery({
     queryKey: ["trombinoscope-directory"],
     queryFn: async () => {
       // Fetch all members from club_members_directory
-      const { data: members, error } = await supabase
+      const { data: members, error: membersError } = await supabase
         .from("club_members_directory")
-        .select("id, first_name, last_name, apnea_level, board_role")
+        .select("id, first_name, last_name, apnea_level, board_role, is_encadrant, email")
         .order("last_name", { ascending: true });
 
-      if (error) throw error;
+      if (membersError) throw membersError;
 
-      const allMembers: TrombiMember[] = members || [];
+      // Fetch all profiles to get avatar_url (matched by email)
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("email, avatar_url");
 
-      // Separate into 3 categories
+      if (profilesError) throw profilesError;
+
+      // Create a map of email -> avatar_url for quick lookup
+      const avatarMap = new Map<string, string | null>();
+      profiles?.forEach((p) => {
+        if (p.email) {
+          avatarMap.set(p.email.toLowerCase(), p.avatar_url);
+        }
+      });
+
+      // Merge avatar_url into members
+      const allMembers: TrombiMember[] = (members || []).map((m) => ({
+        id: m.id,
+        first_name: m.first_name,
+        last_name: m.last_name,
+        apnea_level: m.apnea_level,
+        board_role: m.board_role,
+        is_encadrant: m.is_encadrant ?? false,
+        avatar_url: avatarMap.get((m as any).email?.toLowerCase()) || null,
+      }));
+
+      // Separate into 3 categories based on new rules:
+      // 1. Bureau: has board_role
+      // 2. Encadrants: is_encadrant = true AND no board_role
+      // 3. Membres: the rest
       const bureau = allMembers
         .filter((m) => m.board_role)
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
       const encadrants = allMembers
-        .filter((m) => !m.board_role && isEncadrant(m.apnea_level))
+        .filter((m) => !m.board_role && m.is_encadrant)
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
       const membres = allMembers
-        .filter((m) => !m.board_role && !isEncadrant(m.apnea_level))
+        .filter((m) => !m.board_role && !m.is_encadrant)
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
       return { bureau, encadrants, membres, total: allMembers.length };

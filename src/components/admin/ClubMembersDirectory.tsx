@@ -151,6 +151,7 @@ const ClubMembersDirectory = () => {
     gender: "",
     notes: "",
     board_role: "",
+    is_encadrant: false,
   });
 
   const resetForm = () => {
@@ -168,6 +169,7 @@ const ClubMembersDirectory = () => {
       gender: "",
       notes: "",
       board_role: "",
+      is_encadrant: false,
     });
     setEditingMember(null);
   };
@@ -193,6 +195,7 @@ const ClubMembersDirectory = () => {
       gender: member.gender || "",
       notes: member.notes || "",
       board_role: member.board_role || "",
+      is_encadrant: member.is_encadrant ?? false,
     });
     setIsFormOpen(true);
   };
@@ -953,6 +956,19 @@ const ClubMembersDirectory = () => {
                     placeholder="06..."
                   />
                 </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <Checkbox
+                  id="is_encadrant"
+                  checked={formData.is_encadrant ?? false}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_encadrant: !!checked })}
+                />
+                <Label htmlFor="is_encadrant" className="text-sm font-medium cursor-pointer">
+                  🤿 Est Encadrant
+                  <span className="block text-xs text-muted-foreground font-normal">
+                    Cette personne encadre les sorties et a accès aux outils d'organisation
+                  </span>
+                </Label>
               </div>
               <div>
                 <Label htmlFor="notes">Notes</Label>
