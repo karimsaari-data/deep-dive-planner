@@ -49,13 +49,29 @@ export const useTrombinoscope = () => {
         avatar_url: avatarMap.get((m as any).email?.toLowerCase()) || null,
       }));
 
+      // Hierarchical weights for board roles
+      const roleWeights: Record<string, number> = {
+        "Président": 1,
+        "Vice-Président": 2,
+        "Trésorier": 3,
+        "Secrétaire": 4,
+        "Trésorier Adjoint": 5,
+        "Secrétaire Adjoint": 6,
+        "Membre du bureau": 7,
+      };
+
       // Separate into 3 categories based on new rules:
-      // 1. Bureau: has board_role
+      // 1. Bureau: has board_role (sorted by hierarchy, then alphabetically)
       // 2. Encadrants: is_encadrant = true AND no board_role
       // 3. Membres: the rest
       const bureau = allMembers
         .filter((m) => m.board_role)
-        .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
+        .sort((a, b) => {
+          const weightA = roleWeights[a.board_role!] ?? 99;
+          const weightB = roleWeights[b.board_role!] ?? 99;
+          if (weightA !== weightB) return weightA - weightB;
+          return a.last_name.localeCompare(b.last_name, "fr");
+        });
 
       const encadrants = allMembers
         .filter((m) => !m.board_role && m.is_encadrant)
