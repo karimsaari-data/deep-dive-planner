@@ -1,6 +1,6 @@
 import Layout from "@/components/layout/Layout";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Crown, GraduationCap, UserCircle } from "lucide-react";
@@ -33,6 +33,9 @@ const MemberCard = ({ member, showBoardRole = false }: MemberCardProps) => {
   return (
     <div className="flex flex-col items-center text-center group">
       <Avatar className="h-20 w-20 md:h-24 md:w-24 ring-2 ring-border/50 transition-transform duration-200 md:group-hover:scale-110">
+        {member.avatar_url ? (
+          <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />
+        ) : null}
         <AvatarFallback className={`${avatarColor} text-foreground font-semibold text-lg md:text-xl`}>
           {initials}
         </AvatarFallback>

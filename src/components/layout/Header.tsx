@@ -4,24 +4,34 @@ import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, Clou
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { cn } from "@/lib/utils";
 
 const Header = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { isAdmin, isOrganizer } = useUserRole();
+  const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
 
   const mobileNavRef = useRef<HTMLElement | null>(null);
+
+  // Determine if user is an encadrant (either from directory or has organizer role)
+  const isEncadrant = isOrganizer || isEncadrantFromDirectory;
 
   const navItems = useMemo(() => {
     const items = [
       { to: "/", label: "Sorties", icon: Waves },
       { to: "/reservations", label: "Mes Réservations", icon: Calendar },
       { to: "/trombinoscope", label: "Trombi", icon: Users },
-      { to: "/souvenirs", label: "Souvenirs", icon: Image },
-      { to: "/map", label: "Carte", icon: MapIcon },
-      { to: "/weather", label: "Météo", icon: CloudSun },
     ];
+
+    // For encadrants: hide Souvenirs to save space for more important tools
+    if (!isEncadrant) {
+      items.push({ to: "/souvenirs", label: "Souvenirs", icon: Image });
+    }
+
+    items.push({ to: "/map", label: "Carte", icon: MapIcon });
+    items.push({ to: "/weather", label: "Météo", icon: CloudSun });
 
     if (isOrganizer) {
       items.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
@@ -34,13 +44,12 @@ const Header = () => {
     }
 
     return items;
-  }, [isOrganizer, isAdmin]);
+  }, [isOrganizer, isAdmin, isEncadrant]);
 
-  // Quand on change de compte / rôle, on remet la barre mobile au début pour éviter que
-  // certains onglets (ex: Trombi) soient hors-écran.
+  // Reset mobile nav scroll when user/role changes
   useEffect(() => {
     mobileNavRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [user?.id, isOrganizer, isAdmin]);
+  }, [user?.id, isOrganizer, isAdmin, isEncadrant]);
 
   const isActive = (path: string) => location.pathname === path;
 
