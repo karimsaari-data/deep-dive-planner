@@ -547,6 +547,7 @@ export type Database = {
         Args: never
         Returns: {
           apnea_level: string
+          avatar_url: string
           board_role: string
           email: string
           first_name: string
