@@ -16,27 +16,13 @@ export const useTrombinoscope = () => {
     queryKey: ["trombinoscope-directory"],
     queryFn: async () => {
       // Fetch members using secure RPC function that only exposes non-sensitive fields
+      // including avatar_url from profiles table
       const { data: members, error: membersError } = await supabase
         .rpc("get_trombinoscope_members");
 
       if (membersError) throw membersError;
 
-      // Fetch all profiles to get avatar_url (matched by email)
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("email, avatar_url");
-
-      if (profilesError) throw profilesError;
-
-      // Create a map of email -> avatar_url for quick lookup
-      const avatarMap = new Map<string, string | null>();
-      profiles?.forEach((p) => {
-        if (p.email) {
-          avatarMap.set(p.email.toLowerCase(), p.avatar_url);
-        }
-      });
-
-      // Merge avatar_url into members
+      // Map directly - avatar_url is now included in the RPC result
       const allMembers: TrombiMember[] = (members || []).map((m) => ({
         id: m.id,
         first_name: m.first_name,
@@ -44,7 +30,7 @@ export const useTrombinoscope = () => {
         apnea_level: m.apnea_level,
         board_role: m.board_role,
         is_encadrant: m.is_encadrant ?? false,
-        avatar_url: avatarMap.get((m as any).email?.toLowerCase()) || null,
+        avatar_url: m.avatar_url || null,
       }));
 
       // Hierarchical weights for board roles
