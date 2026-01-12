@@ -524,6 +524,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_member_details: {
+        Args: { _member_email: string }
+        Returns: boolean
+      }
       get_club_stats: { Args: { p_year?: number }; Returns: Json }
       get_outing_confirmed_count: {
         Args: { outing_uuid: string }
@@ -537,6 +541,18 @@ export type Database = {
           id: string
           last_name: string
           member_status: string
+        }[]
+      }
+      get_trombinoscope_members: {
+        Args: never
+        Returns: {
+          apnea_level: string
+          board_role: string
+          email: string
+          first_name: string
+          id: string
+          is_encadrant: boolean
+          last_name: string
         }[]
       }
       has_role: {
