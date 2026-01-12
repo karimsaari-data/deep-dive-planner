@@ -15,11 +15,9 @@ export const useTrombinoscope = () => {
   return useQuery({
     queryKey: ["trombinoscope-directory"],
     queryFn: async () => {
-      // Fetch all members from club_members_directory
+      // Fetch members using secure RPC function that only exposes non-sensitive fields
       const { data: members, error: membersError } = await supabase
-        .from("club_members_directory")
-        .select("id, first_name, last_name, apnea_level, board_role, is_encadrant, email")
-        .order("last_name", { ascending: true });
+        .rpc("get_trombinoscope_members");
 
       if (membersError) throw membersError;
 
