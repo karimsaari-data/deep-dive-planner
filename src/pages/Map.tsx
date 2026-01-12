@@ -142,6 +142,10 @@ const Map = () => {
 
   // Initialize map with marine chart layers
   useEffect(() => {
+    // Important: during the first render we may show a loading state that doesn't mount the map div yet.
+    // If we keep an empty dependency array, the effect runs once with mapRef.current === null and never
+    // initializes the map. When data is cached, switching tabs re-mounts and it "magically" works.
+    if (isLoading) return;
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapRef.current, {
@@ -221,9 +225,7 @@ const Map = () => {
 
     // Fix for gray/white screen on first load - force resize after mount
     setTimeout(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
+      mapInstanceRef.current?.invalidateSize();
     }, 150);
 
     return () => {
@@ -235,7 +237,7 @@ const Map = () => {
         userMarkerRef.current = null;
       }
     };
-  }, []);
+  }, [isLoading]);
 
   // Add markers when locations change
   useEffect(() => {
