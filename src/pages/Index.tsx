@@ -5,6 +5,7 @@ import OutingCard from "@/components/outings/OutingCard";
 import OutingFilters from "@/components/outings/OutingFilters";
 import { useOutings, OutingType } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { Button } from "@/components/ui/button";
 import HistoricalOutingForm from "@/components/outings/HistoricalOutingForm";
@@ -14,7 +15,10 @@ const Index = () => {
   const [showHistoricalForm, setShowHistoricalForm] = useState(false);
   const { data: outings, isLoading, error } = useOutings(typeFilter);
   const { user } = useAuth();
-  const { data: isEncadrant } = useIsCurrentUserEncadrant();
+  const { isAdmin, isOrganizer } = useUserRole();
+  const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
+
+  const canUseHistoricalTool = !!user && (isAdmin || isOrganizer || !!isEncadrantFromDirectory);
 
   return (
     <Layout>
@@ -52,17 +56,17 @@ const Index = () => {
 
             <div className="flex items-center gap-3">
               {/* Historical outing button for encadrants */}
-              {user && isEncadrant && (
+              {canUseHistoricalTool && (
                 <Button
                   variant="outline"
                   onClick={() => setShowHistoricalForm(true)}
                   className="gap-2"
                 >
                   <History className="h-4 w-4" />
-                  <span className="hidden sm:inline">Saisie passée</span>
+                  Archives / Saisie passée
                 </Button>
               )}
-              
+
               <OutingFilters activeFilter={typeFilter} onFilterChange={setTypeFilter} />
             </div>
           </div>
