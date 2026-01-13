@@ -563,6 +563,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_current_user_encadrant: { Args: never; Returns: boolean }
       is_encadrant_or_admin: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
