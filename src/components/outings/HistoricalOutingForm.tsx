@@ -25,7 +25,7 @@ const historicalOutingSchema = z.object({
   location_id: z.string().optional(),
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères"),
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
-  organizer_id: z.string().min(1, "Le directeur de plongée est requis"),
+  organizer_id: z.string().min(1, "L'organisateur est requis"),
 });
 
 type HistoricalOutingFormData = z.infer<typeof historicalOutingSchema>;
@@ -158,7 +158,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl h-[95dvh] sm:h-auto sm:max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="h-5 w-5 text-primary" />
@@ -170,7 +170,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 gap-4 overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 gap-4 overflow-y-auto pb-4">
             {/* Header fields */}
             <div className="grid gap-4 sm:grid-cols-3">
               <FormField
@@ -287,17 +287,17 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
               />
             )}
 
-            {/* DP Selection */}
+            {/* Organizer Selection */}
             <FormField
               control={form.control}
               name="organizer_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Directeur de Plongée (DP)</FormLabel>
+                  <FormLabel>Organisateur</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner le DP" />
+                        <SelectValue placeholder="Sélectionner l'organisateur" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -314,7 +314,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
             />
 
             {/* Members selection section */}
-            <div className="flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden">
+            <div className="flex flex-col border rounded-lg overflow-hidden min-h-[200px] max-h-[40vh]">
               <div className="p-3 border-b bg-muted/30">
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
