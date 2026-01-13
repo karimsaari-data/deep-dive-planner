@@ -5,29 +5,25 @@ import { useAuth } from "@/contexts/AuthContext";
 /**
  * Hook to check if the current logged-in user is an "encadrant"
  * based on the club_members_directory (source of truth).
- * This checks if the user's email exists in the directory with is_encadrant = true.
+ * Uses a SECURITY DEFINER function to bypass RLS restrictions.
  */
 export const useIsCurrentUserEncadrant = () => {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["is-current-user-encadrant", user?.email],
+    queryKey: ["is-current-user-encadrant", user?.id],
     queryFn: async () => {
-      if (!user?.email) return false;
+      if (!user?.id) return false;
 
-      const { data, error } = await supabase
-        .from("club_members_directory")
-        .select("is_encadrant")
-        .eq("email", user.email.toLowerCase())
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("is_current_user_encadrant");
 
       if (error) {
         console.error("Error checking encadrant status:", error);
         return false;
       }
 
-      return data?.is_encadrant ?? false;
+      return data ?? false;
     },
-    enabled: !!user?.email,
+    enabled: !!user?.id,
   });
 };
