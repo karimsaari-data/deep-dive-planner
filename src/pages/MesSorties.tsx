@@ -1,8 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Loader2, Users, Calendar, Sun, Waves, Droplets, Building2, Leaf, User, Share2, Copy, Check, Plus } from "lucide-react";
+import {
+  Loader2,
+  Users,
+  Calendar,
+  Sun,
+  Waves,
+  Droplets,
+  Building2,
+  Leaf,
+  User,
+  Share2,
+  Copy,
+  Check,
+  Plus,
+  History,
+} from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
+import HistoricalOutingForm from "@/components/outings/HistoricalOutingForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useOutings } from "@/hooks/useOutings";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocations } from "@/hooks/useLocations";
 import { format } from "date-fns";
@@ -21,10 +38,14 @@ const MesSorties = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { isOrganizer, loading: roleLoading } = useUserRole();
+  const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
   const { data: outings, isLoading } = useOutings();
   const { data: locations } = useLocations();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showHistoricalForm, setShowHistoricalForm] = useState(false);
+
+  const canUseHistoricalTool = !!user && (isOrganizer || !!isEncadrantFromDirectory);
 
   // Check if we need to pre-fill a location
   const prefilledLocationId = searchParams.get("createFor");
@@ -115,17 +136,29 @@ const MesSorties = () => {
     <Layout>
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Mes Sorties</h1>
-              <p className="text-muted-foreground">
-                Gérez les sorties que vous organisez
-              </p>
+              <p className="text-muted-foreground">Gérez les sorties que vous organisez</p>
             </div>
-            <Button onClick={() => setShowForm(!showForm)} variant="ocean" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nouvelle sortie
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {canUseHistoricalTool && (
+                <Button
+                  onClick={() => setShowHistoricalForm(true)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <History className="h-4 w-4" />
+                  Archives / Saisie passée
+                </Button>
+              )}
+
+              <Button onClick={() => setShowForm(!showForm)} variant="ocean" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nouvelle sortie
+              </Button>
+            </div>
           </div>
 
           {showForm && (
@@ -230,9 +263,14 @@ const MesSorties = () => {
             </CardContent>
           </Card>
         </div>
-      </section>
-    </Layout>
-  );
+       </section>
+
+       <HistoricalOutingForm
+         open={showHistoricalForm}
+         onOpenChange={setShowHistoricalForm}
+       />
+     </Layout>
+   );
 };
 
 export default MesSorties;
