@@ -15,8 +15,10 @@ interface HistoricalOutingData {
 }
 
 /**
- * Hook to create a historical outing with all participants marked as present.
+ * Hook to create a historical outing with participants from club_members_directory.
  * This is used by encadrants to record past outings.
+ * Participants are stored in historical_outing_participants table,
+ * NOT in reservations, since they may not have app accounts.
  * No email notifications are sent.
  */
 export const useCreateHistoricalOuting = () => {
@@ -46,75 +48,34 @@ export const useCreateHistoricalOuting = () => {
       if (outingError) throw outingError;
       if (!newOuting) throw new Error("Failed to create outing");
 
-      // 2. Get profile IDs for the selected members (by matching email)
-      // First, get the emails of selected members from club_members_directory
-      const { data: selectedMembers, error: membersError } = await supabase
-        .from("club_members_directory")
-        .select("email")
-        .in("id", data.participant_member_ids);
-
-      if (membersError) throw membersError;
-
-      const memberEmails = selectedMembers?.map((m) => m.email.toLowerCase()) || [];
-
-      // Then, get profile IDs that match those emails
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, email");
-
-      if (profilesError) throw profilesError;
-
-      // Create a map of email -> profile id
-      const emailToProfileId = new Map<string, string>();
-      profiles?.forEach((p) => {
-        if (p.email) {
-          emailToProfileId.set(p.email.toLowerCase(), p.id);
-        }
-      });
-
-      // Filter to only members with registered profiles
-      const participantProfileIds = memberEmails
-        .map((email) => emailToProfileId.get(email))
-        .filter((id): id is string => !!id);
-
-      // 3. Create reservations for all participants (confirmed + present)
-      if (participantProfileIds.length > 0) {
-        const reservations = participantProfileIds.map((userId) => ({
+      // 2. Create historical_outing_participants entries
+      // These are linked to club_members_directory, NOT to profiles
+      if (data.participant_member_ids.length > 0) {
+        const participants = data.participant_member_ids.map((memberId) => ({
           outing_id: newOuting.id,
-          user_id: userId,
-          status: "confirmé" as const,
-          is_present: true,
-          carpool_option: "none" as const,
-          carpool_seats: 0,
+          member_id: memberId,
         }));
 
-        const { error: reservationError } = await supabase
-          .from("reservations")
-          .insert(reservations);
+        const { error: participantsError } = await supabase
+          .from("historical_outing_participants")
+          .insert(participants);
 
-        if (reservationError) {
-          console.error("Error creating reservations:", reservationError);
+        if (participantsError) {
+          console.error("Error creating historical participants:", participantsError);
           // Don't throw - outing is created, just log the error
         }
       }
 
       return {
         outingId: newOuting.id,
-        participantsCount: participantProfileIds.length,
-        totalSelected: data.participant_member_ids.length,
+        participantsCount: data.participant_member_ids.length,
       };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["archived-outings"] });
       
-      if (result.participantsCount < result.totalSelected) {
-        toast.success(
-          `Sortie historique ajoutée avec ${result.participantsCount} participants (${result.totalSelected - result.participantsCount} membres non inscrits à l'app)`
-        );
-      } else {
-        toast.success(`Sortie historique ajoutée avec ${result.participantsCount} participants`);
-      }
+      toast.success(`Sortie historique ajoutée aux archives avec ${result.participantsCount} participants`);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de la création de la sortie");
