@@ -241,6 +241,42 @@ export type Database = {
           },
         ]
       }
+      historical_outing_participants: {
+        Row: {
+          created_at: string
+          id: string
+          member_id: string
+          outing_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_id: string
+          outing_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_id?: string
+          outing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_outing_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "club_members_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_outing_participants_outing_id_fkey"
+            columns: ["outing_id"]
+            isOneToOne: false
+            referencedRelation: "outings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       locations: {
         Row: {
           address: string | null
