@@ -48,6 +48,7 @@ const Archives = () => {
           photos,
           session_report,
           is_deleted,
+          is_archived,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
           location_details:locations(name),
           reservations(
@@ -70,9 +71,26 @@ const Archives = () => {
       const { data, error } = await query;
 
       if (error) throw error;
+
+      // Get historical participants for all outings
+      const outingIds = data?.map(o => o.id) ?? [];
+      const { data: historicalParticipants } = await supabase
+        .from("historical_outing_participants")
+        .select(`
+          outing_id,
+          member:club_members_directory(id, first_name, last_name, email)
+        `)
+        .in("outing_id", outingIds);
+
+      // Group historical participants by outing_id
+      const historicalByOuting = new Map<string, any[]>();
+      historicalParticipants?.forEach(hp => {
+        const existing = historicalByOuting.get(hp.outing_id) ?? [];
+        existing.push(hp.member);
+        historicalByOuting.set(hp.outing_id, existing);
+      });
       
-      // Filter outings: must have at least 2 people present (rule of 2)
-      // A "realized" outing requires organizer + at least 1 present participant
+      // Process outings: include historical outings OR outings with 2+ present
       return data?.map(outing => {
         const confirmedParticipants = outing.reservations?.filter(
           (r: any) => r.status === "confirmé"
@@ -80,14 +98,22 @@ const Archives = () => {
         const presentParticipants = outing.reservations?.filter(
           (r: any) => r.status === "confirmé" && r.is_present
         ) ?? [];
+        const historicalMembers = historicalByOuting.get(outing.id) ?? [];
+        
+        // Historical outings (is_archived=true with historical participants) are always shown
+        const isHistorical = outing.is_archived && historicalMembers.length > 0;
+        // Regular outings need 2+ present participants
+        const isRealized = presentParticipants.length >= 2;
         
         return {
           ...outing,
           confirmedParticipants,
           presentParticipants,
-          isRealized: presentParticipants.length >= 2, // Rule of 2 people minimum
+          historicalMembers,
+          isHistorical,
+          isRealized: isHistorical || isRealized,
         };
-      }).filter(outing => outing.isRealized) ?? []; // Only show realized outings
+      }).filter(outing => outing.isRealized) ?? [];
     },
     enabled: !!user && (isOrganizer || isAdmin),
   });
@@ -344,46 +370,87 @@ const Archives = () => {
                               </TabsList>
                               
                               <TabsContent value="participants" className="mt-4">
-                                <div className="flex items-center justify-between mb-4">
-                                  <h4 className="font-medium flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-primary" />
-                                    Participants ({outing.presentParticipants.length}/{outing.confirmedParticipants.length} présents)
-                                  </h4>
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                  {outing.confirmedParticipants.map((r: any) => {
-                                    const profile = r.profile;
-                                    const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`;
-                                    return (
-                                      <div 
-                                        key={r.id} 
-                                        className={`flex items-center gap-2 rounded-lg border p-2 ${
-                                          r.is_present 
-                                            ? "border-emerald-500/50 bg-emerald-500/10" 
-                                            : "border-border bg-muted/30 opacity-60"
-                                        }`}
-                                      >
-                                        <Avatar className="h-10 w-10">
-                                          <AvatarImage src={profile?.avatar_url ?? undefined} />
-                                          <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                                            {initials}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                          <p className="text-sm font-medium text-foreground">
-                                            {profile?.first_name} {profile?.last_name}
-                                          </p>
-                                          <Badge 
-                                            variant={r.is_present ? "default" : "outline"} 
-                                            className="text-xs"
+                                {outing.isHistorical ? (
+                                  // Historical outing: show members from club_members_directory
+                                  <>
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h4 className="font-medium flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-primary" />
+                                        Participants ({outing.historicalMembers.length})
+                                      </h4>
+                                      <Badge variant="outline" className="text-xs">Sortie historique</Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                      {outing.historicalMembers.map((member: any) => {
+                                        const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
+                                        return (
+                                          <div 
+                                            key={member.id} 
+                                            className="flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 p-2"
                                           >
-                                            {r.is_present ? "Présent" : "Absent"}
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
+                                            <Avatar className="h-10 w-10">
+                                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                                {initials}
+                                              </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                              <p className="text-sm font-medium text-foreground">
+                                                {member?.first_name} {member?.last_name}
+                                              </p>
+                                              <Badge variant="default" className="text-xs">
+                                                Présent
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                ) : (
+                                  // Regular outing: show reservations
+                                  <>
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h4 className="font-medium flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-primary" />
+                                        Participants ({outing.presentParticipants.length}/{outing.confirmedParticipants.length} présents)
+                                      </h4>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                      {outing.confirmedParticipants.map((r: any) => {
+                                        const profile = r.profile;
+                                        const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`;
+                                        return (
+                                          <div 
+                                            key={r.id} 
+                                            className={`flex items-center gap-2 rounded-lg border p-2 ${
+                                              r.is_present 
+                                                ? "border-emerald-500/50 bg-emerald-500/10" 
+                                                : "border-border bg-muted/30 opacity-60"
+                                            }`}
+                                          >
+                                            <Avatar className="h-10 w-10">
+                                              <AvatarImage src={profile?.avatar_url ?? undefined} />
+                                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                                {initials}
+                                              </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                              <p className="text-sm font-medium text-foreground">
+                                                {profile?.first_name} {profile?.last_name}
+                                              </p>
+                                              <Badge 
+                                                variant={r.is_present ? "default" : "outline"} 
+                                                className="text-xs"
+                                              >
+                                                {r.is_present ? "Présent" : "Absent"}
+                                              </Badge>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </>
+                                )}
                               </TabsContent>
                               
                               <TabsContent value="photos" className="mt-4">
