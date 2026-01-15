@@ -393,15 +393,44 @@ const Archives = () => {
                                       <Badge variant="outline" className="text-xs">Sortie historique</Badge>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                      {/* Show organizer first if not already in historical members */}
+                                      {outing.organizer && !outing.organizerInHistorical && (
+                                        <div 
+                                          className="flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 p-2"
+                                        >
+                                          <Avatar className="h-10 w-10">
+                                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                                              {outing.organizer.first_name?.[0] ?? ""}{outing.organizer.last_name?.[0] ?? ""}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                          <div>
+                                            <p className="text-sm font-medium text-foreground">
+                                              {outing.organizer.first_name} {outing.organizer.last_name}
+                                            </p>
+                                            <Badge variant="secondary" className="text-xs">
+                                              Encadrant
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      )}
                                       {outing.historicalMembers.map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
+                                        const isOrganizer = outing.organizer && member.id === outing.organizer.id;
                                         return (
                                           <div 
                                             key={member.id} 
-                                            className="flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 p-2"
+                                            className={`flex items-center gap-2 rounded-lg border p-2 ${
+                                              isOrganizer 
+                                                ? "border-primary/50 bg-primary/10" 
+                                                : "border-emerald-500/50 bg-emerald-500/10"
+                                            }`}
                                           >
                                             <Avatar className="h-10 w-10">
-                                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                              <AvatarFallback className={`text-sm ${
+                                                isOrganizer 
+                                                  ? "bg-primary text-primary-foreground" 
+                                                  : "bg-primary/10 text-primary"
+                                              }`}>
                                                 {initials}
                                               </AvatarFallback>
                                             </Avatar>
@@ -409,8 +438,8 @@ const Archives = () => {
                                               <p className="text-sm font-medium text-foreground">
                                                 {member?.first_name} {member?.last_name}
                                               </p>
-                                              <Badge variant="default" className="text-xs">
-                                                Présent
+                                              <Badge variant={isOrganizer ? "secondary" : "default"} className="text-xs">
+                                                {isOrganizer ? "Encadrant" : "Présent"}
                                               </Badge>
                                             </div>
                                           </div>
@@ -575,7 +604,10 @@ const Archives = () => {
                     <div className="flex flex-wrap gap-4 text-sm">
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        {outing.presentParticipants.length}/{outing.confirmedParticipants.length} présents
+                        {outing.isHistorical 
+                          ? `${outing.totalParticipantCount} présents`
+                          : `${outing.presentParticipants.length}/${outing.confirmedParticipants.length} présents`
+                        }
                       </span>
                       {outing.photos && outing.photos.length > 0 && (
                         <span className="flex items-center gap-2 text-muted-foreground">
