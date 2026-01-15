@@ -102,9 +102,18 @@ const Archives = () => {
         // Historical outings have historical_outing_participants
         const isHistorical = historicalMembers.length > 0;
         
-        // Calculate total participants: historical members OR present participants
+        // Check if organizer is already in historical members (by email match)
+        const organizerEmail = outing.organizer?.id ? null : undefined; // We check by ID
+        const organizerId = outing.organizer?.id;
+        const organizerInHistorical = isHistorical && historicalMembers.some(
+          (m: any) => m.id === organizerId
+        );
+        
+        // Calculate total participants: 
+        // - For historical: members + organizer (if not already included)
+        // - For regular: present participants
         const totalParticipantCount = isHistorical 
-          ? historicalMembers.length 
+          ? historicalMembers.length + (organizerId && !organizerInHistorical ? 1 : 0)
           : presentParticipants.length;
         
         return {
@@ -113,6 +122,7 @@ const Archives = () => {
           presentParticipants,
           historicalMembers,
           isHistorical,
+          organizerInHistorical,
           totalParticipantCount,
         };
       }) ?? [];
@@ -378,7 +388,7 @@ const Archives = () => {
                                     <div className="flex items-center justify-between mb-4">
                                       <h4 className="font-medium flex items-center gap-2">
                                         <Users className="h-4 w-4 text-primary" />
-                                        Participants ({outing.historicalMembers.length})
+                                        Participants ({outing.totalParticipantCount})
                                       </h4>
                                       <Badge variant="outline" className="text-xs">Sortie historique</Badge>
                                     </div>
