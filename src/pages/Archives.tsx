@@ -257,8 +257,15 @@ const Archives = () => {
     outing.location.toLowerCase().includes(search.toLowerCase())
   ) ?? [];
 
-  const totalPresent = pastOutings?.reduce((acc, o) => acc + o.presentParticipants.length, 0) ?? 0;
-  const totalConfirmed = pastOutings?.reduce((acc, o) => acc + o.confirmedParticipants.length, 0) ?? 0;
+  // For historical outings: all participants are considered present
+  // For regular outings: use confirmed/present from reservations
+  const totalParticipants = pastOutings?.reduce((acc, o) => acc + o.totalParticipantCount, 0) ?? 0;
+  const totalConfirmed = pastOutings?.reduce((acc, o) => 
+    o.isHistorical ? o.totalParticipantCount : o.confirmedParticipants.length, 0
+  ) ?? 0;
+  const totalPresent = pastOutings?.reduce((acc, o) => 
+    o.isHistorical ? o.totalParticipantCount : o.presentParticipants.length, 0
+  ) ?? 0;
   const presenceRate = totalConfirmed > 0 ? Math.round((totalPresent / totalConfirmed) * 100) : 0;
 
   return (
