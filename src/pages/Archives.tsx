@@ -36,7 +36,6 @@ const Archives = () => {
   const { data: pastOutings, isLoading, refetch } = useQuery({
     queryKey: ["past-outings-archives", selectedYear],
     queryFn: async () => {
-      const now = new Date().toISOString();
       let query = supabase
         .from("outings")
         .select(`
@@ -49,7 +48,7 @@ const Archives = () => {
           session_report,
           is_deleted,
           is_archived,
-          organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
+          organizer:profiles!outings_organizer_id_fkey(id, first_name, last_name),
           location_details:locations(name),
           reservations(
             id,
@@ -59,7 +58,7 @@ const Archives = () => {
           )
         `)
         .eq("is_deleted", false)
-        .lt("date_time", now)
+        .eq("is_archived", true)
         .order("date_time", { ascending: false });
 
       if (selectedYear !== "all") {
@@ -90,7 +89,7 @@ const Archives = () => {
         historicalByOuting.set(hp.outing_id, existing);
       });
       
-      // Process outings: include historical outings OR outings with 2+ present
+      // Process outings: all archived outings are shown
       return data?.map(outing => {
         const confirmedParticipants = outing.reservations?.filter(
           (r: any) => r.status === "confirmé"
@@ -100,10 +99,13 @@ const Archives = () => {
         ) ?? [];
         const historicalMembers = historicalByOuting.get(outing.id) ?? [];
         
-        // Historical outings (is_archived=true with historical participants) are always shown
-        const isHistorical = outing.is_archived && historicalMembers.length > 0;
-        // Regular outings need 2+ present participants
-        const isRealized = presentParticipants.length >= 2;
+        // Historical outings have historical_outing_participants
+        const isHistorical = historicalMembers.length > 0;
+        
+        // Calculate total participants: historical members OR present participants
+        const totalParticipantCount = isHistorical 
+          ? historicalMembers.length 
+          : presentParticipants.length;
         
         return {
           ...outing,
@@ -111,9 +113,9 @@ const Archives = () => {
           presentParticipants,
           historicalMembers,
           isHistorical,
-          isRealized: isHistorical || isRealized,
+          totalParticipantCount,
         };
-      }).filter(outing => outing.isRealized) ?? [];
+      }) ?? [];
     },
     enabled: !!user && (isOrganizer || isAdmin),
   });
