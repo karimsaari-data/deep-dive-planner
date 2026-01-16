@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,10 +47,20 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
 
-  // Find encadrants from members for DP selection
-  const encadrants = useMemo(() => {
-    return members?.filter((m) => m.email) || [];
-  }, [members]);
+  // Fetch encadrants from club_members_directory (only those with is_encadrant = true)
+  const { data: encadrants } = useQuery({
+    queryKey: ["encadrants-for-selection"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("club_members_directory")
+        .select("id, first_name, last_name, email")
+        .eq("is_encadrant", true)
+        .order("last_name");
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Get current user's member ID for default DP
   const currentUserMemberId = useMemo(() => {
