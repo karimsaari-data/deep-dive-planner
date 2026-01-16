@@ -29,8 +29,9 @@ interface MemberPresence {
   id: string;
   name: string;
   memberCode: string;
-  outings: Array<{ id: string; title: string; date: string }>;
+  outings: Array<{ id: string; title: string; date: string; asOrganizer?: boolean }>;
   totalPresences: number;
+  isEncadrant: boolean;
 }
 
 interface OrganizerMonthly {
@@ -72,7 +73,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
     enabled: isAdmin,
   });
 
-  // Fetch member presences (includes both reservations AND historical outing participants)
+  // Fetch member presences (includes both reservations AND historical outing participants + organizers)
   const { data: memberPresences, isLoading: membersLoading } = useQuery({
     queryKey: ["member-presences", selectedYear],
     queryFn: async () => {
@@ -100,7 +101,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         .from("historical_outing_participants")
         .select(`
           member_id,
-          outing:outings!inner(id, title, date_time)
+          outing:outings!inner(id, title, date_time, organizer_id)
         `)
         .gte("outing.date_time", startOfYear)
         .lte("outing.date_time", endOfYear)
@@ -108,22 +109,43 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
 
       if (historicalError) throw historicalError;
 
-      // 3. Fetch profiles for regular members
+      // 3. Fetch historical outings for organizer counting
+      const { data: historicalOutings, error: historicalOutingsError } = await supabase
+        .from("outings")
+        .select("id, title, date_time, organizer_id")
+        .gte("date_time", startOfYear)
+        .lte("date_time", endOfYear)
+        .lt("date_time", new Date().toISOString());
+
+      if (historicalOutingsError) throw historicalOutingsError;
+
+      // Get outings that have historical participants (to identify historical outings)
+      const historicalOutingIds = new Set(historicalParticipants?.map((hp: any) => hp.outing.id) || []);
+
+      // 4. Fetch profiles for regular members
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, member_code");
+        .select("id, first_name, last_name, member_code, email, member_status");
 
       if (profilesError) throw profilesError;
 
-      // 4. Fetch club_members_directory for historical members
+      // 5. Fetch club_members_directory for historical members (including is_encadrant)
       const { data: clubMembers, error: clubMembersError } = await supabase
         .from("club_members_directory")
-        .select("id, first_name, last_name, member_id");
+        .select("id, first_name, last_name, member_id, email, is_encadrant");
 
       if (clubMembersError) throw clubMembersError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '' }]));
-      const clubMemberMap = new Map(clubMembers?.map(m => [m.id, { name: `${m.first_name} ${m.last_name}`, code: m.member_id || '' }]));
+      const profileMap = new Map(profiles?.map(p => [
+        p.id, 
+        { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '', email: p.email, isEncadrant: p.member_status === 'Encadrant' }
+      ]));
+      const clubMemberMap = new Map(clubMembers?.map(m => [
+        m.id, 
+        { name: `${m.first_name} ${m.last_name}`, code: m.member_id || '', email: m.email, isEncadrant: m.is_encadrant }
+      ]));
+      // Map email to club member ID for matching organizers
+      const emailToClubMemberMap = new Map(clubMembers?.map(m => [m.email.toLowerCase(), m]) || []);
 
       // Group by member (using member_id from club_members_directory as key for historical)
       const memberMap = new Map<string, MemberPresence>();
@@ -138,7 +160,8 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
             name: profile?.name || "Inconnu",
             memberCode: profile?.code || "",
             outings: [],
-            totalPresences: 0
+            totalPresences: 0,
+            isEncadrant: profile?.isEncadrant || false
           });
         }
         const member = memberMap.get(userId)!;
@@ -162,7 +185,8 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
             name: clubMember?.name || "Inconnu",
             memberCode: clubMember?.code || "",
             outings: [],
-            totalPresences: 0
+            totalPresences: 0,
+            isEncadrant: clubMember?.isEncadrant || false
           });
         }
         const member = memberMap.get(key)!;
@@ -174,12 +198,54 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         member.totalPresences++;
       });
 
+      // Process historical outing organizers (add them as participants too)
+      historicalOutings?.forEach((outing: any) => {
+        // Only process if this outing has historical participants (meaning it's a historical outing)
+        if (!historicalOutingIds.has(outing.id)) return;
+        if (!outing.organizer_id) return;
+        
+        // Find the organizer's profile
+        const organizerProfile = profileMap.get(outing.organizer_id);
+        if (!organizerProfile) return;
+
+        // Check if organizer is already counted in historical participants for this outing
+        const organizerClubMember = emailToClubMemberMap.get(organizerProfile.email?.toLowerCase() || '');
+        if (organizerClubMember) {
+          const organizerKey = `historical_${organizerClubMember.id}`;
+          const existingMember = memberMap.get(organizerKey);
+          if (existingMember?.outings.some(o => o.id === outing.id)) {
+            // Already counted, skip
+            return;
+          }
+          
+          // Add organizer to their historical entry
+          if (!memberMap.has(organizerKey)) {
+            memberMap.set(organizerKey, {
+              id: organizerKey,
+              name: organizerClubMember.first_name + ' ' + organizerClubMember.last_name,
+              memberCode: organizerClubMember.member_id || "",
+              outings: [],
+              totalPresences: 0,
+              isEncadrant: organizerClubMember.is_encadrant
+            });
+          }
+          const member = memberMap.get(organizerKey)!;
+          member.outings.push({
+            id: outing.id,
+            title: outing.title,
+            date: outing.date_time,
+            asOrganizer: true
+          });
+          member.totalPresences++;
+        }
+      });
+
       return Array.from(memberMap.values()).sort((a, b) => b.totalPresences - a.totalPresences);
     },
     enabled: isAdmin,
   });
 
-  // Fetch organizer monthly stats
+  // Fetch organizer monthly stats (includes historical outings)
   const { data: organizerMonthly, isLoading: organizersLoading } = useQuery({
     queryKey: ["organizer-monthly", selectedYear],
     queryFn: async () => {
@@ -196,38 +262,66 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
 
       if (error) throw error;
 
-      // Filter outings with at least 2 present participants
+      // Fetch historical outing participants to identify which outings are historical
+      const { data: historicalParticipants, error: historicalError } = await supabase
+        .from("historical_outing_participants")
+        .select("outing_id")
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear);
+
+      // Get set of historical outing IDs
+      const historicalOutingIds = new Set(historicalParticipants?.map((hp: any) => hp.outing_id) || []);
+
+      // Filter outings: regular outings need 2+ present, historical outings always count
       const validOutings: any[] = [];
       for (const outing of outings || []) {
-        const { count } = await supabase
-          .from("reservations")
-          .select("*", { count: "exact", head: true })
-          .eq("outing_id", outing.id)
-          .eq("status", "confirmé")
-          .eq("is_present", true);
-
-        if ((count || 0) >= 2) {
+        const isHistorical = historicalOutingIds.has(outing.id);
+        
+        if (isHistorical) {
+          // Historical outing - always valid
           validOutings.push(outing);
+        } else {
+          // Regular outing - needs 2+ present participants
+          const { count } = await supabase
+            .from("reservations")
+            .select("*", { count: "exact", head: true })
+            .eq("outing_id", outing.id)
+            .eq("status", "confirmé")
+            .eq("is_present", true);
+
+          if ((count || 0) >= 2) {
+            validOutings.push(outing);
+          }
         }
       }
 
+      // Fetch encadrants from club_members_directory
+      const { data: clubEncadrants, error: clubError } = await supabase
+        .from("club_members_directory")
+        .select("id, first_name, last_name, email")
+        .eq("is_encadrant", true);
+
+      if (clubError) throw clubError;
+
+      // Fetch profiles for organizer matching
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name")
-        .eq("member_status", "Encadrant");
+        .select("id, first_name, last_name, email");
 
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name}`]));
+      // Create maps for matching
+      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, email: p.email }]));
+      const emailToEncadrantMap = new Map(clubEncadrants?.map(e => [e.email.toLowerCase(), e]) || []);
 
-      // Group by organizer and month
+      // Group by organizer and month (use email as key to consolidate)
       const organizerMap = new Map<string, OrganizerMonthly>();
       
-      // Initialize all encadrants
-      profiles?.forEach(p => {
-        organizerMap.set(p.id, {
-          id: p.id,
-          name: `${p.first_name} ${p.last_name}`,
+      // Initialize all encadrants from club_members_directory
+      clubEncadrants?.forEach(e => {
+        organizerMap.set(e.email.toLowerCase(), {
+          id: e.id,
+          name: `${e.first_name} ${e.last_name}`,
           months: Array(12).fill(0),
           total: 0
         });
@@ -235,18 +329,27 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
 
       validOutings.forEach((o: any) => {
         const organizerId = o.organizer_id;
-        if (!organizerMap.has(organizerId)) {
-          organizerMap.set(organizerId, {
-            id: organizerId,
-            name: profileMap.get(organizerId) || "Inconnu",
-            months: Array(12).fill(0),
-            total: 0
-          });
+        const organizerProfile = profileMap.get(organizerId);
+        if (!organizerProfile) return;
+        
+        const emailKey = organizerProfile.email?.toLowerCase() || '';
+        const encadrant = emailToEncadrantMap.get(emailKey);
+        
+        if (encadrant) {
+          // This organizer is an encadrant
+          if (!organizerMap.has(emailKey)) {
+            organizerMap.set(emailKey, {
+              id: encadrant.id,
+              name: `${encadrant.first_name} ${encadrant.last_name}`,
+              months: Array(12).fill(0),
+              total: 0
+            });
+          }
+          const organizer = organizerMap.get(emailKey)!;
+          const month = new Date(o.date_time).getMonth();
+          organizer.months[month]++;
+          organizer.total++;
         }
-        const organizer = organizerMap.get(organizerId)!;
-        const month = new Date(o.date_time).getMonth();
-        organizer.months[month]++;
-        organizer.total++;
       });
 
       return Array.from(organizerMap.values()).sort((a, b) => b.total - a.total);
@@ -766,10 +869,15 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
                 ) : (
                   <div className="space-y-2">
                     {memberPresences?.map((member) => (
-                      <div key={member.id} className="flex items-center justify-between border border-border rounded-lg p-3">
+                      <div key={member.id} className={`flex items-center justify-between border rounded-lg p-3 ${member.isEncadrant ? 'border-primary/50 bg-primary/5' : 'border-border'}`}>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs font-mono">{member.memberCode}</Badge>
                           <span className="font-medium text-foreground">{member.name}</span>
+                          {member.isEncadrant && (
+                            <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
+                              Encadrant
+                            </Badge>
+                          )}
                         </div>
                         <Dialog>
                           <DialogTrigger asChild>
@@ -782,9 +890,16 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
                               <DialogTitle>Sorties de {member.name}</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-                              {member.outings.map((outing) => (
-                                <div key={outing.id} className="flex items-center justify-between border border-border rounded-lg p-3">
-                                  <span className="font-medium">{outing.title}</span>
+                              {member.outings.map((outing, idx) => (
+                                <div key={`${outing.id}-${idx}`} className="flex items-center justify-between border border-border rounded-lg p-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{outing.title}</span>
+                                    {outing.asOrganizer && (
+                                      <Badge variant="outline" className="text-xs text-primary border-primary">
+                                        Encadrant
+                                      </Badge>
+                                    )}
+                                  </div>
                                   <Badge variant="outline">
                                     {new Date(outing.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
                                   </Badge>
