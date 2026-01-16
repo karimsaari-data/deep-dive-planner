@@ -72,13 +72,14 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
     enabled: isAdmin,
   });
 
-  // Fetch member presences
+  // Fetch member presences (includes both reservations AND historical outing participants)
   const { data: memberPresences, isLoading: membersLoading } = useQuery({
     queryKey: ["member-presences", selectedYear],
     queryFn: async () => {
       const startOfYear = `${selectedYear}-01-01T00:00:00`;
       const endOfYear = `${selectedYear}-12-31T23:59:59`;
 
+      // 1. Fetch regular reservations with is_present = true
       const { data: reservations, error } = await supabase
         .from("reservations")
         .select(`
@@ -94,16 +95,40 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
 
       if (error) throw error;
 
+      // 2. Fetch historical outing participants
+      const { data: historicalParticipants, error: historicalError } = await supabase
+        .from("historical_outing_participants")
+        .select(`
+          member_id,
+          outing:outings!inner(id, title, date_time)
+        `)
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", new Date().toISOString());
+
+      if (historicalError) throw historicalError;
+
+      // 3. Fetch profiles for regular members
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, member_code");
 
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '' }]));
+      // 4. Fetch club_members_directory for historical members
+      const { data: clubMembers, error: clubMembersError } = await supabase
+        .from("club_members_directory")
+        .select("id, first_name, last_name, member_id");
 
-      // Group by user
+      if (clubMembersError) throw clubMembersError;
+
+      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '' }]));
+      const clubMemberMap = new Map(clubMembers?.map(m => [m.id, { name: `${m.first_name} ${m.last_name}`, code: m.member_id || '' }]));
+
+      // Group by member (using member_id from club_members_directory as key for historical)
       const memberMap = new Map<string, MemberPresence>();
+      
+      // Process regular reservations
       reservations?.forEach((r: any) => {
         const userId = r.user_id;
         if (!memberMap.has(userId)) {
@@ -121,6 +146,30 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
           id: r.outing.id,
           title: r.outing.title,
           date: r.outing.date_time
+        });
+        member.totalPresences++;
+      });
+
+      // Process historical participants (using club_members_directory member_id as key)
+      historicalParticipants?.forEach((hp: any) => {
+        const clubMemberId = hp.member_id;
+        const clubMember = clubMemberMap.get(clubMemberId);
+        const key = `historical_${clubMemberId}`;
+        
+        if (!memberMap.has(key)) {
+          memberMap.set(key, {
+            id: key,
+            name: clubMember?.name || "Inconnu",
+            memberCode: clubMember?.code || "",
+            outings: [],
+            totalPresences: 0
+          });
+        }
+        const member = memberMap.get(key)!;
+        member.outings.push({
+          id: hp.outing.id,
+          title: hp.outing.title,
+          date: hp.outing.date_time
         });
         member.totalPresences++;
       });
