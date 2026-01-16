@@ -62,6 +62,25 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
     },
   });
 
+  // Fetch profiles to map encadrant emails to profile IDs
+  const { data: profiles } = useQuery({
+    queryKey: ["profiles-for-organizer-mapping"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, email");
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Create a map of email -> profile ID for organizer mapping
+  const emailToProfileIdMap = useMemo(() => {
+    if (!profiles) return new Map<string, string>();
+    return new Map(profiles.map(p => [p.email.toLowerCase(), p.id]));
+  }, [profiles]);
+
   // Get current user's member ID for default DP
   const currentUserMemberId = useMemo(() => {
     if (!user?.email || !members) return undefined;
@@ -138,12 +157,19 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
       return;
     }
 
-    // Find the organizer's profile ID from profiles table
-    const organizerMember = members?.find((m) => m.id === data.organizer_id);
+    // Find the selected encadrant from club_members_directory
+    const selectedEncadrant = encadrants?.find((e) => e.id === data.organizer_id);
     
-    // We need to get the profile ID from the organizer's email
-    // The organizer_id from form is the club_members_directory ID
-    // We need to pass it to the mutation which will handle the mapping
+    // Get the profile ID from the encadrant's email
+    // This maps the club_members_directory encadrant to their profiles entry
+    let organizerProfileId = user?.id || ""; // Fallback to current user
+    
+    if (selectedEncadrant?.email) {
+      const profileId = emailToProfileIdMap.get(selectedEncadrant.email.toLowerCase());
+      if (profileId) {
+        organizerProfileId = profileId;
+      }
+    }
     
     const startDateTime = new Date(data.date);
     startDateTime.setHours(10, 0, 0, 0); // Default time for historical outings
@@ -157,7 +183,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
       location: data.location,
       location_id: data.location_id || undefined,
       outing_type: data.outing_type,
-      organizer_id: user?.id || "", // Use current user's profile ID as organizer
+      organizer_id: organizerProfileId,
       participant_member_ids: Array.from(selectedMemberIds),
     });
 
