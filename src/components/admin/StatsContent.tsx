@@ -46,10 +46,11 @@ interface StatsContentProps {
 }
 
 const StatsContent = ({ isAdmin }: StatsContentProps) => {
-  const [selectedYear, setSelectedYear] = useState(2025);
+  // Default to current year
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
 
   // Generate available years from 2025 to current year + 1
-  const currentYear = new Date().getFullYear();
   const availableYears = Array.from(
     { length: Math.max(currentYear + 1 - 2025 + 1, 1) },
     (_, i) => 2025 + i
@@ -265,9 +266,13 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       // Fetch historical outing participants to identify which outings are historical
       const { data: historicalParticipants, error: historicalError } = await supabase
         .from("historical_outing_participants")
-        .select("outing_id")
+        .select("outing_id, outing:outings!inner(date_time)")
         .gte("outing.date_time", startOfYear)
         .lte("outing.date_time", endOfYear);
+
+      if (historicalError) {
+        console.error("Historical participants error:", historicalError);
+      }
 
       // Get set of historical outing IDs
       const historicalOutingIds = new Set(historicalParticipants?.map((hp: any) => hp.outing_id) || []);
