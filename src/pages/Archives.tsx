@@ -77,7 +77,7 @@ const Archives = () => {
         .from("historical_outing_participants")
         .select(`
           outing_id,
-          member:club_members_directory(id, first_name, last_name, email)
+          member:club_members_directory(id, first_name, last_name, email, is_encadrant)
         `)
         .in("outing_id", outingIds);
 
@@ -87,6 +87,17 @@ const Archives = () => {
         const existing = historicalByOuting.get(hp.outing_id) ?? [];
         existing.push(hp.member);
         historicalByOuting.set(hp.outing_id, existing);
+      });
+
+      // Infer the real encadrant for historical outings (the single encadrant among participants)
+      const inferredEncadrantByOuting = new Map<string, { first_name: string; last_name: string } | null>();
+      historicalByOuting.forEach((members, outingId) => {
+        const encadrants = members.filter((m: any) => m?.is_encadrant);
+        if (encadrants.length === 1) {
+          inferredEncadrantByOuting.set(outingId, encadrants[0]);
+        } else {
+          inferredEncadrantByOuting.set(outingId, null);
+        }
       });
       
       // Process outings: all archived outings are shown
@@ -102,18 +113,26 @@ const Archives = () => {
         // Historical outings have historical_outing_participants
         const isHistorical = historicalMembers.length > 0;
         
+        // Get the inferred encadrant for historical outings
+        const inferredEncadrant = isHistorical ? inferredEncadrantByOuting.get(outing.id) : null;
+        
         // Check if organizer is already in historical members (by email match)
-        const organizerEmail = outing.organizer?.id ? null : undefined; // We check by ID
         const organizerId = outing.organizer?.id;
         const organizerInHistorical = isHistorical && historicalMembers.some(
           (m: any) => m.id === organizerId
         );
         
+        // For historical outings, use the inferred encadrant if available
+        // Otherwise fall back to the technical organizer
+        const displayedOrganizer = isHistorical && inferredEncadrant
+          ? { first_name: inferredEncadrant.first_name, last_name: inferredEncadrant.last_name }
+          : outing.organizer;
+        
         // Calculate total participants: 
-        // - For historical: members + organizer (if not already included)
+        // - For historical: all members (organizer is already included as participant)
         // - For regular: present participants
         const totalParticipantCount = isHistorical 
-          ? historicalMembers.length + (organizerId && !organizerInHistorical ? 1 : 0)
+          ? historicalMembers.length
           : presentParticipants.length;
         
         return {
@@ -124,6 +143,7 @@ const Archives = () => {
           isHistorical,
           organizerInHistorical,
           totalParticipantCount,
+          displayedOrganizer,
         };
       }) ?? [];
     },
@@ -355,9 +375,9 @@ const Archives = () => {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                           <MapPin className="h-4 w-4 text-primary" />
                           {outing.location_details?.name || outing.location}
-                          {outing.organizer && (
+                          {outing.displayedOrganizer && (
                             <span className="ml-4">
-                              Encadrant: {outing.organizer.first_name} {outing.organizer.last_name}
+                              Encadrant: {outing.displayedOrganizer.first_name} {outing.displayedOrganizer.last_name}
                             </span>
                           )}
                         </div>
