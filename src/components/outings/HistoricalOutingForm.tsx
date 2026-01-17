@@ -184,6 +184,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
       location_id: data.location_id || undefined,
       outing_type: data.outing_type,
       organizer_id: organizerProfileId,
+      organizer_member_id: data.organizer_id, // club_members_directory ID
       participant_member_ids: Array.from(selectedMemberIds),
     });
 
