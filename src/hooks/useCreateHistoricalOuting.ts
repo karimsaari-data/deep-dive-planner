@@ -10,7 +10,8 @@ interface HistoricalOutingData {
   location: string;
   location_id?: string;
   outing_type: OutingType;
-  organizer_id: string;
+  organizer_id: string; // Profile ID (for outings table)
+  organizer_member_id: string; // club_members_directory ID (for historical participants)
   participant_member_ids: string[]; // IDs from club_members_directory
 }
 
@@ -50,8 +51,14 @@ export const useCreateHistoricalOuting = () => {
 
       // 2. Create historical_outing_participants entries
       // These are linked to club_members_directory, NOT to profiles
-      if (data.participant_member_ids.length > 0) {
-        const participants = data.participant_member_ids.map((memberId) => ({
+      // Always include the organizer as a participant
+      const allParticipantIds = new Set(data.participant_member_ids);
+      if (data.organizer_member_id) {
+        allParticipantIds.add(data.organizer_member_id);
+      }
+      
+      if (allParticipantIds.size > 0) {
+        const participants = Array.from(allParticipantIds).map((memberId) => ({
           outing_id: newOuting.id,
           member_id: memberId,
         }));
