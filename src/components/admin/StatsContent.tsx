@@ -253,50 +253,79 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       const startOfYear = `${selectedYear}-01-01T00:00:00`;
       const endOfYear = `${selectedYear}-12-31T23:59:59`;
 
+      const nowIso = new Date().toISOString();
+
       const { data: outings, error } = await supabase
         .from("outings")
         .select("id, organizer_id, date_time, title")
         .gte("date_time", startOfYear)
         .lte("date_time", endOfYear)
-        .lt("date_time", new Date().toISOString())
-        .not("organizer_id", "is", null);
+        .lt("date_time", nowIso);
 
       if (error) throw error;
 
-      // Fetch historical outing participants to identify which outings are historical
+      // Fetch historical outing participants with member details.
+      // For historical outings, we infer the organizer as the (single) encadrant among participants.
+      // This avoids attributing the outing to the admin who entered it.
       const { data: historicalParticipants, error: historicalError } = await supabase
         .from("historical_outing_participants")
-        .select("outing_id, outing:outings!inner(date_time)")
+        .select(
+          `
+          outing_id,
+          outing:outings!inner(date_time),
+          member:club_members_directory(id, first_name, last_name, email, is_encadrant)
+        `.trim()
+        )
         .gte("outing.date_time", startOfYear)
-        .lte("outing.date_time", endOfYear);
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", nowIso);
 
-      if (historicalError) {
-        console.error("Historical participants error:", historicalError);
-      }
+      if (historicalError) throw historicalError;
 
       // Get set of historical outing IDs
       const historicalOutingIds = new Set(historicalParticipants?.map((hp: any) => hp.outing_id) || []);
+
+      const encadrantEmailsByHistoricalOuting = new Map<string, Set<string>>();
+      historicalParticipants?.forEach((hp: any) => {
+        const member = hp.member;
+        const email = member?.email?.toLowerCase();
+        if (!email) return;
+        if (!member?.is_encadrant) return;
+
+        if (!encadrantEmailsByHistoricalOuting.has(hp.outing_id)) {
+          encadrantEmailsByHistoricalOuting.set(hp.outing_id, new Set());
+        }
+        encadrantEmailsByHistoricalOuting.get(hp.outing_id)!.add(email);
+      });
+
+      // If there is exactly 1 encadrant for the historical outing, we treat them as the organizer.
+      const inferredOrganizerEmailByOutingId = new Map<string, string>();
+      encadrantEmailsByHistoricalOuting.forEach((emails, outingId) => {
+        if (emails.size === 1) {
+          inferredOrganizerEmailByOutingId.set(outingId, Array.from(emails)[0]);
+        }
+      });
 
       // Filter outings: regular outings need 2+ present, historical outings always count
       const validOutings: any[] = [];
       for (const outing of outings || []) {
         const isHistorical = historicalOutingIds.has(outing.id);
-        
-        if (isHistorical) {
-          // Historical outing - always valid
-          validOutings.push(outing);
-        } else {
-          // Regular outing - needs 2+ present participants
-          const { count } = await supabase
-            .from("reservations")
-            .select("*", { count: "exact", head: true })
-            .eq("outing_id", outing.id)
-            .eq("status", "confirmé")
-            .eq("is_present", true);
 
-          if ((count || 0) >= 2) {
-            validOutings.push(outing);
-          }
+        if (isHistorical) {
+          validOutings.push(outing);
+          continue;
+        }
+
+        // Regular outing - needs 2+ present participants
+        const { count } = await supabase
+          .from("reservations")
+          .select("*", { count: "exact", head: true })
+          .eq("outing_id", outing.id)
+          .eq("status", "confirmé")
+          .eq("is_present", true);
+
+        if ((count || 0) >= 2) {
+          validOutings.push(outing);
         }
       }
 
@@ -316,45 +345,55 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       if (profilesError) throw profilesError;
 
       // Create maps for matching
-      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, email: p.email }]));
-      const emailToEncadrantMap = new Map(clubEncadrants?.map(e => [e.email.toLowerCase(), e]) || []);
+      const profileMap = new Map(
+        profiles?.map((p) => [p.id, { name: `${p.first_name} ${p.last_name}`, email: p.email }])
+      );
+      const emailToEncadrantMap = new Map(clubEncadrants?.map((e) => [e.email.toLowerCase(), e]) || []);
 
       // Group by organizer and month (use email as key to consolidate)
       const organizerMap = new Map<string, OrganizerMonthly>();
-      
+
       // Initialize all encadrants from club_members_directory
-      clubEncadrants?.forEach(e => {
+      clubEncadrants?.forEach((e) => {
         organizerMap.set(e.email.toLowerCase(), {
           id: e.id,
           name: `${e.first_name} ${e.last_name}`,
           months: Array(12).fill(0),
-          total: 0
+          total: 0,
         });
       });
 
       validOutings.forEach((o: any) => {
-        const organizerId = o.organizer_id;
-        const organizerProfile = profileMap.get(organizerId);
-        if (!organizerProfile) return;
-        
-        const emailKey = organizerProfile.email?.toLowerCase() || '';
-        const encadrant = emailToEncadrantMap.get(emailKey);
-        
-        if (encadrant) {
-          // This organizer is an encadrant
-          if (!organizerMap.has(emailKey)) {
-            organizerMap.set(emailKey, {
-              id: encadrant.id,
-              name: `${encadrant.first_name} ${encadrant.last_name}`,
-              months: Array(12).fill(0),
-              total: 0
-            });
-          }
-          const organizer = organizerMap.get(emailKey)!;
-          const month = new Date(o.date_time).getMonth();
-          organizer.months[month]++;
-          organizer.total++;
+        const isHistorical = historicalOutingIds.has(o.id);
+
+        // Prefer inferred organizer for historical outings
+        let emailKey = isHistorical ? inferredOrganizerEmailByOutingId.get(o.id) || "" : "";
+
+        // Fallback to organizer profile (mainly for non-historical outings, or historical without clear encadrant)
+        if (!emailKey) {
+          const organizerId = (o.organizer_id as string | null) || null;
+          const organizerProfile = organizerId ? profileMap.get(organizerId) : undefined;
+          emailKey = organizerProfile?.email?.toLowerCase() || "";
         }
+
+        if (!emailKey) return;
+
+        const encadrant = emailToEncadrantMap.get(emailKey);
+        if (!encadrant) return;
+
+        if (!organizerMap.has(emailKey)) {
+          organizerMap.set(emailKey, {
+            id: encadrant.id,
+            name: `${encadrant.first_name} ${encadrant.last_name}`,
+            months: Array(12).fill(0),
+            total: 0,
+          });
+        }
+
+        const organizer = organizerMap.get(emailKey)!;
+        const month = new Date(o.date_time).getMonth();
+        organizer.months[month]++;
+        organizer.total++;
       });
 
       return Array.from(organizerMap.values()).sort((a, b) => b.total - a.total);
