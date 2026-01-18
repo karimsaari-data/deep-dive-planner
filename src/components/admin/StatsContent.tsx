@@ -661,62 +661,35 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
                 </Card>
               </div>
 
-              {/* Charts Row 2 */}
-              <div className="grid gap-8 lg:grid-cols-2">
-                {/* Presence Comparison */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <UserCheck className="h-5 w-5 text-primary" />
-                      Inscrits vs Présents (10 dernières sorties)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats?.presenceComparisonData ?? []}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                          <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
-                          <YAxis stroke="hsl(var(--muted-foreground))" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "hsl(var(--card))",
-                              border: "1px solid hsl(var(--border))",
-                              borderRadius: "8px",
-                            }}
-                          />
-                          <Bar dataKey="inscrits" fill="#0284c7" radius={[4, 4, 0, 0]} name="Inscrits" />
-                          <Bar dataKey="présents" fill="#22c55e" radius={[4, 4, 0, 0]} name="Présents" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Organizer Stats */}
-                <Card className="shadow-card">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      Sorties par encadrant
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {stats?.organizerData?.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">Aucune donnée</p>
-                    ) : (
-                      <div className="space-y-3 max-h-[280px] overflow-y-auto">
-                        {stats?.organizerData?.map((org, index) => (
-                          <div key={index} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-                            <span className="font-medium text-foreground">{org.name}</span>
-                            <Badge variant="secondary">{org.count} sorties</Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Charts Row 2 - Presence Comparison full width */}
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5 text-primary" />
+                    Inscrits vs Présents (10 dernières sorties)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats?.presenceComparisonData ?? []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 10 }} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Bar dataKey="inscrits" fill="#0284c7" radius={[4, 4, 0, 0]} name="Inscrits" />
+                        <Bar dataKey="présents" fill="#22c55e" radius={[4, 4, 0, 0]} name="Présents" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Late Cancellations Alert */}
               {stats?.lateCancellationData && stats.lateCancellationData.length > 0 && (
