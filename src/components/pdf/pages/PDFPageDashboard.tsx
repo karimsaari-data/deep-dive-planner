@@ -1,0 +1,128 @@
+import { PDFPageWrapper } from "../PDFPageWrapper";
+import { PDFStats } from "@/hooks/usePDFReportData";
+
+interface PDFPageDashboardProps {
+  stats: PDFStats;
+  year: number;
+}
+
+export const PDFPageDashboard = ({ stats, year }: PDFPageDashboardProps) => {
+  const kpis = [
+    {
+      icon: "👥",
+      label: "Total Adhérents",
+      value: stats.totalMembers,
+      color: "#0c4a6e",
+    },
+    {
+      icon: "🤿",
+      label: "Total Sorties",
+      value: stats.totalOutings,
+      color: "#0284c7",
+    },
+    {
+      icon: "📊",
+      label: "Total Plongées Cumulées",
+      value: stats.totalParticipations,
+      color: "#14b8a6",
+    },
+  ];
+
+  return (
+    <PDFPageWrapper pageNumber={5}>
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "48px" }}>
+          <span style={{ fontSize: "28px" }}>📈</span>
+          <h1
+            style={{
+              fontSize: "32px",
+              fontWeight: "700",
+              color: "#0c4a6e",
+              margin: 0,
+            }}
+          >
+            Tableau de Bord {year}
+          </h1>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "40px",
+            flex: 1,
+            alignItems: "center",
+          }}
+        >
+          {kpis.map((kpi, index) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "48px 32px",
+                backgroundColor: "#f8fafc",
+                borderRadius: "16px",
+                border: `3px solid ${kpi.color}`,
+                textAlign: "center",
+              }}
+            >
+              <span style={{ fontSize: "56px", marginBottom: "16px" }}>{kpi.icon}</span>
+              
+              <p
+                style={{
+                  fontSize: "72px",
+                  fontWeight: "700",
+                  color: kpi.color,
+                  margin: "0 0 16px 0",
+                  lineHeight: 1,
+                }}
+              >
+                {kpi.value.toLocaleString("fr-FR")}
+              </p>
+
+              <p
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "500",
+                  color: "#666666",
+                  margin: 0,
+                }}
+              >
+                {kpi.label}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div
+          style={{
+            marginTop: "32px",
+            padding: "16px 24px",
+            backgroundColor: "#ecfdf5",
+            borderRadius: "8px",
+            borderLeft: "4px solid #14b8a6",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#166534",
+              margin: 0,
+            }}
+          >
+            💡 En moyenne, chaque sortie a réuni{" "}
+            <strong>
+              {stats.totalOutings > 0
+                ? Math.round(stats.totalParticipations / stats.totalOutings)
+                : 0}
+            </strong>{" "}
+            participants
+          </p>
+        </div>
+      </div>
+    </PDFPageWrapper>
+  );
+};
