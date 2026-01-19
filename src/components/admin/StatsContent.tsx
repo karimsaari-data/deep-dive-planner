@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck, FileDown } from "lucide-react";
+import { PDFReportGenerator } from "@/components/pdf/PDFReportGenerator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -498,18 +499,21 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
             Tableau de bord annuel
           </p>
         </div>
-        <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-          <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Année" />
-          </SelectTrigger>
-          <SelectContent>
-            {availableYears.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3">
+          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <PDFReportGenerator year={selectedYear} />
+        </div>
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
