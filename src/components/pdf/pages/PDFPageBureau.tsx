@@ -11,9 +11,8 @@ const getInitials = (firstName: string, lastName: string): string => {
 
 const getAvatarColor = (name: string): string => {
   const colors = [
-    "#fecdd3", "#fbcfe8", "#f5d0fe", "#e9d5ff",
-    "#ddd6fe", "#c7d2fe", "#bfdbfe", "#bae6fd",
-    "#a5f3fc", "#99f6e4", "#a7f3d0", "#bbf7d0",
+    "#1e3a5f", "#2563eb", "#0891b2", "#0d9488",
+    "#059669", "#65a30d", "#ca8a04", "#ea580c",
   ];
   const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
@@ -29,7 +28,7 @@ export const PDFPageBureau = ({ members }: PDFPageBureauProps) => {
             style={{
               fontSize: "32px",
               fontWeight: "700",
-              color: "#0c4a6e",
+              color: "#1e3a5f",
               margin: 0,
             }}
           >
@@ -76,7 +75,7 @@ export const PDFPageBureau = ({ members }: PDFPageBureauProps) => {
                     height: "80px",
                     borderRadius: "50%",
                     objectFit: "cover",
-                    border: "3px solid #0c4a6e",
+                    border: "3px solid #1e3a5f",
                   }}
                 />
               ) : (
@@ -91,8 +90,8 @@ export const PDFPageBureau = ({ members }: PDFPageBureauProps) => {
                     justifyContent: "center",
                     fontSize: "24px",
                     fontWeight: "600",
-                    color: "#1a1a1a",
-                    border: "3px solid #0c4a6e",
+                    color: "#ffffff",
+                    border: "3px solid #1e3a5f",
                   }}
                 >
                   {getInitials(member.first_name, member.last_name)}
@@ -116,7 +115,7 @@ export const PDFPageBureau = ({ members }: PDFPageBureauProps) => {
                   fontSize: "12px",
                   fontWeight: "500",
                   color: "#ffffff",
-                  backgroundColor: "#0c4a6e",
+                  backgroundColor: "#1e3a5f",
                   padding: "4px 12px",
                   borderRadius: "12px",
                 }}

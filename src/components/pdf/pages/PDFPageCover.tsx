@@ -1,4 +1,5 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
+import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 
 interface PDFPageCoverProps {
   year: number;
@@ -23,71 +24,55 @@ export const PDFPageCover = ({ year }: PDFPageCoverProps) => {
           textAlign: "center",
         }}
       >
-        {/* Logo placeholder */}
-        <div
+        {/* Logo Team Oxygen */}
+        <img
+          src={logoTeamOxygen}
+          alt="Team Oxygen Logo"
           style={{
-            width: "150px",
-            height: "150px",
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #0c4a6e 0%, #0284c7 50%, #14b8a6 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            width: "350px",
+            height: "auto",
             marginBottom: "40px",
           }}
-        >
-          <span style={{ fontSize: "48px", color: "#ffffff", fontWeight: "bold" }}>
-            🤿
-          </span>
-        </div>
+        />
 
         <h1
           style={{
-            fontSize: "48px",
+            fontSize: "42px",
             fontWeight: "700",
-            color: "#0c4a6e",
-            margin: "0 0 16px 0",
+            color: "#1e3a5f",
+            margin: "0 0 12px 0",
+            letterSpacing: "-0.5px",
           }}
         >
-          Team Oxygen
+          Rapport d'Activité & Statistiques {year}
         </h1>
 
         <h2
           style={{
-            fontSize: "32px",
-            fontWeight: "600",
-            color: "#1a1a1a",
-            margin: "0 0 24px 0",
+            fontSize: "28px",
+            fontWeight: "500",
+            color: "#e67e22",
+            margin: "0 0 32px 0",
           }}
         >
-          Rapport d'Activité {year}
+          Assemblée Générale
         </h2>
 
         <div
           style={{
-            width: "100px",
+            width: "120px",
             height: "4px",
-            background: "linear-gradient(90deg, #0c4a6e, #14b8a6)",
+            background: "linear-gradient(90deg, #1e3a5f, #e67e22)",
             borderRadius: "2px",
-            margin: "0 0 24px 0",
+            margin: "0 0 32px 0",
           }}
         />
 
         <p
           style={{
-            fontSize: "18px",
+            fontSize: "14px",
             color: "#666666",
             margin: 0,
-          }}
-        >
-          Assemblée Générale
-        </p>
-
-        <p
-          style={{
-            fontSize: "14px",
-            color: "#999999",
-            margin: "8px 0 0 0",
           }}
         >
           Document généré le {currentDate}

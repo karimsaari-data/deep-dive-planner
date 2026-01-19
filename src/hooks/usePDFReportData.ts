@@ -30,6 +30,22 @@ export interface PDFTopEncadrant {
   outingsOrganized: number;
 }
 
+export interface PDFTopLocation {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  count: number;
+}
+
+export interface PDFEquipmentItem {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  totalValue: number;
+}
+
 export interface PDFStats {
   totalMembers: number;
   totalOutings: number;
@@ -38,11 +54,16 @@ export interface PDFStats {
 
 export interface PDFReportData {
   bureau: PDFMember[];
-  encadrants: PDFMember[];
+  allEncadrants: PDFMember[];
   stats: PDFStats;
   demographics: PDFDemographics;
   topParticipants: PDFTopParticipant[];
   topEncadrants: PDFTopEncadrant[];
+  topLocations: PDFTopLocation[];
+  equipment: {
+    items: PDFEquipmentItem[];
+    totalValue: number;
+  };
 }
 
 export const usePDFReportData = (year: number) => {
@@ -89,8 +110,9 @@ export const usePDFReportData = (year: number) => {
           return a.last_name.localeCompare(b.last_name, "fr");
         });
 
-      const encadrants = allMembers
-        .filter((m) => !m.board_role && m.is_encadrant)
+      // All encadrants (including bureau members if they are encadrants)
+      const allEncadrants = allMembers
+        .filter((m) => m.is_encadrant)
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
       // 2. Fetch demographics
@@ -146,10 +168,9 @@ export const usePDFReportData = (year: number) => {
       };
 
       // 3. Fetch stats (outings count, participations)
-      // Get outings for the year
       const { data: outings, error: outingsError } = await supabase
         .from("outings")
-        .select("id, date_time, organizer_id")
+        .select("id, date_time, organizer_id, location, location_id")
         .gte("date_time", startOfYear)
         .lte("date_time", endOfYear)
         .lt("date_time", now);
@@ -178,7 +199,7 @@ export const usePDFReportData = (year: number) => {
 
       if (resError) throw resError;
 
-      // Count valid outings (2+ present for regular, or has historical participants)
+      // Count valid outings
       const presentCountByOuting = new Map<string, number>();
       reservations?.forEach(r => {
         presentCountByOuting.set(r.outing_id, (presentCountByOuting.get(r.outing_id) || 0) + 1);
@@ -186,6 +207,8 @@ export const usePDFReportData = (year: number) => {
 
       let totalValidOutings = 0;
       let totalParticipations = 0;
+      const validOutingIds = new Set<string>();
+      const locationCountMap = new Map<string, { name: string; id: string | null; count: number }>();
 
       outings?.forEach(o => {
         const isHistorical = historicalOutingIds.has(o.id);
@@ -193,11 +216,28 @@ export const usePDFReportData = (year: number) => {
         
         if (isHistorical) {
           totalValidOutings++;
+          validOutingIds.add(o.id);
           const hpCount = historicalParticipants?.filter(hp => hp.outing_id === o.id).length || 0;
           totalParticipations += hpCount;
         } else if (presentCount >= 2) {
           totalValidOutings++;
+          validOutingIds.add(o.id);
           totalParticipations += presentCount;
+        }
+        
+        // Count locations for valid outings
+        if (validOutingIds.has(o.id)) {
+          const locationKey = o.location_id || o.location;
+          const existing = locationCountMap.get(locationKey);
+          if (existing) {
+            existing.count++;
+          } else {
+            locationCountMap.set(locationKey, { 
+              name: o.location, 
+              id: o.location_id,
+              count: 1 
+            });
+          }
         }
       });
 
@@ -207,10 +247,9 @@ export const usePDFReportData = (year: number) => {
         totalParticipations,
       };
 
-      // 4. Top participants (combine regular + historical)
+      // 4. Top participants
       const participantCountMap = new Map<string, { name: string; count: number; code: string }>();
 
-      // Get profiles for regular participants
       const userIds = [...new Set(reservations?.map(r => r.user_id) || [])];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -219,14 +258,12 @@ export const usePDFReportData = (year: number) => {
 
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-      // Count regular participations (only from valid outings)
       reservations?.forEach(r => {
         const isHistorical = historicalOutingIds.has(r.outing_id);
         const presentCount = presentCountByOuting.get(r.outing_id) || 0;
         
-        // Skip if outing doesn't count
         if (!isHistorical && presentCount < 2) return;
-        if (isHistorical) return; // Don't double count - historical handled separately
+        if (isHistorical) return;
         
         const profile = profileMap.get(r.user_id);
         if (!profile) return;
@@ -244,14 +281,12 @@ export const usePDFReportData = (year: number) => {
         }
       });
 
-      // Get club members for historical
       const { data: clubMembers } = await supabase
         .from("club_members_directory")
         .select("id, first_name, last_name, member_id, email");
 
       const clubMemberMap = new Map(clubMembers?.map(m => [m.id, m]) || []);
 
-      // Count historical participations
       historicalParticipants?.forEach(hp => {
         const member = clubMemberMap.get(hp.member_id);
         if (!member) return;
@@ -274,10 +309,9 @@ export const usePDFReportData = (year: number) => {
         .sort((a, b) => b.participations - a.participations)
         .slice(0, 15);
 
-      // 5. Top encadrants (organizers)
+      // 5. Top encadrants
       const encadrantCountMap = new Map<string, { name: string; count: number }>();
 
-      // For historical outings, infer encadrant from participants
       const encadrantByHistoricalOuting = new Map<string, string>();
       const hpByOuting = new Map<string, any[]>();
       historicalParticipants?.forEach(hp => {
@@ -296,7 +330,6 @@ export const usePDFReportData = (year: number) => {
         }
       });
 
-      // Get profiles for organizers
       const organizerIds = [...new Set(outings?.map(o => o.organizer_id).filter(Boolean) || [])];
       const { data: organizerProfiles } = await supabase
         .from("profiles")
@@ -305,33 +338,10 @@ export const usePDFReportData = (year: number) => {
 
       const organizerProfileMap = new Map(organizerProfiles?.map(p => [p.id, p]) || []);
 
-      // Get encadrant emails for validation
-      const encadrantEmails = new Set(
-        clubMembers?.filter(m => 
-          allMembers.find(am => 
-            am.is_encadrant && am.first_name === m.first_name && am.last_name === m.last_name
-          ) || 
-          bureau.find(b => b.first_name === m.first_name && b.last_name === m.last_name) ||
-          encadrants.find(e => e.first_name === m.first_name && e.last_name === m.last_name)
-        ).map(m => m.email?.toLowerCase()) || []
-      );
-
-      // Add all encadrants from directory
-      clubMembers?.forEach(m => {
-        const dir = membersDir as any;
-        // Check if is_encadrant in the raw data
-        if (allMembers.find(am => am.is_encadrant && am.first_name === m.first_name && am.last_name === m.last_name)) {
-          encadrantEmails.add(m.email?.toLowerCase() || "");
-        }
-      });
-
       outings?.forEach(o => {
+        if (!validOutingIds.has(o.id)) return;
+        
         const isHistorical = historicalOutingIds.has(o.id);
-        const presentCount = presentCountByOuting.get(o.id) || 0;
-        
-        // Skip invalid outings
-        if (!isHistorical && presentCount < 2) return;
-        
         let encadrantEmail = "";
         let encadrantName = "";
         
@@ -365,13 +375,74 @@ export const usePDFReportData = (year: number) => {
         .map(e => ({ name: e.name, outingsOrganized: e.count }))
         .sort((a, b) => b.outingsOrganized - a.outingsOrganized);
 
+      // 6. Top locations with photos
+      const { data: locations } = await supabase
+        .from("locations")
+        .select("id, name, photo_url, latitude, longitude");
+
+      const locationMap = new Map(locations?.map(l => [l.id, l]) || []);
+
+      const topLocations: PDFTopLocation[] = Array.from(locationCountMap.entries())
+        .map(([key, data]) => {
+          const location = data.id ? locationMap.get(data.id) : null;
+          return {
+            id: data.id || key,
+            name: location?.name || data.name,
+            photo_url: location?.photo_url || null,
+            latitude: location?.latitude || null,
+            longitude: location?.longitude || null,
+            count: data.count,
+          };
+        })
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      // 7. Equipment inventory
+      const { data: inventory } = await supabase
+        .from("equipment_inventory")
+        .select(`
+          id,
+          catalog:equipment_catalog(name, estimated_value)
+        `);
+
+      const equipmentMap = new Map<string, { name: string; quantity: number; unitPrice: number }>();
+      
+      inventory?.forEach((item: any) => {
+        if (!item.catalog) return;
+        const name = item.catalog.name;
+        const price = item.catalog.estimated_value || 0;
+        
+        const existing = equipmentMap.get(name);
+        if (existing) {
+          existing.quantity++;
+        } else {
+          equipmentMap.set(name, { name, quantity: 1, unitPrice: price });
+        }
+      });
+
+      const equipmentItems: PDFEquipmentItem[] = Array.from(equipmentMap.values())
+        .map(e => ({
+          name: e.name,
+          quantity: e.quantity,
+          unitPrice: e.unitPrice,
+          totalValue: e.quantity * e.unitPrice,
+        }))
+        .sort((a, b) => b.totalValue - a.totalValue);
+
+      const totalEquipmentValue = equipmentItems.reduce((sum, e) => sum + e.totalValue, 0);
+
       return {
         bureau,
-        encadrants,
+        allEncadrants,
         stats,
         demographics,
         topParticipants,
         topEncadrants,
+        topLocations,
+        equipment: {
+          items: equipmentItems.slice(0, 15),
+          totalValue: totalEquipmentValue,
+        },
       };
     },
     staleTime: 5 * 60 * 1000,

@@ -16,7 +16,7 @@ export const PDFPageWrapper = ({ children, pageNumber }: PDFPageWrapperProps) =>
         height: "794px",
         backgroundColor: "#ffffff",
         color: "#1a1a1a",
-        fontFamily: "Outfit, sans-serif",
+        fontFamily: "Inter, system-ui, sans-serif",
         position: "relative",
         overflow: "hidden",
         padding: "40px 50px",
@@ -34,7 +34,7 @@ export const PDFPageWrapper = ({ children, pageNumber }: PDFPageWrapperProps) =>
             color: "#666666",
           }}
         >
-          {pageNumber} / 8
+          {pageNumber} / 12
         </div>
       )}
     </div>

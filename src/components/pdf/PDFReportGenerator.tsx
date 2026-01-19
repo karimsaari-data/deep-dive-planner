@@ -13,13 +13,17 @@ interface PDFReportGeneratorProps {
 
 const PAGE_TITLES = [
   "Couverture",
-  "Sommaire", 
+  "Sommaire",
   "Le Bureau",
-  "Les Encadrants",
+  "L'Équipe Technique",
   "Tableau de Bord",
   "Démographie",
   "Top Plongeurs",
   "Activité Encadrants",
+  "Top Sites",
+  "Carte des Spots",
+  "Parc Matériel",
+  "Contact & Réseaux",
 ];
 
 export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
@@ -40,8 +44,8 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       // Ensure data is fresh
       await refetch();
       
-      // Wait for render
-      await new Promise(r => setTimeout(r, 500));
+      // Wait for images to load and render
+      await new Promise(r => setTimeout(r, 1000));
 
       const pdf = new jsPDF({
         orientation: "landscape",
@@ -56,16 +60,17 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
         
         toast.loading(`Génération de la page ${i + 1} sur ${pages.length}...`, {
           id: toastId,
-          description: PAGE_TITLES[i],
+          description: PAGE_TITLES[i] || `Page ${i + 1}`,
         });
 
         // Capture the page
         const canvas = await html2canvas(page, {
           scale: 2,
           useCORS: true,
+          allowTaint: true,
           logging: false,
           backgroundColor: "#ffffff",
-          windowWidth: 1123, // A4 landscape in pixels at 96dpi
+          windowWidth: 1123,
           windowHeight: 794,
         });
 
@@ -83,7 +88,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       }
 
       // Download PDF
-      pdf.save(`Rapport_AG_${year}.pdf`);
+      pdf.save(`Rapport_AG_TeamOxygen_${year}.pdf`);
       
       toast.success("Rapport téléchargé avec succès !", {
         id: toastId,
@@ -124,10 +129,10 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       <div 
         ref={containerRef}
         style={{
-          position: "absolute",
-          left: "-9999px",
+          position: "fixed",
+          left: "-10000px",
           top: 0,
-          width: "1123px", // A4 landscape at 96dpi
+          width: "1123px",
         }}
       >
         {data && <PDFReportPages data={data} year={year} />}

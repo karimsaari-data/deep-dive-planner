@@ -5,7 +5,7 @@ interface PDFPageDemographicsProps {
   demographics: PDFDemographics;
 }
 
-const COLORS = ["#0c4a6e", "#0284c7", "#14b8a6", "#22c55e", "#eab308", "#f97316"];
+const COLORS = ["#1e3a5f", "#0891b2", "#059669", "#65a30d", "#ca8a04", "#ea580c"];
 
 export const PDFPageDemographics = ({ demographics }: PDFPageDemographicsProps) => {
   const maxAge = Math.max(...demographics.ageData.map(d => d.value), 1);
@@ -20,7 +20,7 @@ export const PDFPageDemographics = ({ demographics }: PDFPageDemographicsProps) 
             style={{
               fontSize: "32px",
               fontWeight: "700",
-              color: "#0c4a6e",
+              color: "#1e3a5f",
               margin: 0,
             }}
           >
@@ -81,11 +81,11 @@ export const PDFPageDemographics = ({ demographics }: PDFPageDemographicsProps) 
             </h3>
             
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", marginTop: "24px" }}>
-              {demographics.genderData.map((item, index) => {
+              {demographics.genderData.map((item) => {
                 const total = demographics.genderData.reduce((sum, d) => sum + d.value, 0);
                 const percentage = total > 0 ? Math.round((item.value / total) * 100) : 0;
                 const colors: Record<string, string> = {
-                  "Homme": "#0284c7",
+                  "Homme": "#0891b2",
                   "Femme": "#ec4899",
                   "Non renseigné": "#9ca3af",
                 };

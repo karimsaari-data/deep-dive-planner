@@ -25,13 +25,17 @@ export const PDFPageEncadrantsActivity = ({ encadrants, year }: PDFPageEncadrant
             style={{
               fontSize: "32px",
               fontWeight: "700",
-              color: "#0c4a6e",
+              color: "#1e3a5f",
               margin: 0,
             }}
           >
-            Top Directeurs de Plongée {year}
+            Implication du Staff {year}
           </h1>
         </div>
+
+        <p style={{ fontSize: "14px", color: "#666666", margin: "0 0 20px 0" }}>
+          Top Directeurs de Plongée par nombre de sorties encadrées
+        </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
           {/* Table */}
@@ -43,10 +47,10 @@ export const PDFPageEncadrantsActivity = ({ encadrants, year }: PDFPageEncadrant
             }}
           >
             <thead>
-              <tr style={{ backgroundColor: "#0c4a6e", color: "#ffffff" }}>
-                <th style={{ padding: "12px 16px", textAlign: "left", borderRadius: "8px 0 0 0" }}>Rang</th>
+              <tr style={{ backgroundColor: "#1e3a5f", color: "#ffffff" }}>
+                <th style={{ padding: "12px 16px", textAlign: "left", borderRadius: "8px 0 0 0", width: "70px" }}>Rang</th>
                 <th style={{ padding: "12px 16px", textAlign: "left" }}>Encadrant</th>
-                <th style={{ padding: "12px 16px", textAlign: "center", borderRadius: "0 8px 0 0" }}>Sorties</th>
+                <th style={{ padding: "12px 16px", textAlign: "center", borderRadius: "0 8px 0 0", width: "100px" }}>Sorties</th>
               </tr>
             </thead>
             <tbody>
@@ -77,7 +81,7 @@ export const PDFPageEncadrantsActivity = ({ encadrants, year }: PDFPageEncadrant
                     >
                       <span
                         style={{
-                          backgroundColor: isTop3 ? "#14b8a6" : "#e2e8f0",
+                          backgroundColor: isTop3 ? "#059669" : "#e2e8f0",
                           color: isTop3 ? "#ffffff" : "#1a1a1a",
                           padding: "4px 12px",
                           borderRadius: "12px",
@@ -134,7 +138,7 @@ export const PDFPageEncadrantsActivity = ({ encadrants, year }: PDFPageEncadrant
                       style={{
                         width: `${(encadrant.outingsOrganized / maxOutings) * 100}%`,
                         height: "100%",
-                        backgroundColor: index < 3 ? "#14b8a6" : "#0284c7",
+                        backgroundColor: index < 3 ? "#059669" : "#0891b2",
                         borderRadius: "4px",
                         display: "flex",
                         alignItems: "center",

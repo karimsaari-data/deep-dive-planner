@@ -12,19 +12,19 @@ export const PDFPageDashboard = ({ stats, year }: PDFPageDashboardProps) => {
       icon: "👥",
       label: "Total Adhérents",
       value: stats.totalMembers,
-      color: "#0c4a6e",
+      color: "#1e3a5f",
     },
     {
       icon: "🤿",
-      label: "Total Sorties",
+      label: "Sorties Réalisées",
       value: stats.totalOutings,
-      color: "#0284c7",
+      color: "#0891b2",
     },
     {
       icon: "📊",
-      label: "Total Plongées Cumulées",
+      label: "Plongées Cumulées",
       value: stats.totalParticipations,
-      color: "#14b8a6",
+      color: "#059669",
     },
   ];
 
@@ -37,11 +37,11 @@ export const PDFPageDashboard = ({ stats, year }: PDFPageDashboardProps) => {
             style={{
               fontSize: "32px",
               fontWeight: "700",
-              color: "#0c4a6e",
+              color: "#1e3a5f",
               margin: 0,
             }}
           >
-            Tableau de Bord {year}
+            Bilan Global {year}
           </h1>
         </div>
 
@@ -103,7 +103,7 @@ export const PDFPageDashboard = ({ stats, year }: PDFPageDashboardProps) => {
             padding: "16px 24px",
             backgroundColor: "#ecfdf5",
             borderRadius: "8px",
-            borderLeft: "4px solid #14b8a6",
+            borderLeft: "4px solid #059669",
           }}
         >
           <p

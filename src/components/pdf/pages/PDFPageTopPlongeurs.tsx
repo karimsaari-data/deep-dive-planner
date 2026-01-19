@@ -23,13 +23,17 @@ export const PDFPageTopPlongeurs = ({ participants, year }: PDFPageTopPlongeursP
             style={{
               fontSize: "32px",
               fontWeight: "700",
-              color: "#0c4a6e",
+              color: "#1e3a5f",
               margin: 0,
             }}
           >
-            Top 15 Plongeurs {year}
+            Les Mordus de l'Apnée {year}
           </h1>
         </div>
+
+        <p style={{ fontSize: "14px", color: "#666666", margin: "0 0 20px 0" }}>
+          Top 15 des participants les plus assidus
+        </p>
 
         <table
           style={{
@@ -39,11 +43,11 @@ export const PDFPageTopPlongeurs = ({ participants, year }: PDFPageTopPlongeursP
           }}
         >
           <thead>
-            <tr style={{ backgroundColor: "#0c4a6e", color: "#ffffff" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", borderRadius: "8px 0 0 0" }}>Rang</th>
+            <tr style={{ backgroundColor: "#1e3a5f", color: "#ffffff" }}>
+              <th style={{ padding: "12px 16px", textAlign: "left", borderRadius: "8px 0 0 0", width: "80px" }}>Rang</th>
               <th style={{ padding: "12px 16px", textAlign: "left" }}>Nom</th>
-              <th style={{ padding: "12px 16px", textAlign: "left" }}>Code Membre</th>
-              <th style={{ padding: "12px 16px", textAlign: "center", borderRadius: "0 8px 0 0" }}>Participations</th>
+              <th style={{ padding: "12px 16px", textAlign: "left", width: "140px" }}>Code Membre</th>
+              <th style={{ padding: "12px 16px", textAlign: "center", borderRadius: "0 8px 0 0", width: "140px" }}>Participations</th>
             </tr>
           </thead>
           <tbody>
@@ -73,12 +77,11 @@ export const PDFPageTopPlongeurs = ({ participants, year }: PDFPageTopPlongeursP
                       padding: "10px 16px",
                       textAlign: "center",
                       fontWeight: "600",
-                      color: isTop3 ? "#0c4a6e" : "#1a1a1a",
                     }}
                   >
                     <span
                       style={{
-                        backgroundColor: isTop3 ? "#0c4a6e" : "#e2e8f0",
+                        backgroundColor: isTop3 ? "#1e3a5f" : "#e2e8f0",
                         color: isTop3 ? "#ffffff" : "#1a1a1a",
                         padding: "4px 12px",
                         borderRadius: "12px",
