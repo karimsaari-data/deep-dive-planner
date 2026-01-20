@@ -6,6 +6,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { PDFReportPages } from "./PDFReportPages";
 import { usePDFReportData } from "@/hooks/usePDFReportData";
+import { CONTACT_LINKS } from "./pages/PDFPageContact";
 
 interface PDFReportGeneratorProps {
   year: number;
@@ -26,11 +27,30 @@ const PAGE_TITLES = [
   "Contact & Réseaux",
 ];
 
+// Link positions for page 12 (Contact page)
+// These are approximate positions in mm for A4 landscape (297x210mm)
+const CONTACT_PAGE_LINKS = [
+  // Social links - left column
+  { x: 10, y: 65, w: 130, h: 25, url: CONTACT_LINKS.facebook },   // Facebook
+  { x: 10, y: 95, w: 130, h: 25, url: CONTACT_LINKS.instagram },  // Instagram
+  { x: 10, y: 125, w: 130, h: 25, url: CONTACT_LINKS.linkedin },  // LinkedIn
+  // Location links - right column
+  { x: 155, y: 65, w: 130, h: 25, url: CONTACT_LINKS.siege },     // Siège Social
+  { x: 155, y: 95, w: 130, h: 25, url: CONTACT_LINKS.local },     // Local Club
+];
+
 export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { data, isLoading, refetch } = usePDFReportData(year);
+
+  const addContactPageLinks = (pdf: jsPDF) => {
+    // Add clickable link annotations to page 12
+    CONTACT_PAGE_LINKS.forEach(link => {
+      pdf.link(link.x, link.y, link.w, link.h, { url: link.url });
+    });
+  };
 
   const generatePDF = async () => {
     if (!containerRef.current) return;
@@ -82,6 +102,11 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
 
         // A4 landscape dimensions: 297mm x 210mm
         pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+
+        // Add clickable links for page 12 (Contact page - index 11)
+        if (i === 11) {
+          addContactPageLinks(pdf);
+        }
 
         // Let UI breathe
         await new Promise(r => setTimeout(r, 100));
