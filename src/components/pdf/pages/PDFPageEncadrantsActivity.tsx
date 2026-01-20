@@ -4,9 +4,10 @@ import { PDFTopEncadrant } from "@/hooks/usePDFReportData";
 interface PDFPageEncadrantsActivityProps {
   encadrants: PDFTopEncadrant[];
   year: number;
+  pageNumber?: number;
 }
 
-export const PDFPageEncadrantsActivity = ({ encadrants, year }: PDFPageEncadrantsActivityProps) => {
+export const PDFPageEncadrantsActivity = ({ encadrants, year, pageNumber }: PDFPageEncadrantsActivityProps) => {
   const getMedalEmoji = (rank: number): string => {
     if (rank === 1) return "🥇";
     if (rank === 2) return "🥈";
@@ -17,7 +18,7 @@ export const PDFPageEncadrantsActivity = ({ encadrants, year }: PDFPageEncadrant
   const maxOutings = Math.max(...encadrants.map(e => e.outingsOrganized), 1);
 
   return (
-    <PDFPageWrapper pageNumber={8}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>🎯</span>

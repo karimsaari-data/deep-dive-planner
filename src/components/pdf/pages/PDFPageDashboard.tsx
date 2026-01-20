@@ -4,9 +4,10 @@ import { PDFStats } from "@/hooks/usePDFReportData";
 interface PDFPageDashboardProps {
   stats: PDFStats;
   year: number;
+  pageNumber?: number;
 }
 
-export const PDFPageDashboard = ({ stats, year }: PDFPageDashboardProps) => {
+export const PDFPageDashboard = ({ stats, year, pageNumber }: PDFPageDashboardProps) => {
   const kpis = [
     {
       icon: "👥",
@@ -29,7 +30,7 @@ export const PDFPageDashboard = ({ stats, year }: PDFPageDashboardProps) => {
   ];
 
   return (
-    <PDFPageWrapper pageNumber={5}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "48px" }}>
           <span style={{ fontSize: "28px" }}>📈</span>

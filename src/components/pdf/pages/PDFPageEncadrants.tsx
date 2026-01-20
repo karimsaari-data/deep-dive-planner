@@ -3,6 +3,7 @@ import { PDFMember } from "@/hooks/usePDFReportData";
 
 interface PDFPageEncadrantsProps {
   members: PDFMember[];
+  pageNumber?: number;
 }
 
 const getInitials = (firstName: string, lastName: string): string => {
@@ -18,9 +19,9 @@ const getAvatarColor = (name: string): string => {
   return colors[hash % colors.length];
 };
 
-export const PDFPageEncadrants = ({ members }: PDFPageEncadrantsProps) => {
+export const PDFPageEncadrants = ({ members, pageNumber }: PDFPageEncadrantsProps) => {
   return (
-    <PDFPageWrapper pageNumber={4}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>🎓</span>

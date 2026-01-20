@@ -4,11 +4,12 @@ import { PDFTopLocation } from "@/hooks/usePDFReportData";
 interface PDFPageTopSitesProps {
   locations: PDFTopLocation[];
   year: number;
+  pageNumber?: number;
 }
 
-export const PDFPageTopSites = ({ locations, year }: PDFPageTopSitesProps) => {
+export const PDFPageTopSites = ({ locations, year, pageNumber }: PDFPageTopSitesProps) => {
   return (
-    <PDFPageWrapper pageNumber={9}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>📍</span>

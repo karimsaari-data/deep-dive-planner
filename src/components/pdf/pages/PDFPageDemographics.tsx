@@ -3,16 +3,17 @@ import { PDFDemographics } from "@/hooks/usePDFReportData";
 
 interface PDFPageDemographicsProps {
   demographics: PDFDemographics;
+  pageNumber?: number;
 }
 
 const COLORS = ["#1e3a5f", "#0891b2", "#059669", "#65a30d", "#ca8a04", "#ea580c"];
 
-export const PDFPageDemographics = ({ demographics }: PDFPageDemographicsProps) => {
+export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemographicsProps) => {
   const maxAge = Math.max(...demographics.ageData.map(d => d.value), 1);
   const maxLevel = Math.max(...demographics.levelData.map(d => d.value), 1);
 
   return (
-    <PDFPageWrapper pageNumber={6}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>📊</span>
