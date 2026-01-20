@@ -1,21 +1,34 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
+import { PDF_SECTIONS } from "../PDFSectionSelector";
 
-export const PDFPageSummary = () => {
-  const sections = [
-    { number: 1, title: "Le Bureau", description: "Composition du bureau du club", page: 3 },
-    { number: 2, title: "L'Équipe Technique", description: "Nos encadrants certifiés", page: 4 },
-    { number: 3, title: "Tableau de Bord", description: "Chiffres clés de l'année", page: 5 },
-    { number: 4, title: "Démographie", description: "Profil des adhérents", page: 6 },
-    { number: 5, title: "Top Plongeurs", description: "Les mordus de l'apnée", page: 7 },
-    { number: 6, title: "Activité Encadrants", description: "Implication du staff", page: 8 },
-    { number: 7, title: "Top 10 Sites", description: "Nos spots favoris", page: 9 },
-    { number: 8, title: "Carte des Spots", description: "Géolocalisation des sites", page: 10 },
-    { number: 9, title: "Parc Matériel", description: "Inventaire et valorisation", page: 11 },
-    { number: 10, title: "Contact & Réseaux", description: "Restons connectés", page: 12 },
-  ];
+interface PDFPageSummaryProps {
+  selectedSections?: string[];
+  pageNumber?: number;
+}
+
+export const PDFPageSummary = ({ selectedSections, pageNumber }: PDFPageSummaryProps) => {
+  // Filter to show only selected sections (excluding cover and summary themselves)
+  const contentSections = PDF_SECTIONS.filter(
+    s => s.id !== "cover" && s.id !== "summary" && 
+    (!selectedSections || selectedSections.includes(s.id))
+  );
+
+  // Calculate dynamic page numbers
+  let currentPage = 2; // Summary is page 2 if included
+  if (selectedSections?.includes("cover")) currentPage = 3;
+  
+  const sectionsWithPages = contentSections.map((section, index) => {
+    const page = currentPage + index;
+    return {
+      number: index + 1,
+      title: section.label,
+      description: getSectionDescription(section.id),
+      page,
+    };
+  });
 
   return (
-    <PDFPageWrapper pageNumber={2}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <h1
           style={{
@@ -31,7 +44,7 @@ export const PDFPageSummary = () => {
         </h1>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          {sections.map((section) => (
+          {sectionsWithPages.map((section) => (
             <div
               key={section.number}
               style={{
@@ -98,3 +111,19 @@ export const PDFPageSummary = () => {
     </PDFPageWrapper>
   );
 };
+
+function getSectionDescription(sectionId: string): string {
+  const descriptions: Record<string, string> = {
+    bureau: "Composition du bureau du club",
+    encadrants: "Nos encadrants certifiés",
+    dashboard: "Chiffres clés de l'année",
+    demographics: "Profil des adhérents",
+    topPlongeurs: "Les mordus de l'apnée",
+    encadrantsActivity: "Implication du staff",
+    topSites: "Nos spots favoris",
+    map: "Géolocalisation des sites",
+    equipment: "Inventaire et valorisation",
+    contact: "Restons connectés",
+  };
+  return descriptions[sectionId] || "";
+}

@@ -6,13 +6,14 @@ interface PDFPageEquipmentProps {
     items: PDFEquipmentItem[];
     totalValue: number;
   };
+  pageNumber?: number;
 }
 
-export const PDFPageEquipment = ({ equipment }: PDFPageEquipmentProps) => {
+export const PDFPageEquipment = ({ equipment, pageNumber }: PDFPageEquipmentProps) => {
   const maxValue = Math.max(...equipment.items.map(e => e.totalValue), 1);
 
   return (
-    <PDFPageWrapper pageNumber={11}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>🎒</span>

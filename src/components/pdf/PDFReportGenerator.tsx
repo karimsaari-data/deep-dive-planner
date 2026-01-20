@@ -1,33 +1,28 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Loader2 } from "lucide-react";
+import { FileDown, Loader2, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { PDFReportPages } from "./PDFReportPages";
 import { usePDFReportData } from "@/hooks/usePDFReportData";
 import { CONTACT_LINKS } from "./pages/PDFPageContact";
+import { PDFSectionSelector, PDF_SECTIONS } from "./PDFSectionSelector";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface PDFReportGeneratorProps {
   year: number;
 }
 
-const PAGE_TITLES = [
-  "Couverture",
-  "Sommaire",
-  "Le Bureau",
-  "L'Équipe Technique",
-  "Tableau de Bord",
-  "Démographie",
-  "Top Plongeurs",
-  "Activité Encadrants",
-  "Top Sites",
-  "Carte des Spots",
-  "Parc Matériel",
-  "Contact & Réseaux",
-];
-
-// Link positions for page 12 (Contact page)
+// Link positions for contact page (Contact page)
 // These are approximate positions in mm for A4 landscape (297x210mm)
 const CONTACT_PAGE_LINKS = [
   // Social links - left column
@@ -41,20 +36,49 @@ const CONTACT_PAGE_LINKS = [
 
 export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedSections, setSelectedSections] = useState<string[]>(
+    PDF_SECTIONS.map(s => s.id)
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { data, isLoading, refetch } = usePDFReportData(year);
 
+  const handleSectionToggle = (sectionId: string) => {
+    setSelectedSections(prev => 
+      prev.includes(sectionId)
+        ? prev.filter(id => id !== sectionId)
+        : [...prev, sectionId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedSections(PDF_SECTIONS.map(s => s.id));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedSections([]);
+  };
+
   const addContactPageLinks = (pdf: jsPDF) => {
-    // Add clickable link annotations to page 12
+    // Add clickable link annotations to contact page
     CONTACT_PAGE_LINKS.forEach(link => {
       pdf.link(link.x, link.y, link.w, link.h, { url: link.url });
     });
   };
 
-  const generatePDF = async () => {
-    if (!containerRef.current) return;
+  const getPageTitle = (index: number): string => {
+    const orderedSections = PDF_SECTIONS.filter(s => selectedSections.includes(s.id));
+    return orderedSections[index]?.label || `Page ${index + 1}`;
+  };
 
+  const generatePDF = async () => {
+    if (!containerRef.current || selectedSections.length === 0) {
+      toast.error("Veuillez sélectionner au moins une section");
+      return;
+    }
+
+    setIsDialogOpen(false);
     setIsGenerating(true);
     const toastId = toast.loading("Préparation du rapport...", {
       description: "Chargement des données..."
@@ -80,7 +104,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
         
         toast.loading(`Génération de la page ${i + 1} sur ${pages.length}...`, {
           id: toastId,
-          description: PAGE_TITLES[i] || `Page ${i + 1}`,
+          description: getPageTitle(i),
         });
 
         // Capture the page
@@ -103,8 +127,12 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
         // A4 landscape dimensions: 297mm x 210mm
         pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
 
-        // Add clickable links for page 12 (Contact page - index 11)
-        if (i === 11) {
+        // Add clickable links if contact page is the last selected page
+        const isContactPage = selectedSections.includes("contact") && 
+          i === pages.length - 1 && 
+          PDF_SECTIONS.filter(s => selectedSections.includes(s.id)).at(-1)?.id === "contact";
+        
+        if (isContactPage) {
           addContactPageLinks(pdf);
         }
 
@@ -117,7 +145,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       
       toast.success("Rapport téléchargé avec succès !", {
         id: toastId,
-        description: `Rapport d'Assemblée Générale ${year}`,
+        description: `${pages.length} pages générées`,
       });
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -132,23 +160,61 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
 
   return (
     <>
-      <Button 
-        onClick={generatePDF} 
-        disabled={isGenerating || isLoading}
-        className="gap-2"
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Génération...
-          </>
-        ) : (
-          <>
-            <FileDown className="h-4 w-4" />
-            Télécharger le Rapport AG
-          </>
-        )}
-      </Button>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogTrigger asChild>
+          <Button 
+            disabled={isGenerating || isLoading}
+            className="gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Génération...
+              </>
+            ) : (
+              <>
+                <FileDown className="h-4 w-4" />
+                Télécharger le Rapport AG
+              </>
+            )}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5" />
+              Configurer le Rapport PDF
+            </DialogTitle>
+            <DialogDescription>
+              Sélectionnez les sections à inclure dans le rapport d'Assemblée Générale {year}
+            </DialogDescription>
+          </DialogHeader>
+
+          <PDFSectionSelector
+            selectedSections={selectedSections}
+            onSectionToggle={handleSectionToggle}
+            onSelectAll={handleSelectAll}
+            onDeselectAll={handleDeselectAll}
+          />
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button
+              onClick={generatePDF}
+              disabled={selectedSections.length === 0 || isLoading}
+              className="gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              Générer ({selectedSections.length} pages)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Hidden container for PDF generation */}
       <div 
@@ -160,7 +226,13 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
           width: "1123px",
         }}
       >
-        {data && <PDFReportPages data={data} year={year} />}
+        {data && (
+          <PDFReportPages 
+            data={data} 
+            year={year} 
+            selectedSections={selectedSections}
+          />
+        )}
       </div>
     </>
   );

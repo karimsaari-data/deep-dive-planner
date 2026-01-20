@@ -3,6 +3,7 @@ import { PDFTopLocation } from "@/hooks/usePDFReportData";
 
 interface PDFPageMapProps {
   locations: PDFTopLocation[];
+  pageNumber?: number;
 }
 
 const generateStaticMapUrl = (locations: PDFTopLocation[]): string => {
@@ -32,12 +33,12 @@ const generateStaticMapUrl = (locations: PDFTopLocation[]): string => {
   return `https://staticmap.openstreetmap.de/staticmap.php?center=${avgLat},${avgLon}&zoom=${zoom}&size=${width}x${height}&maptype=osmarenderer&markers=${markers}`;
 };
 
-export const PDFPageMap = ({ locations }: PDFPageMapProps) => {
+export const PDFPageMap = ({ locations, pageNumber }: PDFPageMapProps) => {
   const validLocations = locations.filter(loc => loc.latitude && loc.longitude);
   const staticMapUrl = generateStaticMapUrl(locations);
 
   return (
-    <PDFPageWrapper pageNumber={10}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>🗺️</span>

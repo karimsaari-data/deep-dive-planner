@@ -3,9 +3,10 @@ import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 
 interface PDFPageCoverProps {
   year: number;
+  pageNumber?: number;
 }
 
-export const PDFPageCover = ({ year }: PDFPageCoverProps) => {
+export const PDFPageCover = ({ year, pageNumber }: PDFPageCoverProps) => {
   const currentDate = new Date().toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
@@ -13,7 +14,7 @@ export const PDFPageCover = ({ year }: PDFPageCoverProps) => {
   });
 
   return (
-    <PDFPageWrapper>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div
         style={{
           display: "flex",

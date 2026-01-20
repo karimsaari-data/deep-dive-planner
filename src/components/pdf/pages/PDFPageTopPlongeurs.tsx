@@ -4,9 +4,10 @@ import { PDFTopParticipant } from "@/hooks/usePDFReportData";
 interface PDFPageTopPlongeursProps {
   participants: PDFTopParticipant[];
   year: number;
+  pageNumber?: number;
 }
 
-export const PDFPageTopPlongeurs = ({ participants, year }: PDFPageTopPlongeursProps) => {
+export const PDFPageTopPlongeurs = ({ participants, year, pageNumber }: PDFPageTopPlongeursProps) => {
   const getMedalEmoji = (rank: number): string => {
     if (rank === 1) return "🥇";
     if (rank === 2) return "🥈";
@@ -15,7 +16,7 @@ export const PDFPageTopPlongeurs = ({ participants, year }: PDFPageTopPlongeursP
   };
 
   return (
-    <PDFPageWrapper pageNumber={7}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
           <span style={{ fontSize: "28px" }}>🏆</span>

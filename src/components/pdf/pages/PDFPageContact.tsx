@@ -1,5 +1,4 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
-import { Facebook, Instagram, Linkedin, MapPin, Anchor } from "lucide-react";
 
 // SVG icons for PDF (inline to ensure they render in html2canvas)
 const FacebookIcon = () => (
@@ -97,7 +96,11 @@ export const CONTACT_LINKS = {
   local: "https://maps.app.goo.gl/ks6MUfDFpLx8RLyL7",
 };
 
-export const PDFPageContact = () => {
+interface PDFPageContactProps {
+  pageNumber?: number;
+}
+
+export const PDFPageContact = ({ pageNumber }: PDFPageContactProps) => {
   const socialLinks = [
     { 
       name: "Facebook", 
@@ -137,7 +140,7 @@ export const PDFPageContact = () => {
   ];
 
   return (
-    <PDFPageWrapper pageNumber={12}>
+    <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
           <div style={{ 

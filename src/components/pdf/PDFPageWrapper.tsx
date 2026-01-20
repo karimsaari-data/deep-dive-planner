@@ -3,11 +3,12 @@ import { ReactNode } from "react";
 interface PDFPageWrapperProps {
   children: ReactNode;
   pageNumber?: number;
+  totalPages?: number;
 }
 
 // A4 Landscape: 297mm x 210mm
 // At 96dpi: 1123px x 794px
-export const PDFPageWrapper = ({ children, pageNumber }: PDFPageWrapperProps) => {
+export const PDFPageWrapper = ({ children, pageNumber, totalPages }: PDFPageWrapperProps) => {
   return (
     <div
       data-pdf-page
@@ -34,7 +35,7 @@ export const PDFPageWrapper = ({ children, pageNumber }: PDFPageWrapperProps) =>
             color: "#666666",
           }}
         >
-          {pageNumber} / 12
+          {pageNumber}{totalPages ? ` / ${totalPages}` : ""}
         </div>
       )}
     </div>
