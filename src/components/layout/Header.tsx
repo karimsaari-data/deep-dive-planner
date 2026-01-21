@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { cn } from "@/lib/utils";
+import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 
 const Header = () => {
   const location = useLocation();
@@ -57,9 +58,11 @@ const Header = () => {
     <header className="sticky top-0 z-50 border-b border-border/50 bg-card/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm">
-            <Waves className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img 
+            src={logoTeamOxygen} 
+            alt="Team Oxygen" 
+            className="h-10 w-10 rounded-xl object-contain"
+          />
           <span className="text-xl font-semibold text-foreground">Team Oxygen</span>
         </Link>
 
