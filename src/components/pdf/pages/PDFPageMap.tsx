@@ -6,37 +6,176 @@ interface PDFPageMapProps {
   pageNumber?: number;
 }
 
-const generateStaticMapUrl = (locations: PDFTopLocation[]): string => {
-  // Filter locations with valid coordinates
+// Generate a simple SVG map representation based on coordinates
+const MapVisualization = ({ locations }: { locations: PDFTopLocation[] }) => {
   const validLocations = locations.filter(loc => loc.latitude && loc.longitude);
   
   if (validLocations.length === 0) {
-    return "";
+    return (
+      <div style={{ 
+        flex: 1, 
+        display: "flex", 
+        flexDirection: "column", 
+        alignItems: "center", 
+        justifyContent: "center",
+        padding: "40px",
+        backgroundColor: "#e0f2fe"
+      }}>
+        <span style={{ fontSize: "48px", marginBottom: "12px" }}>🗺️</span>
+        <p style={{ fontSize: "14px", color: "#666666", textAlign: "center", margin: 0 }}>
+          Aucune coordonnée GPS disponible
+        </p>
+      </div>
+    );
   }
 
-  // Calculate center point
-  const avgLat = validLocations.reduce((sum, loc) => sum + (loc.latitude || 0), 0) / validLocations.length;
-  const avgLon = validLocations.reduce((sum, loc) => sum + (loc.longitude || 0), 0) / validLocations.length;
-
-  // Build markers string for OpenStreetMap Static Map
-  const markers = validLocations
-    .slice(0, 10)
-    .map((loc, index) => `${loc.longitude},${loc.latitude},red${index + 1}`)
-    .join("|");
-
-  // Use OpenStreetMap static map service (free, no API key required)
-  // Alternative: staticmap.openstreetmap.de
-  const zoom = 10;
-  const width = 500;
-  const height = 400;
+  // Calculate bounds
+  const lats = validLocations.map(l => l.latitude!);
+  const lons = validLocations.map(l => l.longitude!);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
   
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${avgLat},${avgLon}&zoom=${zoom}&size=${width}x${height}&maptype=osmarenderer&markers=${markers}`;
+  // Add padding to bounds
+  const latPadding = Math.max((maxLat - minLat) * 0.2, 0.05);
+  const lonPadding = Math.max((maxLon - minLon) * 0.2, 0.05);
+  
+  const latRange = (maxLat - minLat) + latPadding * 2;
+  const lonRange = (maxLon - minLon) + lonPadding * 2;
+
+  // Convert GPS to SVG coordinates
+  const toSvgX = (lon: number) => ((lon - minLon + lonPadding) / lonRange) * 380 + 10;
+  const toSvgY = (lat: number) => 290 - ((lat - minLat + latPadding) / latRange) * 280 + 10;
+
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <svg 
+        viewBox="0 0 400 320" 
+        style={{ width: "100%", height: "320px", backgroundColor: "#e0f2fe" }}
+      >
+        {/* Sea background pattern */}
+        <defs>
+          <pattern id="waves" patternUnits="userSpaceOnUse" width="30" height="10">
+            <path 
+              d="M0 5 Q7.5 0, 15 5 T30 5" 
+              fill="none" 
+              stroke="#93c5fd" 
+              strokeWidth="0.5"
+            />
+          </pattern>
+          <linearGradient id="seaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#bfdbfe" />
+            <stop offset="100%" stopColor="#93c5fd" />
+          </linearGradient>
+        </defs>
+        
+        {/* Background */}
+        <rect width="400" height="320" fill="url(#seaGradient)" />
+        <rect width="400" height="320" fill="url(#waves)" opacity="0.5" />
+        
+        {/* Connection lines between spots */}
+        {validLocations.slice(0, 10).map((loc, i) => {
+          if (i === 0) return null;
+          const prev = validLocations[i - 1];
+          return (
+            <line
+              key={`line-${i}`}
+              x1={toSvgX(prev.longitude!)}
+              y1={toSvgY(prev.latitude!)}
+              x2={toSvgX(loc.longitude!)}
+              y2={toSvgY(loc.latitude!)}
+              stroke="#1e3a5f"
+              strokeWidth="1"
+              strokeDasharray="4,4"
+              opacity="0.3"
+            />
+          );
+        })}
+        
+        {/* Location markers */}
+        {validLocations.slice(0, 10).map((loc, index) => {
+          const x = toSvgX(loc.longitude!);
+          const y = toSvgY(loc.latitude!);
+          
+          return (
+            <g key={loc.id}>
+              {/* Marker shadow */}
+              <circle cx={x + 1} cy={y + 1} r="14" fill="rgba(0,0,0,0.2)" />
+              
+              {/* Marker circle */}
+              <circle cx={x} cy={y} r="14" fill="#dc2626" stroke="#ffffff" strokeWidth="2" />
+              
+              {/* Marker number */}
+              <text 
+                x={x} 
+                y={y + 5} 
+                textAnchor="middle" 
+                fill="#ffffff" 
+                fontSize="12" 
+                fontWeight="bold"
+                fontFamily="Arial, sans-serif"
+              >
+                {index + 1}
+              </text>
+              
+              {/* Location name label */}
+              <rect 
+                x={x + 18} 
+                y={y - 10} 
+                width={Math.min(loc.name.length * 5.5 + 10, 120)} 
+                height="20" 
+                rx="4" 
+                fill="#ffffff" 
+                opacity="0.9"
+              />
+              <text 
+                x={x + 24} 
+                y={y + 4} 
+                fill="#1e3a5f" 
+                fontSize="10" 
+                fontWeight="500"
+                fontFamily="Arial, sans-serif"
+              >
+                {loc.name.length > 18 ? loc.name.substring(0, 18) + "…" : loc.name}
+              </text>
+            </g>
+          );
+        })}
+        
+        {/* Compass rose */}
+        <g transform="translate(360, 40)">
+          <circle cx="0" cy="0" r="20" fill="#ffffff" opacity="0.9" />
+          <polygon points="0,-15 3,-5 -3,-5" fill="#dc2626" />
+          <polygon points="0,15 3,5 -3,5" fill="#1e3a5f" />
+          <polygon points="-15,0 -5,3 -5,-3" fill="#64748b" />
+          <polygon points="15,0 5,3 5,-3" fill="#64748b" />
+          <text x="0" y="-6" textAnchor="middle" fontSize="8" fill="#dc2626" fontWeight="bold" fontFamily="Arial">N</text>
+        </g>
+        
+        {/* Scale indicator */}
+        <g transform="translate(20, 300)">
+          <line x1="0" y1="0" x2="50" y2="0" stroke="#1e3a5f" strokeWidth="2" />
+          <line x1="0" y1="-5" x2="0" y2="5" stroke="#1e3a5f" strokeWidth="2" />
+          <line x1="50" y1="-5" x2="50" y2="5" stroke="#1e3a5f" strokeWidth="2" />
+          <text x="25" y="-8" textAnchor="middle" fontSize="8" fill="#1e3a5f" fontFamily="Arial">~5 km</text>
+        </g>
+      </svg>
+      
+      <div style={{ 
+        padding: "12px", 
+        backgroundColor: "#f0f9ff",
+        borderTop: "1px solid #e2e8f0"
+      }}>
+        <p style={{ fontSize: "11px", color: "#0369a1", margin: 0, textAlign: "center" }}>
+          📌 {validLocations.length} spot{validLocations.length > 1 ? 's' : ''} géolocalisé{validLocations.length > 1 ? 's' : ''} sur la carte
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export const PDFPageMap = ({ locations, pageNumber }: PDFPageMapProps) => {
-  const validLocations = locations.filter(loc => loc.latitude && loc.longitude);
-  const staticMapUrl = generateStaticMapUrl(locations);
-
   return (
     <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
@@ -86,7 +225,7 @@ export const PDFPageMap = ({ locations, pageNumber }: PDFPageMapProps) => {
             </div>
           </div>
 
-          {/* Right column: Static map */}
+          {/* Right column: SVG Map visualization */}
           <div style={{ 
             display: "flex", 
             flexDirection: "column", 
@@ -109,47 +248,7 @@ export const PDFPageMap = ({ locations, pageNumber }: PDFPageMapProps) => {
               </h3>
             </div>
             
-            {staticMapUrl && validLocations.length > 0 ? (
-              <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-                <img 
-                  src={staticMapUrl}
-                  alt="Carte des spots de plongée"
-                  style={{ 
-                    width: "100%", 
-                    height: "340px",
-                    objectFit: "cover"
-                  }}
-                  crossOrigin="anonymous"
-                />
-                <div style={{ 
-                  padding: "12px", 
-                  backgroundColor: "#f0f9ff",
-                  borderTop: "1px solid #e2e8f0"
-                }}>
-                  <p style={{ fontSize: "11px", color: "#0369a1", margin: 0, textAlign: "center" }}>
-                    📌 {validLocations.length} spot{validLocations.length > 1 ? 's' : ''} géolocalisé{validLocations.length > 1 ? 's' : ''} sur la carte
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div style={{ 
-                flex: 1, 
-                display: "flex", 
-                flexDirection: "column", 
-                alignItems: "center", 
-                justifyContent: "center",
-                padding: "40px",
-                backgroundColor: "#e0f2fe"
-              }}>
-                <span style={{ fontSize: "48px", marginBottom: "12px" }}>🗺️</span>
-                <p style={{ fontSize: "14px", color: "#666666", textAlign: "center", margin: 0 }}>
-                  Aucune coordonnée GPS disponible
-                </p>
-                <p style={{ fontSize: "12px", color: "#999999", marginTop: "8px", textAlign: "center" }}>
-                  Ajoutez les coordonnées aux lieux pour afficher la carte
-                </p>
-              </div>
-            )}
+            <MapVisualization locations={locations} />
           </div>
         </div>
       </div>
