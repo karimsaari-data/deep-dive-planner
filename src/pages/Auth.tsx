@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Waves, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2 } from "lucide-react";
+import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,10 +91,12 @@ const Auth = () => {
       
       <Card className="relative w-full max-w-md shadow-elevated animate-fade-in">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
-            <Waves className="h-7 w-7 text-primary-foreground" />
-          </div>
-          <CardTitle className="text-2xl">Club Apnée</CardTitle>
+          <img 
+            src={logoTeamOxygen} 
+            alt="Team Oxygen" 
+            className="mx-auto mb-4 h-16 w-16 rounded-2xl object-contain"
+          />
+          <CardTitle className="text-2xl">Team Oxygen</CardTitle>
           <CardDescription>
             Connectez-vous ou créez un compte pour réserver vos sorties
           </CardDescription>
