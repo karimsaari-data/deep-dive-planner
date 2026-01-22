@@ -89,11 +89,15 @@ const Archives = () => {
         historicalByOuting.set(hp.outing_id, existing);
       });
 
-      // Infer the real encadrant for historical outings (the single encadrant among participants)
-      const inferredEncadrantByOuting = new Map<string, { first_name: string; last_name: string } | null>();
+      // Infer the real encadrant (organizer) for historical outings
+      // Store full member info including ID to identify them in the list
+      const inferredEncadrantByOuting = new Map<string, { id: string; first_name: string; last_name: string } | null>();
       historicalByOuting.forEach((members, outingId) => {
         const encadrants = members.filter((m: any) => m?.is_encadrant);
         if (encadrants.length === 1) {
+          inferredEncadrantByOuting.set(outingId, encadrants[0]);
+        } else if (encadrants.length > 1) {
+          // If multiple encadrants, pick the first one as organizer (could be enhanced later)
           inferredEncadrantByOuting.set(outingId, encadrants[0]);
         } else {
           inferredEncadrantByOuting.set(outingId, null);
@@ -113,8 +117,8 @@ const Archives = () => {
         // Historical outings have historical_outing_participants
         const isHistorical = historicalMembers.length > 0;
         
-        // Get the inferred encadrant for historical outings
-        const inferredEncadrant = isHistorical ? inferredEncadrantByOuting.get(outing.id) : null;
+        // Get the inferred organizer for historical outings
+        const inferredOrganizer = isHistorical ? inferredEncadrantByOuting.get(outing.id) : null;
         
         // Check if organizer is already in historical members (by email match)
         const organizerId = outing.organizer?.id;
@@ -124,13 +128,28 @@ const Archives = () => {
         
         // For historical outings, use the inferred encadrant if available
         // Otherwise fall back to the technical organizer
-        const displayedOrganizer = isHistorical && inferredEncadrant
-          ? { first_name: inferredEncadrant.first_name, last_name: inferredEncadrant.last_name }
+        const displayedOrganizer = isHistorical && inferredOrganizer
+          ? { first_name: inferredOrganizer.first_name, last_name: inferredOrganizer.last_name }
           : outing.organizer;
         
-        // Calculate total participants: 
-        // - For historical: all members (organizer is already included as participant)
-        // - For regular: present participants
+        // Sort historical members: Organizer first, then Encadrants, then Members
+        const sortedHistoricalMembers = [...historicalMembers].sort((a: any, b: any) => {
+          const aIsOrganizer = inferredOrganizer && a.id === inferredOrganizer.id;
+          const bIsOrganizer = inferredOrganizer && b.id === inferredOrganizer.id;
+          const aIsEncadrant = a?.is_encadrant === true;
+          const bIsEncadrant = b?.is_encadrant === true;
+          
+          // Organizer comes first
+          if (aIsOrganizer && !bIsOrganizer) return -1;
+          if (!aIsOrganizer && bIsOrganizer) return 1;
+          // Then encadrants
+          if (aIsEncadrant && !bIsEncadrant) return -1;
+          if (!aIsEncadrant && bIsEncadrant) return 1;
+          // Then alphabetical by first name
+          return (a?.first_name ?? "").localeCompare(b?.first_name ?? "");
+        });
+        
+        // Calculate total participants
         const totalParticipantCount = isHistorical 
           ? historicalMembers.length
           : presentParticipants.length;
@@ -139,11 +158,12 @@ const Archives = () => {
           ...outing,
           confirmedParticipants,
           presentParticipants,
-          historicalMembers,
+          historicalMembers: sortedHistoricalMembers,
           isHistorical,
           organizerInHistorical,
           totalParticipantCount,
           displayedOrganizer,
+          inferredOrganizerId: inferredOrganizer?.id ?? null,
         };
       }) ?? [];
     },
@@ -420,45 +440,37 @@ const Archives = () => {
                                       <Badge variant="outline" className="text-xs">Sortie historique</Badge>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                      {/* Show organizer first if not already in historical members */}
-                                      {outing.organizer && !outing.organizerInHistorical && (
-                                        <div 
-                                          className="flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 p-2"
-                                        >
-                                          <Avatar className="h-10 w-10">
-                                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                                              {outing.organizer.first_name?.[0] ?? ""}{outing.organizer.last_name?.[0] ?? ""}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                          <div>
-                                            <p className="text-sm font-medium text-foreground">
-                                              {outing.organizer.first_name} {outing.organizer.last_name}
-                                            </p>
-                                            <Badge variant="secondary" className="text-xs">
-                                              Encadrant
-                                            </Badge>
-                                          </div>
-                                        </div>
-                                      )}
                                       {outing.historicalMembers.map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
-                                        // Use is_encadrant from club_members_directory to identify encadrants
+                                        // Identify organizer and encadrants
+                                        const isOrganizer = outing.inferredOrganizerId && member.id === outing.inferredOrganizerId;
                                         const isEncadrant = member?.is_encadrant === true;
+                                        
+                                        // Determine badge text and styles
+                                        let badgeText = "Présent";
+                                        let badgeVariant: "default" | "secondary" | "outline" = "default";
+                                        let cardStyle = "border-emerald-500/50 bg-emerald-500/10";
+                                        let avatarStyle = "bg-primary/10 text-primary";
+                                        
+                                        if (isOrganizer) {
+                                          badgeText = "Organisateur";
+                                          badgeVariant = "outline";
+                                          cardStyle = "border-primary bg-primary/15 ring-2 ring-primary/30";
+                                          avatarStyle = "bg-primary text-primary-foreground";
+                                        } else if (isEncadrant) {
+                                          badgeText = "Encadrant";
+                                          badgeVariant = "secondary";
+                                          cardStyle = "border-primary/50 bg-primary/10";
+                                          avatarStyle = "bg-primary text-primary-foreground";
+                                        }
+                                        
                                         return (
                                           <div 
                                             key={member.id} 
-                                            className={`flex items-center gap-2 rounded-lg border p-2 ${
-                                              isEncadrant 
-                                                ? "border-primary/50 bg-primary/10" 
-                                                : "border-emerald-500/50 bg-emerald-500/10"
-                                            }`}
+                                            className={`flex items-center gap-2 rounded-lg border p-2 ${cardStyle}`}
                                           >
                                             <Avatar className="h-10 w-10">
-                                              <AvatarFallback className={`text-sm ${
-                                                isEncadrant 
-                                                  ? "bg-primary text-primary-foreground" 
-                                                  : "bg-primary/10 text-primary"
-                                              }`}>
+                                              <AvatarFallback className={`text-sm ${avatarStyle}`}>
                                                 {initials}
                                               </AvatarFallback>
                                             </Avatar>
@@ -466,8 +478,11 @@ const Archives = () => {
                                               <p className="text-sm font-medium text-foreground">
                                                 {member?.first_name} {member?.last_name}
                                               </p>
-                                              <Badge variant={isEncadrant ? "secondary" : "default"} className="text-xs">
-                                                {isEncadrant ? "Encadrant" : "Présent"}
+                                              <Badge 
+                                                variant={badgeVariant} 
+                                                className={`text-xs ${isOrganizer ? "border-primary text-primary font-semibold" : ""}`}
+                                              >
+                                                {badgeText}
                                               </Badge>
                                             </div>
                                           </div>
