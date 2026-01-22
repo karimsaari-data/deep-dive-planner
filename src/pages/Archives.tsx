@@ -442,19 +442,20 @@ const Archives = () => {
                                       )}
                                       {outing.historicalMembers.map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
-                                        const isOrganizer = outing.organizer && member.id === outing.organizer.id;
+                                        // Use is_encadrant from club_members_directory to identify encadrants
+                                        const isEncadrant = member?.is_encadrant === true;
                                         return (
                                           <div 
                                             key={member.id} 
                                             className={`flex items-center gap-2 rounded-lg border p-2 ${
-                                              isOrganizer 
+                                              isEncadrant 
                                                 ? "border-primary/50 bg-primary/10" 
                                                 : "border-emerald-500/50 bg-emerald-500/10"
                                             }`}
                                           >
                                             <Avatar className="h-10 w-10">
                                               <AvatarFallback className={`text-sm ${
-                                                isOrganizer 
+                                                isEncadrant 
                                                   ? "bg-primary text-primary-foreground" 
                                                   : "bg-primary/10 text-primary"
                                               }`}>
@@ -465,8 +466,8 @@ const Archives = () => {
                                               <p className="text-sm font-medium text-foreground">
                                                 {member?.first_name} {member?.last_name}
                                               </p>
-                                              <Badge variant={isOrganizer ? "secondary" : "default"} className="text-xs">
-                                                {isOrganizer ? "Encadrant" : "Présent"}
+                                              <Badge variant={isEncadrant ? "secondary" : "default"} className="text-xs">
+                                                {isEncadrant ? "Encadrant" : "Présent"}
                                               </Badge>
                                             </div>
                                           </div>
