@@ -8,8 +8,8 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Minus, Plus } from "lucide-react";
 import { Outing, OutingType, useCreateReservation, useCancelReservation, CarpoolOption } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -52,7 +52,14 @@ const OutingCard = ({ outing }: OutingCardProps) => {
   const cancelReservation = useCancelReservation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
-  const [carpoolSeats, setCarpoolSeats] = useState(0);
+  const [carpoolSeats, setCarpoolSeats] = useState(1);
+
+  const handleCarpoolOptionChange = (value: CarpoolOption) => {
+    setCarpoolOption(value);
+    if (value === "driver" && carpoolSeats === 0) {
+      setCarpoolSeats(1);
+    }
+  };
 
   // Use real confirmed count from SECURITY DEFINER function (bypasses RLS)
   const currentParticipants = outing.confirmed_count ?? 0;
@@ -227,7 +234,7 @@ const OutingCard = ({ outing }: OutingCardProps) => {
                     <Label>Covoiturage</Label>
                     <Select
                       value={carpoolOption}
-                      onValueChange={(v) => setCarpoolOption(v as CarpoolOption)}
+                      onValueChange={handleCarpoolOptionChange}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -243,13 +250,34 @@ const OutingCard = ({ outing }: OutingCardProps) => {
                   {carpoolOption === "driver" && (
                     <div className="space-y-2">
                       <Label>Nombre de places disponibles</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={8}
-                        value={carpoolSeats}
-                        onChange={(e) => setCarpoolSeats(parseInt(e.target.value) || 0)}
-                      />
+                      <div className="flex items-center justify-center gap-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-12 w-12 rounded-full text-lg"
+                          onClick={() => setCarpoolSeats(Math.max(1, carpoolSeats - 1))}
+                          disabled={carpoolSeats <= 1}
+                        >
+                          <Minus className="h-5 w-5" />
+                        </Button>
+                        <span className="text-3xl font-bold w-12 text-center">
+                          {carpoolSeats}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-12 w-12 rounded-full text-lg"
+                          onClick={() => setCarpoolSeats(Math.min(8, carpoolSeats + 1))}
+                          disabled={carpoolSeats >= 8}
+                        >
+                          <Plus className="h-5 w-5" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-center text-muted-foreground">
+                        Maximum 8 places
+                      </p>
                     </div>
                   )}
 

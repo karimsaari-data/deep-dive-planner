@@ -11,6 +11,8 @@ import {
   UserPlus,
   UserMinus,
   Waves,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -73,7 +75,14 @@ const OutingView = () => {
   const cancelReservation = useCancelReservation();
 
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
-  const [carpoolSeats, setCarpoolSeats] = useState(0);
+  const [carpoolSeats, setCarpoolSeats] = useState(1);
+
+  const handleCarpoolOptionChange = (value: CarpoolOption) => {
+    setCarpoolOption(value);
+    if (value === "driver" && carpoolSeats === 0) {
+      setCarpoolSeats(1);
+    }
+  };
 
   if (authLoading || isLoading) {
     return (
@@ -307,7 +316,7 @@ const OutingView = () => {
                       </Label>
                       <RadioGroup 
                         value={carpoolOption} 
-                        onValueChange={(v) => setCarpoolOption(v as CarpoolOption)}
+                        onValueChange={handleCarpoolOptionChange}
                         className="space-y-2"
                       >
                         <div className="flex items-center space-x-2">
@@ -325,17 +334,36 @@ const OutingView = () => {
                       </RadioGroup>
                       
                       {carpoolOption === "driver" && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <Label htmlFor="seats">Places disponibles :</Label>
-                          <Input
-                            id="seats"
-                            type="number"
-                            min={1}
-                            max={8}
-                            value={carpoolSeats}
-                            onChange={(e) => setCarpoolSeats(parseInt(e.target.value) || 0)}
-                            className="w-20"
-                          />
+                        <div className="space-y-2 mt-3">
+                          <Label>Places disponibles</Label>
+                          <div className="flex items-center justify-center gap-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-12 w-12 rounded-full text-lg"
+                              onClick={() => setCarpoolSeats(Math.max(1, carpoolSeats - 1))}
+                              disabled={carpoolSeats <= 1}
+                            >
+                              <Minus className="h-5 w-5" />
+                            </Button>
+                            <span className="text-3xl font-bold w-12 text-center">
+                              {carpoolSeats}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-12 w-12 rounded-full text-lg"
+                              onClick={() => setCarpoolSeats(Math.min(8, carpoolSeats + 1))}
+                              disabled={carpoolSeats >= 8}
+                            >
+                              <Plus className="h-5 w-5" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-center text-muted-foreground">
+                            Maximum 8 places
+                          </p>
                         </div>
                       )}
                     </div>
