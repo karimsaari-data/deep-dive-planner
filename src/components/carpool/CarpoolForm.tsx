@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, MapPin, Link2, MessageSquare, X, Save } from "lucide-react";
+import { Clock, MapPin, Link2, MessageSquare, X, Save, Minus, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,34 +82,48 @@ const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) =
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Departure time */}
-            <div className="space-y-2">
-              <Label htmlFor="departureTime" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Heure de départ *
-              </Label>
-              <Input
-                id="departureTime"
-                type="time"
-                value={departureTime}
-                onChange={(e) => setDepartureTime(e.target.value)}
-                required
-              />
-            </div>
+          {/* Departure time */}
+          <div className="space-y-2">
+            <Label htmlFor="departureTime" className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              Heure de départ *
+            </Label>
+            <Input
+              id="departureTime"
+              type="time"
+              value={departureTime}
+              onChange={(e) => setDepartureTime(e.target.value)}
+              required
+            />
+          </div>
 
-            {/* Available seats */}
-            <div className="space-y-2">
-              <Label htmlFor="seats">Places disponibles *</Label>
-              <Input
-                id="seats"
-                type="number"
-                min={1}
-                max={8}
-                value={availableSeats}
-                onChange={(e) => setAvailableSeats(parseInt(e.target.value) || 1)}
-                required
-              />
+          {/* Available seats - Mobile friendly */}
+          <div className="space-y-2">
+            <Label>Places disponibles *</Label>
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 rounded-full text-lg"
+                onClick={() => setAvailableSeats(Math.max(1, availableSeats - 1))}
+                disabled={availableSeats <= 1}
+              >
+                <Minus className="h-5 w-5" />
+              </Button>
+              <span className="text-3xl font-bold w-12 text-center">
+                {availableSeats}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 rounded-full text-lg"
+                onClick={() => setAvailableSeats(Math.min(8, availableSeats + 1))}
+                disabled={availableSeats >= 8}
+              >
+                <Plus className="h-5 w-5" />
+              </Button>
             </div>
           </div>
 
