@@ -34,6 +34,7 @@ import { toast } from "sonner";
 import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import CarpoolSection from "@/components/carpool/CarpoolSection";
 
 const OutingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -310,6 +311,13 @@ const OutingDetail = () => {
               ></iframe>
             </div>
           )}
+
+          {/* Carpool Section - full width */}
+          <CarpoolSection
+            outingId={outing.id}
+            userReservation={confirmedReservations.find((r) => r.user_id === user?.id)}
+            isPast={isPast}
+          />
 
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Trombinoscope */}

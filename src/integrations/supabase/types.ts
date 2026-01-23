@@ -14,6 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      carpool_passengers: {
+        Row: {
+          carpool_id: string
+          created_at: string
+          id: string
+          passenger_id: string
+        }
+        Insert: {
+          carpool_id: string
+          created_at?: string
+          id?: string
+          passenger_id: string
+        }
+        Update: {
+          carpool_id?: string
+          created_at?: string
+          id?: string
+          passenger_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carpool_passengers_carpool_id_fkey"
+            columns: ["carpool_id"]
+            isOneToOne: false
+            referencedRelation: "carpools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      carpools: {
+        Row: {
+          available_seats: number
+          created_at: string
+          departure_time: string
+          driver_id: string
+          id: string
+          maps_link: string | null
+          meeting_point: string
+          notes: string | null
+          outing_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_seats: number
+          created_at?: string
+          departure_time: string
+          driver_id: string
+          id?: string
+          maps_link?: string | null
+          meeting_point: string
+          notes?: string | null
+          outing_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_seats?: number
+          created_at?: string
+          departure_time?: string
+          driver_id?: string
+          id?: string
+          maps_link?: string | null
+          meeting_point?: string
+          notes?: string | null
+          outing_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "carpools_outing_id_fkey"
+            columns: ["outing_id"]
+            isOneToOne: false
+            referencedRelation: "outings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_members_directory: {
         Row: {
           address: string | null

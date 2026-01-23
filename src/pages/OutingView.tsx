@@ -42,8 +42,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
-import LocationImage from "@/components/locations/LocationImage";
 import WindyForecast from "@/components/weather/WindyForecast";
+import CarpoolSection from "@/components/carpool/CarpoolSection";
 
 
 const OutingView = () => {
@@ -358,6 +358,13 @@ const OutingView = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Carpool Section */}
+          <CarpoolSection
+            outingId={outing.id}
+            userReservation={userReservation}
+            isPast={isPast}
+          />
 
           {/* Participants list */}
           <Card className="shadow-card">
