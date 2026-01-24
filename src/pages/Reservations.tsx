@@ -1,19 +1,20 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Calendar, MapPin, Loader2, Waves, Users } from "lucide-react";
+import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useMyReservations, useCancelReservation } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import ParticipantsList from "@/components/participants/ParticipantsList";
 
 const Reservations = () => {
   const { user, loading: authLoading } = useAuth();
   const { data: reservations, isLoading } = useMyReservations();
   const cancelReservation = useCancelReservation();
+  const navigate = useNavigate();
 
   if (authLoading) {
     return (
@@ -79,10 +80,14 @@ const Reservations = () => {
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {upcomingReservations.map((reservation) => (
-                      <Card key={reservation.id} className="shadow-card animate-fade-in">
+                      <Card 
+                        key={reservation.id} 
+                        className="shadow-card animate-fade-in cursor-pointer hover:shadow-lg transition-shadow"
+                        onClick={() => navigate(`/outing/${reservation.outing_id}`)}
+                      >
                         <CardContent className="p-5">
                           <div className="mb-3 flex items-start justify-between">
-                            <div>
+                            <div className="flex-1">
                               <h3 className="font-semibold text-foreground">
                                 {reservation.outing?.title}
                               </h3>
@@ -90,6 +95,7 @@ const Reservations = () => {
                                 {reservation.outing?.outing_type}
                               </Badge>
                             </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                           </div>
 
                           <div className="space-y-2 text-sm text-muted-foreground">
@@ -131,7 +137,10 @@ const Reservations = () => {
                             variant="outline"
                             size="sm"
                             className="w-full mt-4"
-                            onClick={() => cancelReservation.mutate(reservation.outing_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelReservation.mutate(reservation.outing_id);
+                            }}
                             disabled={cancelReservation.isPending}
                           >
                             Annuler ma réservation
