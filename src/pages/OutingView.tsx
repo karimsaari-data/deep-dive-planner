@@ -44,7 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
-import WindyForecast from "@/components/weather/WindyForecast";
+
 import CarpoolSection from "@/components/carpool/CarpoolSection";
 
 
@@ -255,13 +255,19 @@ const OutingView = () => {
             </Card>
           )}
 
-          {/* Windy Weather Forecast */}
-          <div className="mb-6">
-            <WindyForecast
-              latitude={locationCoords.latitude}
-              longitude={locationCoords.longitude}
-            />
-          </div>
+          {/* Widget Météo Windy - Carte + Prévisions */}
+          {locationCoords.latitude && locationCoords.longitude && (
+            <div className="w-full rounded-xl overflow-hidden shadow-lg border border-border mb-6 bg-muted">
+              <iframe 
+                width="100%" 
+                height="500"
+                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&metricWave=m&zoom=11&overlay=wind&product=ecmwf&level=surface&lat=${locationCoords.latitude}&lon=${locationCoords.longitude}&detailLat=${locationCoords.latitude}&detailLon=${locationCoords.longitude}&detail=true&message=true`}
+                frameBorder="0"
+                title="Météo Windy"
+                className="w-full"
+              ></iframe>
+            </div>
+          )}
 
           {/* Registration Card */}
           {!isPast && (
