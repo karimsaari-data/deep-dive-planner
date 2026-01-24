@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert } from "lucide-react";
+import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,8 @@ const outingSchema = z.object({
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
   max_participants: z.number().min(1).max(100),
   is_staff_only: z.boolean().default(false),
+  carpool_option: z.enum(["none", "driver", "passenger"]).default("none"),
+  carpool_seats: z.number().min(1).max(8).optional(),
 });
 
 type OutingFormData = z.infer<typeof outingSchema>;
@@ -63,8 +65,13 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       outing_type: "Mer",
       max_participants: 10,
       is_staff_only: false,
+      carpool_option: "none",
+      carpool_seats: 1,
     },
   });
+
+  const carpoolOption = form.watch("carpool_option");
+  const carpoolSeats = form.watch("carpool_seats") || 1;
 
   // Pre-fill location when props change
   useEffect(() => {
@@ -109,6 +116,8 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
         max_participants: data.max_participants,
         organizer_id: user?.id,
         is_staff_only: data.is_staff_only,
+        carpool_option: data.carpool_option,
+        carpool_seats: data.carpool_seats,
       },
       {
         onSuccess: (newOuting) => {
@@ -374,6 +383,72 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               />
             </div>
 
+            {/* Carpool option */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Car className="h-5 w-5 text-primary" />
+                <span className="font-medium">Covoiturage</span>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="carpool_option"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Select 
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          if (value === "driver") {
+                            form.setValue("carpool_seats", 1);
+                          }
+                        }} 
+                        value={field.value}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Pas de covoiturage</SelectItem>
+                          <SelectItem value="driver">Je peux véhiculer des personnes</SelectItem>
+                          <SelectItem value="passenger">Je cherche une place</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {carpoolOption === "driver" && (
+                <div className="space-y-2">
+                  <FormLabel>Nombre de places disponibles</FormLabel>
+                  <div className="flex items-center justify-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 rounded-full"
+                      onClick={() => form.setValue("carpool_seats", Math.max(1, carpoolSeats - 1))}
+                      disabled={carpoolSeats <= 1}
+                    >
+                      <Minus className="h-5 w-5" />
+                    </Button>
+                    <span className="text-3xl font-bold w-12 text-center">{carpoolSeats}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 rounded-full"
+                      onClick={() => form.setValue("carpool_seats", Math.min(8, carpoolSeats + 1))}
+                      disabled={carpoolSeats >= 8}
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Staff-only toggle */}
             <FormField
               control={form.control}
@@ -382,7 +457,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border border-border bg-muted/30 p-4">
                   <div className="space-y-0.5">
                     <FormLabel className="flex items-center gap-2 text-base">
-                      <ShieldAlert className="h-4 w-4 text-amber-500" />
+                      <ShieldAlert className="h-4 w-4 text-warning" />
                       Sortie réservée encadrants
                     </FormLabel>
                     <FormDescription>

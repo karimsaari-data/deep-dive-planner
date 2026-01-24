@@ -399,17 +399,22 @@ export const useCreateOuting = () => {
       max_participants: number;
       organizer_id?: string;
       is_staff_only?: boolean;
+      carpool_option?: CarpoolOption;
+      carpool_seats?: number;
     }) => {
+      // Extract carpool options before creating the outing
+      const { carpool_option, carpool_seats, ...outingData } = outing;
+      
       // Create the outing
       const { data: newOuting, error } = await supabase
         .from("outings")
-        .insert(outing)
+        .insert(outingData)
         .select("id")
         .single();
       
       if (error) throw error;
 
-      // Auto-register the organizer
+      // Auto-register the organizer with their carpool preference
       if (outing.organizer_id && newOuting) {
         const { error: reservationError } = await supabase
           .from("reservations")
@@ -417,8 +422,8 @@ export const useCreateOuting = () => {
             outing_id: newOuting.id,
             user_id: outing.organizer_id,
             status: "confirmé",
-            carpool_option: "none",
-            carpool_seats: 0,
+            carpool_option: carpool_option || "none",
+            carpool_seats: carpool_option === "driver" ? (carpool_seats || 1) : 0,
           });
 
         if (reservationError) {
