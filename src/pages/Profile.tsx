@@ -20,13 +20,26 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+// French phone regex: accepts formats like 06 12 34 56 78, 0612345678, +33612345678
+const frenchPhoneRegex = /^(?:(?:\+|00)33[\s.-]?|0)[1-9](?:[\s.-]?\d{2}){4}$/;
+
 const profileSchema = z.object({
   first_name: z.string().min(2, "Le prénom doit faire au moins 2 caractères").max(50),
   last_name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(50),
-  phone: z.string().optional(),
+  phone: z.string()
+    .optional()
+    .refine(
+      (val) => !val || frenchPhoneRegex.test(val.replace(/\s/g, "")),
+      { message: "Format invalide. Ex: 06 12 34 56 78 ou +33612345678" }
+    ),
   address: z.string().optional(),
   emergency_contact_name: z.string().optional(),
-  emergency_contact_phone: z.string().optional(),
+  emergency_contact_phone: z.string()
+    .optional()
+    .refine(
+      (val) => !val || frenchPhoneRegex.test(val.replace(/\s/g, "")),
+      { message: "Format invalide. Ex: 06 12 34 56 78" }
+    ),
 });
 
 type ProfileData = z.infer<typeof profileSchema>;
@@ -75,7 +88,7 @@ const Profile = () => {
       form.reset({
         first_name: profile?.first_name ?? directoryProfile?.first_name ?? "",
         last_name: profile?.last_name ?? directoryProfile?.last_name ?? "",
-        phone: directoryProfile?.phone ?? "",
+        phone: directoryProfile?.phone ?? profile?.phone ?? "",
         address: directoryProfile?.address ?? "",
         emergency_contact_name: directoryProfile?.emergency_contact_name ?? "",
         emergency_contact_phone: directoryProfile?.emergency_contact_phone ?? "",
@@ -87,12 +100,16 @@ const Profile = () => {
     mutationFn: async (data: ProfileData) => {
       if (!user) throw new Error("Non connecté");
 
-      // Update app profile (names only)
+      // Normalize phone number (remove spaces for storage)
+      const normalizedPhone = data.phone?.replace(/\s/g, "") || null;
+
+      // Update app profile (names + phone for carpool)
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           first_name: data.first_name,
           last_name: data.last_name,
+          phone: normalizedPhone,
         })
         .eq("id", user.id);
 
@@ -326,28 +343,37 @@ const Profile = () => {
                     />
                   </div>
 
+                  {/* Phone - always visible (for carpool feature) */}
+                  <Separator />
+                  <h4 className="text-sm font-medium">Mes coordonnées</h4>
+                  
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          Téléphone
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            type="tel"
+                            placeholder="06 12 34 56 78" 
+                            inputMode="tel"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Utilisé pour le covoiturage et les urgences
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   {directoryProfile && (
                     <>
-                      <Separator />
-                      <h4 className="text-sm font-medium">Mes coordonnées</h4>
-                      
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Phone className="h-4 w-4" />
-                              Téléphone
-                            </FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="06 12 34 56 78" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
                       <FormField
                         control={form.control}
                         name="address"
@@ -393,7 +419,12 @@ const Profile = () => {
                             <FormItem>
                               <FormLabel>Téléphone</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="06..." />
+                                <Input 
+                                  {...field} 
+                                  type="tel"
+                                  placeholder="06 12 34 56 78" 
+                                  inputMode="tel"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
