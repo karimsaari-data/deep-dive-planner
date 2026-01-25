@@ -18,6 +18,7 @@ export interface Carpool {
     first_name: string;
     last_name: string;
     avatar_url: string | null;
+    phone: string | null;
   };
   passengers?: CarpoolPassenger[];
 }
@@ -55,7 +56,7 @@ export const useCarpools = (outingId: string) => {
       const driverIds = [...new Set(carpools.map((c) => c.driver_id))];
       const { data: drivers } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name, avatar_url")
+        .select("id, first_name, last_name, avatar_url, phone")
         .in("id", driverIds);
 
       const driverMap = new Map(drivers?.map((d) => [d.id, d]) || []);

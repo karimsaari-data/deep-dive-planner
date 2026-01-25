@@ -531,6 +531,7 @@ export type Database = {
           last_name: string
           member_code: string | null
           member_status: Database["public"]["Enums"]["member_status"] | null
+          phone: string | null
           specialty: string | null
           updated_at: string | null
         }
@@ -544,6 +545,7 @@ export type Database = {
           last_name: string
           member_code?: string | null
           member_status?: Database["public"]["Enums"]["member_status"] | null
+          phone?: string | null
           specialty?: string | null
           updated_at?: string | null
         }
@@ -557,6 +559,7 @@ export type Database = {
           last_name?: string
           member_code?: string | null
           member_status?: Database["public"]["Enums"]["member_status"] | null
+          phone?: string | null
           specialty?: string | null
           updated_at?: string | null
         }

@@ -1,19 +1,33 @@
-import { useState } from "react";
-import { Clock, MapPin, Link2, MessageSquare, X, Save, Minus, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, MapPin, Link2, MessageSquare, X, Save, Minus, Plus, Phone, Map } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Carpool, useCreateCarpool, useUpdateCarpool } from "@/hooks/useCarpools";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import CarpoolMapPicker from "./CarpoolMapPicker";
 
 interface CarpoolFormProps {
   outingId: string;
   existingCarpool?: Carpool;
   onClose: () => void;
+  destinationLat?: number;
+  destinationLng?: number;
+  destinationName?: string;
 }
 
-const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) => {
+const CarpoolForm = ({ 
+  outingId, 
+  existingCarpool, 
+  onClose,
+  destinationLat,
+  destinationLng,
+  destinationName,
+}: CarpoolFormProps) => {
+  const { user } = useAuth();
   const isEditing = !!existingCarpool;
 
   const [departureTime, setDepartureTime] = useState(
@@ -27,6 +41,39 @@ const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) =
   );
   const [mapsLink, setMapsLink] = useState(existingCarpool?.maps_link || "");
   const [notes, setNotes] = useState(existingCarpool?.notes || "");
+  const [phone, setPhone] = useState("");
+  const [showMap, setShowMap] = useState(false);
+
+  // Fetch user phone from profile
+  useEffect(() => {
+    const fetchPhone = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("id", user.id)
+        .single();
+      
+      if (data?.phone) {
+        setPhone(data.phone);
+      }
+    };
+    
+    fetchPhone();
+  }, [user]);
+
+  // Update phone in profile when changed
+  const handlePhoneChange = async (newPhone: string) => {
+    setPhone(newPhone);
+    
+    if (user && newPhone) {
+      await supabase
+        .from("profiles")
+        .update({ phone: newPhone })
+        .eq("id", user.id);
+    }
+  };
 
   const createCarpool = useCreateCarpool();
   const updateCarpool = useUpdateCarpool();
@@ -66,6 +113,11 @@ const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) =
     }
   };
 
+  const handleMapLocationSelect = (lat: number, lng: number, address: string, link: string) => {
+    setMeetingPoint(address);
+    setMapsLink(link);
+  };
+
   const isPending = createCarpool.isPending || updateCarpool.isPending;
 
   return (
@@ -82,6 +134,24 @@ const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) =
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Phone number */}
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="flex items-center gap-1">
+              <Phone className="h-3 w-3" />
+              Votre téléphone (visible des passagers)
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="06 12 34 56 78"
+              value={phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Permet aux passagers de vous joindre facilement
+            </p>
+          </div>
+
           {/* Departure time */}
           <div className="space-y-2">
             <Label htmlFor="departureTime" className="flex items-center gap-1">
@@ -127,6 +197,30 @@ const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) =
             </div>
           </div>
 
+          {/* Map picker toggle */}
+          {(destinationLat && destinationLng) && (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant={showMap ? "secondary" : "outline"}
+                className="w-full gap-2"
+                onClick={() => setShowMap(!showMap)}
+              >
+                <Map className="h-4 w-4" />
+                {showMap ? "Masquer la carte" : "📍 Choisir le RDV sur la carte"}
+              </Button>
+              
+              {showMap && (
+                <CarpoolMapPicker
+                  destinationLat={destinationLat}
+                  destinationLng={destinationLng}
+                  destinationName={destinationName}
+                  onLocationSelect={handleMapLocationSelect}
+                />
+              )}
+            </div>
+          )}
+
           {/* Meeting point */}
           <div className="space-y-2">
             <Label htmlFor="meetingPoint" className="flex items-center gap-1">
@@ -156,7 +250,7 @@ const CarpoolForm = ({ outingId, existingCarpool, onClose }: CarpoolFormProps) =
               onChange={(e) => setMapsLink(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Collez un lien Google Maps pour faciliter le rendez-vous
+              {showMap ? "Rempli automatiquement depuis la carte" : "Collez un lien Google Maps pour faciliter le rendez-vous"}
             </p>
           </div>
 
