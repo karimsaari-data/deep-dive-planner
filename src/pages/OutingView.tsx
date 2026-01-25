@@ -398,6 +398,9 @@ const OutingView = () => {
             outingId={outing.id}
             userReservation={userReservation}
             isPast={isPast}
+            destinationLat={locationCoords.latitude}
+            destinationLng={locationCoords.longitude}
+            destinationName={outing.location_details?.name}
           />
 
           {/* Participants list */}

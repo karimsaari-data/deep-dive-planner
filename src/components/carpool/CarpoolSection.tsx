@@ -17,9 +17,12 @@ interface CarpoolSectionProps {
   outingId: string;
   userReservation?: Reservation;
   isPast: boolean;
+  destinationLat?: number;
+  destinationLng?: number;
+  destinationName?: string;
 }
 
-const CarpoolSection = ({ outingId, userReservation, isPast }: CarpoolSectionProps) => {
+const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, destinationLng, destinationName }: CarpoolSectionProps) => {
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
 
@@ -94,6 +97,9 @@ const CarpoolSection = ({ outingId, userReservation, isPast }: CarpoolSectionPro
             outingId={outingId}
             existingCarpool={userCarpool || undefined}
             onClose={() => setShowForm(false)}
+            destinationLat={destinationLat}
+            destinationLng={destinationLng}
+            destinationName={destinationName}
           />
         )}
 
@@ -112,8 +118,8 @@ const CarpoolSection = ({ outingId, userReservation, isPast }: CarpoolSectionPro
 
         {/* User's booking info (if passenger) */}
         {hasBookedCarpool && userBooking && (
-          <Alert className="border-emerald-500/50 bg-emerald-500/10">
-            <Car className="h-4 w-4 text-emerald-600" />
+          <Alert className="border-primary/50 bg-primary/10">
+            <Car className="h-4 w-4 text-primary" />
             <AlertDescription>
               Vous avez réservé une place avec{" "}
               <strong>

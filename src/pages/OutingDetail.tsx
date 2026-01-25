@@ -317,6 +317,9 @@ const OutingDetail = () => {
             outingId={outing.id}
             userReservation={confirmedReservations.find((r) => r.user_id === user?.id)}
             isPast={isPast}
+            destinationLat={outing.location_details?.latitude}
+            destinationLng={outing.location_details?.longitude}
+            destinationName={outing.location_details?.name}
           />
 
           <div className="grid gap-8 lg:grid-cols-2">
