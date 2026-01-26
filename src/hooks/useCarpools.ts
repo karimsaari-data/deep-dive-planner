@@ -129,7 +129,43 @@ export const useUserCarpool = (outingId: string) => {
         .maybeSingle();
 
       if (error) throw error;
-      return data as Carpool | null;
+      if (!data) return null;
+
+      // Fetch driver profile (the current user's profile)
+      const { data: driver } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, avatar_url, phone")
+        .eq("id", user.id)
+        .single();
+
+      // Fetch passengers for this carpool
+      const { data: passengers } = await supabase
+        .from("carpool_passengers")
+        .select("*")
+        .eq("carpool_id", data.id);
+
+      // Fetch passenger profiles
+      const passengerIds = (passengers || []).map((p) => p.passenger_id);
+      const { data: passengerProfiles } = passengerIds.length > 0
+        ? await supabase.from("profiles").select("id, first_name, last_name, avatar_url").in("id", passengerIds)
+        : { data: [] };
+
+      const passengerProfileMap = new Map((passengerProfiles || []).map((p) => [p.id, p]));
+
+      return {
+        ...data,
+        driver: driver ? {
+          id: driver.id,
+          first_name: driver.first_name,
+          last_name: driver.last_name,
+          avatar_url: driver.avatar_url,
+          phone: driver.phone,
+        } : undefined,
+        passengers: (passengers || []).map((p) => ({
+          ...p,
+          passenger: passengerProfileMap.get(p.passenger_id) || undefined,
+        })),
+      } as Carpool;
     },
     enabled: !!outingId && !!user,
   });
