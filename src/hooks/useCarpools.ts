@@ -61,9 +61,12 @@ export const useCarpools = (outingId: string) => {
 
       if (driversError) {
         console.warn("Could not fetch driver profiles:", driversError);
+      } else {
+        console.log("✅ Drivers fetched:", drivers);
       }
 
       const driverMap = new Map((drivers || []).map((d) => [d.id, d]));
+      console.log("📊 Driver map:", driverMap);
 
       // Fetch passengers for all carpools
       const carpoolIds = carpools.map((c) => c.id);
@@ -87,6 +90,7 @@ export const useCarpools = (outingId: string) => {
       // Build the response
       return carpools.map((carpool) => {
         const driver = driverMap.get(carpool.driver_id);
+        console.log(`🚗 Carpool ${carpool.id} - driver_id: ${carpool.driver_id}, driver found:`, driver);
         return {
           ...carpool,
           driver: driver ? {
