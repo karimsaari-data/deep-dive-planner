@@ -52,24 +52,32 @@ export const useCarpools = (outingId: string) => {
       if (error) throw error;
       if (!carpools || carpools.length === 0) return [];
 
-      // Fetch driver profiles
+      // Fetch driver profiles using separate query
       const driverIds = [...new Set(carpools.map((c) => c.driver_id))];
-      const { data: drivers } = await supabase
+      const { data: drivers, error: driversError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, avatar_url, phone")
         .in("id", driverIds);
 
-      const driverMap = new Map(drivers?.map((d) => [d.id, d]) || []);
+      if (driversError) {
+        console.warn("Could not fetch driver profiles:", driversError);
+      }
+
+      const driverMap = new Map((drivers || []).map((d) => [d.id, d]));
 
       // Fetch passengers for all carpools
       const carpoolIds = carpools.map((c) => c.id);
-      const { data: allPassengers } = await supabase
+      const { data: allPassengers, error: passError } = await supabase
         .from("carpool_passengers")
         .select("*")
         .in("carpool_id", carpoolIds);
 
+      if (passError) {
+        console.warn("Could not fetch passengers:", passError);
+      }
+
       // Fetch passenger profiles
-      const passengerIds = [...new Set(allPassengers?.map((p) => p.passenger_id) || [])];
+      const passengerIds = [...new Set((allPassengers || []).map((p) => p.passenger_id))];
       const { data: passengerProfiles } = passengerIds.length > 0
         ? await supabase.from("profiles").select("id, first_name, last_name, avatar_url").in("id", passengerIds)
         : { data: [] };
@@ -77,16 +85,25 @@ export const useCarpools = (outingId: string) => {
       const passengerProfileMap = new Map((passengerProfiles || []).map((p) => [p.id, p] as const));
 
       // Build the response
-      return carpools.map((carpool) => ({
-        ...carpool,
-        driver: driverMap.get(carpool.driver_id) || undefined,
-        passengers: (allPassengers || [])
-          .filter((p) => p.carpool_id === carpool.id)
-          .map((p) => ({
-            ...p,
-            passenger: passengerProfileMap.get(p.passenger_id) || undefined,
-          })),
-      })) as Carpool[];
+      return carpools.map((carpool) => {
+        const driver = driverMap.get(carpool.driver_id);
+        return {
+          ...carpool,
+          driver: driver ? {
+            id: driver.id,
+            first_name: driver.first_name,
+            last_name: driver.last_name,
+            avatar_url: driver.avatar_url,
+            phone: driver.phone,
+          } : undefined,
+          passengers: (allPassengers || [])
+            .filter((p) => p.carpool_id === carpool.id)
+            .map((p) => ({
+              ...p,
+              passenger: passengerProfileMap.get(p.passenger_id) || undefined,
+            })),
+        };
+      }) as Carpool[];
     },
     enabled: !!outingId && !!user,
   });

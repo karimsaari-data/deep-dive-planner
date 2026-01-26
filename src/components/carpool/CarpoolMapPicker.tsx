@@ -33,7 +33,7 @@ const CarpoolMapPicker = ({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const destMarkerRef = useRef<L.Marker | null>(null);
   const rdvMarkerRef = useRef<L.Marker | null>(null);
-  const polylineRef = useRef<L.Polyline | null>(null);
+  const polylineRef = useRef<L.GeoJSON | null>(null);
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -109,36 +109,55 @@ const CarpoolMapPicker = ({
       .bindPopup(`<b>🏁 ${destinationName || "Destination"}</b>`);
   }, [destinationLat, destinationLng, destinationName]);
 
-  // Update polyline and view when locations change
+  // Fetch real route from OSRM and update polyline
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // Remove existing polyline
+    // Remove existing polyline/route
     if (polylineRef.current) {
       polylineRef.current.remove();
+      polylineRef.current = null;
     }
 
-    // Draw line from user to destination
-    if (userLocation && destinationLat && destinationLng) {
-      polylineRef.current = L.polyline(
-        [
-          [userLocation.lat, userLocation.lng],
-          [destinationLat, destinationLng],
-        ],
-        {
-          color: "#3b82f6",
-          weight: 3,
-          dashArray: "10, 10",
-          opacity: 0.7,
-        }
-      ).addTo(mapRef.current);
+    // Fetch real route from OSRM when both locations are available
+    const fetchRoute = async () => {
+      if (!mapRef.current || !userLocation || !destinationLat || !destinationLng) return;
 
-      // Fit bounds to show both points
-      const bounds = L.latLngBounds([
-        [userLocation.lat, userLocation.lng],
-        [destinationLat, destinationLng],
-      ]);
-      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      try {
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destinationLng},${destinationLat}?overview=full&geometries=geojson`
+        );
+        
+        if (!response.ok) {
+          console.warn("OSRM API failed, skipping route display");
+          return;
+        }
+
+        const data = await response.json();
+        
+        if (data.routes && data.routes[0] && data.routes[0].geometry) {
+          // Display the real route using GeoJSON
+          polylineRef.current = L.geoJSON(data.routes[0].geometry, {
+            style: {
+              color: "#3b82f6",
+              weight: 4,
+              dashArray: "8, 8",
+              opacity: 0.8,
+            },
+          }).addTo(mapRef.current);
+
+          // Fit bounds to show the route
+          const bounds = polylineRef.current.getBounds();
+          mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
+      } catch (error) {
+        // Fallback: don't draw any line if OSRM fails (better than a line crossing water)
+        console.warn("OSRM route fetch failed:", error);
+      }
+    };
+
+    if (userLocation && destinationLat && destinationLng) {
+      fetchRoute();
     } else if (destinationLat && destinationLng) {
       // Only destination available
       mapRef.current.setView([destinationLat, destinationLng], 12);
