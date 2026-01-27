@@ -320,6 +320,7 @@ const OutingDetail = () => {
             destinationLat={outing.location_details?.latitude}
             destinationLng={outing.location_details?.longitude}
             destinationName={outing.location_details?.name}
+            outingDateTime={outing.date_time}
           />
 
           <div className="grid gap-8 lg:grid-cols-2">

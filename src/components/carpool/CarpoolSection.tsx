@@ -20,9 +20,10 @@ interface CarpoolSectionProps {
   destinationLat?: number;
   destinationLng?: number;
   destinationName?: string;
+  outingDateTime?: string;
 }
 
-const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, destinationLng, destinationName }: CarpoolSectionProps) => {
+const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, destinationLng, destinationName, outingDateTime }: CarpoolSectionProps) => {
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
 
@@ -100,6 +101,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
             destinationLat={destinationLat}
             destinationLng={destinationLng}
             destinationName={destinationName}
+            outingDateTime={outingDateTime}
           />
         )}
 
