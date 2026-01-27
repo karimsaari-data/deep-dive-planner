@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud } from "lucide-react";
+import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,11 @@ import { Outing, OutingType, useCreateReservation, useCancelReservation, Carpool
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import NavigationButton from "@/components/locations/NavigationButton";
+
+interface CarpoolInfo {
+  carpool_count: number;
+  available_seats: number;
+}
 
 // Default placeholder image
 const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=800&auto=format&fit=crop&q=60";
@@ -44,9 +49,10 @@ const typeColors: Record<OutingType, string> = {
 
 interface OutingCardProps {
   outing: Outing & { location_details?: { photo_url?: string | null } | null };
+  carpoolInfo?: CarpoolInfo;
 }
 
-const OutingCard = ({ outing }: OutingCardProps) => {
+const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const { user } = useAuth();
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
@@ -197,6 +203,21 @@ const OutingCard = ({ outing }: OutingCardProps) => {
               </span>
             )}
           </div>
+
+          {/* Carpool indicator */}
+          {carpoolInfo && carpoolInfo.carpool_count > 0 && (
+            <div className="flex items-center gap-2 text-sm">
+              <Car className="h-4 w-4 text-primary" />
+              <span className="text-primary font-medium">
+                🚙 {carpoolInfo.carpool_count} voiture{carpoolInfo.carpool_count > 1 ? "s" : ""} dispo
+              </span>
+              {carpoolInfo.available_seats > 0 && (
+                <span className="text-muted-foreground">
+                  ({carpoolInfo.available_seats} place{carpoolInfo.available_seats > 1 ? "s" : ""})
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
 

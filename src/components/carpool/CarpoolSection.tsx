@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Car, Plus, AlertCircle } from "lucide-react";
+import { Car, Plus, AlertCircle, List, MapIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useCarpools";
 import CarpoolCard from "./CarpoolCard";
 import CarpoolForm from "./CarpoolForm";
+import CarpoolMapView from "./CarpoolMapView";
 
 interface CarpoolSectionProps {
   outingId: string;
@@ -23,9 +24,12 @@ interface CarpoolSectionProps {
   outingDateTime?: string;
 }
 
+type ViewMode = "list" | "map";
+
 const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, destinationLng, destinationName, outingDateTime }: CarpoolSectionProps) => {
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const { data: carpools, isLoading } = useCarpools(outingId);
   const { data: userCarpool } = useUserCarpool(outingId);
@@ -62,15 +66,47 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
     );
   }
 
+  // Filter carpools with map coords for map view
+  const carpoolsWithCoords = (carpools || []).filter((c) => c.maps_link);
+  const hasCarpoolsForMap = carpoolsWithCoords.length > 0;
+
   return (
     <Card className="shadow-card mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Car className="h-5 w-5 text-primary" />
-          Covoiturage
-        </CardTitle>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Car className="h-5 w-5 text-primary" />
+            Covoiturage
+          </CardTitle>
+
+          {/* View toggle - only show if there are carpools */}
+          {carpools && carpools.length > 0 && (
+            <div className="flex items-center rounded-lg border border-border bg-muted/50 p-0.5">
+              <Button
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="gap-1.5 h-8 px-3"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">Liste</span>
+              </Button>
+              <Button
+                variant={viewMode === "map" ? "secondary" : "ghost"}
+                size="sm"
+                className="gap-1.5 h-8 px-3"
+                onClick={() => setViewMode("map")}
+                disabled={!hasCarpoolsForMap}
+                title={!hasCarpoolsForMap ? "Aucun trajet avec coordonnées" : undefined}
+              >
+                <MapIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Carte</span>
+              </Button>
+            </div>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-4">
         {/* Driver prompt - they said they can drive but haven't created a carpool */}
         {showDriverPrompt && (
           <Alert className="border-primary/50 bg-primary/10">
@@ -133,29 +169,42 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
           </Alert>
         )}
 
-        {/* Available carpools */}
+        {/* Available carpools - List or Map view */}
         {carpools && carpools.length > 0 ? (
-          <div className="space-y-3">
-            {!hasCreatedCarpool && (
-              <p className="text-sm font-medium text-muted-foreground">
-                Véhicules disponibles ({carpools.length})
-              </p>
-            )}
-            {carpools
-              .filter((c) => c.driver_id !== user.id) // Don't show own carpool in the list
-              .map((carpool) => (
-                <CarpoolCard
-                  key={carpool.id}
-                  carpool={carpool}
-                  outingId={outingId}
-                  isPassenger={isPassenger}
-                  userBookingId={
-                    userBooking?.carpool_id === carpool.id ? userBooking.id : undefined
-                  }
-                  isPast={isPast}
-                />
-              ))}
-          </div>
+          viewMode === "map" && hasCarpoolsForMap ? (
+            <CarpoolMapView
+              carpools={carpools.filter((c) => c.driver_id !== user.id)}
+              outingId={outingId}
+              destinationLat={destinationLat}
+              destinationLng={destinationLng}
+              destinationName={destinationName}
+              isPassenger={isPassenger}
+              userBookingCarpoolId={userBooking?.carpool_id}
+              isPast={isPast}
+            />
+          ) : (
+            <div className="space-y-3">
+              {!hasCreatedCarpool && (
+                <p className="text-sm font-medium text-muted-foreground">
+                  Véhicules disponibles ({carpools.length})
+                </p>
+              )}
+              {carpools
+                .filter((c) => c.driver_id !== user.id) // Don't show own carpool in the list
+                .map((carpool) => (
+                  <CarpoolCard
+                    key={carpool.id}
+                    carpool={carpool}
+                    outingId={outingId}
+                    isPassenger={isPassenger}
+                    userBookingId={
+                      userBooking?.carpool_id === carpool.id ? userBooking.id : undefined
+                    }
+                    isPast={isPast}
+                  />
+                ))}
+            </div>
+          )
         ) : (
           !showDriverPrompt &&
           !hasCreatedCarpool && (
