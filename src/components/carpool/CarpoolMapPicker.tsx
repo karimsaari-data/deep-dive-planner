@@ -34,12 +34,33 @@ const CarpoolMapPicker = ({
   const destMarkerRef = useRef<L.Marker | null>(null);
   const rdvMarkerRef = useRef<L.Marker | null>(null);
   const polylineRef = useRef<L.GeoJSON | null>(null);
+  const hasAutoLocated = useRef(false);
 
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<{ lat: number; lng: number } | null>(
     initialMeetingPoint || null
   );
+
+  // Géolocalisation automatique au chargement (zéro clic)
+  useEffect(() => {
+    if (hasAutoLocated.current || !navigator.geolocation) return;
+    hasAutoLocated.current = true;
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setIsLocating(false);
+      },
+      (error) => {
+        console.warn("Auto-geolocation failed:", error);
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   // Custom icons
   const userIcon = L.divIcon({
@@ -248,10 +269,10 @@ const CarpoolMapPicker = ({
           </Button>
         </div>
 
-        {/* Map container */}
+        {/* Map container - agrandi pour confort mobile */}
         <div
           ref={mapContainerRef}
-          className="w-full h-64 rounded-lg overflow-hidden border border-border"
+          className="w-full min-h-[400px] rounded-lg overflow-hidden border border-border"
           style={{ zIndex: 0 }}
         />
 

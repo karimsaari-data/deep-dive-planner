@@ -17,7 +17,22 @@ interface CarpoolFormProps {
   destinationLat?: number;
   destinationLng?: number;
   destinationName?: string;
+  outingDateTime?: string;
 }
+
+// Calcul intelligent : heure de RDV = heure de sortie - 1h30
+const computeDefaultDepartureTime = (outingDateTime?: string): string => {
+  if (!outingDateTime) return "";
+  try {
+    const outingDate = new Date(outingDateTime);
+    const departureDate = new Date(outingDate.getTime() - 90 * 60 * 1000); // -1h30
+    const hours = departureDate.getHours().toString().padStart(2, "0");
+    const minutes = departureDate.getMinutes().toString().padStart(2, "0");
+    return `${hours}:${minutes}`;
+  } catch {
+    return "";
+  }
+};
 
 const CarpoolForm = ({ 
   outingId, 
@@ -26,12 +41,14 @@ const CarpoolForm = ({
   destinationLat,
   destinationLng,
   destinationName,
+  outingDateTime,
 }: CarpoolFormProps) => {
   const { user } = useAuth();
   const isEditing = !!existingCarpool;
 
+  // Heure pré-remplie intelligemment : heure existante OU heure sortie - 1h30
   const [departureTime, setDepartureTime] = useState(
-    existingCarpool?.departure_time?.slice(0, 5) || ""
+    existingCarpool?.departure_time?.slice(0, 5) || computeDefaultDepartureTime(outingDateTime)
   );
   const [availableSeats, setAvailableSeats] = useState(
     existingCarpool?.available_seats || 3

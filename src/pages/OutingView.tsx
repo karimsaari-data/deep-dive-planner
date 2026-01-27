@@ -401,6 +401,7 @@ const OutingView = () => {
             destinationLat={locationCoords.latitude}
             destinationLng={locationCoords.longitude}
             destinationName={outing.location_details?.name}
+            outingDateTime={outing.date_time}
           />
 
           {/* Participants list */}
