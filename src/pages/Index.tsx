@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Waves, Loader2, History } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import OutingCard from "@/components/outings/OutingCard";
@@ -9,6 +9,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { Button } from "@/components/ui/button";
 import HistoricalOutingForm from "@/components/outings/HistoricalOutingForm";
+import { useCarpoolCounts } from "@/hooks/useCarpoolCounts";
 
 const Index = () => {
   const [typeFilter, setTypeFilter] = useState<OutingType | null>(null);
@@ -17,6 +18,10 @@ const Index = () => {
   const { user } = useAuth();
   const { isAdmin, isOrganizer } = useUserRole();
   const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
+
+  // Fetch carpool counts for all outings
+  const outingIds = useMemo(() => outings?.map((o) => o.id) || [], [outings]);
+  const { data: carpoolCountsMap } = useCarpoolCounts(outingIds);
 
   const canUseHistoricalTool = !!user && (isAdmin || isOrganizer || !!isEncadrantFromDirectory);
 
@@ -96,7 +101,11 @@ const Index = () => {
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {outings?.map((outing) => (
-                <OutingCard key={outing.id} outing={outing} />
+                <OutingCard 
+                  key={outing.id} 
+                  outing={outing} 
+                  carpoolInfo={carpoolCountsMap?.get(outing.id)}
+                />
               ))}
             </div>
           )}
