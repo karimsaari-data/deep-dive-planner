@@ -27,20 +27,31 @@ interface MemberCardProps {
   showTechnicalLevel?: boolean;
 }
 
+// Check if member has top-tier qualification (BPJEPS/DEJEPS)
+const hasTopTierQualification = (apneaLevel: string | null): boolean => {
+  if (!apneaLevel) return false;
+  const levelLower = apneaLevel.toLowerCase();
+  return levelLower.includes("bpjeps") || levelLower.includes("dejeps");
+};
+
 const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false }: MemberCardProps) => {
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
+  const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
 
   return (
     <div className="flex flex-col items-center text-center group">
-      <Avatar className="h-20 w-20 md:h-24 md:w-24 ring-2 ring-border/50 transition-transform duration-200 md:group-hover:scale-110">
-        {member.avatar_url ? (
-          <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />
-        ) : null}
-        <AvatarFallback className={`${avatarColor} text-foreground font-semibold text-lg md:text-xl`}>
-          {initials}
-        </AvatarFallback>
-      </Avatar>
+      {/* Avatar with optional glow effect for BPJEPS/DEJEPS */}
+      <div className={`relative ${isTopTier ? "before:absolute before:inset-0 before:rounded-full before:bg-amber-400/40 before:blur-lg before:animate-pulse" : ""}`}>
+        <Avatar className={`h-20 w-20 md:h-24 md:w-24 transition-transform duration-200 md:group-hover:scale-110 relative z-10 ${isTopTier ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30" : "ring-2 ring-border/50"}`}>
+          {member.avatar_url ? (
+            <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />
+          ) : null}
+          <AvatarFallback className={`${avatarColor} text-foreground font-semibold text-lg md:text-xl`}>
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+      </div>
       
       <p className="mt-2 text-xs md:text-sm font-medium text-foreground truncate w-full">
         {member.first_name}
@@ -61,8 +72,8 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false 
       {/* Technical level for encadrants - always visible, prominent display */}
       {showTechnicalLevel && member.apnea_level && (
         <Badge 
-          variant="outline" 
-          className="mt-1 text-[10px] px-1.5 py-0 border-primary text-primary font-semibold"
+          variant={isTopTier ? "default" : "outline"}
+          className={`mt-1 text-[10px] px-1.5 py-0 font-semibold ${isTopTier ? "bg-amber-500 hover:bg-amber-600 text-white border-0" : "border-primary text-primary"}`}
         >
           {member.apnea_level}
         </Badge>
