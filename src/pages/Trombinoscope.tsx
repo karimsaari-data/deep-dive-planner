@@ -24,9 +24,10 @@ const getInitials = (firstName: string, lastName: string): string => {
 interface MemberCardProps {
   member: TrombiMember;
   showBoardRole?: boolean;
+  showTechnicalLevel?: boolean;
 }
 
-const MemberCard = ({ member, showBoardRole = false }: MemberCardProps) => {
+const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false }: MemberCardProps) => {
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
 
@@ -57,8 +58,18 @@ const MemberCard = ({ member, showBoardRole = false }: MemberCardProps) => {
         </Badge>
       )}
       
-      {/* Level badge for non-bureau members - hidden on mobile */}
-      {!showBoardRole && member.apnea_level && (
+      {/* Technical level for encadrants - always visible, prominent display */}
+      {showTechnicalLevel && member.apnea_level && (
+        <Badge 
+          variant="outline" 
+          className="mt-1 text-[10px] px-1.5 py-0 border-primary text-primary font-semibold"
+        >
+          {member.apnea_level}
+        </Badge>
+      )}
+      
+      {/* Level badge for regular members - hidden on mobile */}
+      {!showBoardRole && !showTechnicalLevel && member.apnea_level && (
         <Badge variant="secondary" className="hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0">
           {member.apnea_level}
         </Badge>
@@ -79,10 +90,18 @@ interface SectionProps {
   icon: React.ReactNode;
   members: TrombiMember[];
   showBoardRole?: boolean;
+  showTechnicalLevel?: boolean;
   accentColor?: string;
 }
 
-const Section = ({ title, icon, members, showBoardRole = false, accentColor = "bg-primary" }: SectionProps) => {
+const Section = ({ 
+  title, 
+  icon, 
+  members, 
+  showBoardRole = false, 
+  showTechnicalLevel = false,
+  accentColor = "bg-primary" 
+}: SectionProps) => {
   if (!members.length) return null;
   
   return (
@@ -95,7 +114,12 @@ const Section = ({ title, icon, members, showBoardRole = false, accentColor = "b
       </h2>
       <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
         {members.map((member) => (
-          <MemberCard key={member.id} member={member} showBoardRole={showBoardRole} />
+          <MemberCard 
+            key={member.id} 
+            member={member} 
+            showBoardRole={showBoardRole}
+            showTechnicalLevel={showTechnicalLevel}
+          />
         ))}
       </div>
     </section>
@@ -138,11 +162,12 @@ const Trombinoscope = () => {
               accentColor="bg-amber-500"
             />
 
-            {/* Encadrants Section */}
+            {/* Encadrants Section - Technical qualifications only */}
             <Section
               title="Encadrants"
               icon={<GraduationCap className="h-4 w-4 text-primary" />}
               members={data?.encadrants || []}
+              showTechnicalLevel={true}
               accentColor="bg-primary"
             />
 
