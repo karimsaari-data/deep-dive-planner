@@ -114,11 +114,10 @@ export const useTrombinoscope = () => {
       // Bureau member IDs (to exclude from encadrants section)
       const bureauIds = new Set(bureau.map((m) => m.id));
 
-      // Encadrants: filter by technical qualification, exclude bureau members
+      // Encadrants: filter by is_encadrant field, exclude bureau members
+      // apnea_level is only used for sorting, not filtering
       const encadrants = allMembers
-        .filter(
-          (m) => !bureauIds.has(m.id) && hasTechnicalQualification(m.apnea_level)
-        )
+        .filter((m) => !bureauIds.has(m.id) && m.is_encadrant)
         .sort((a, b) => {
           const weightA = getTechnicalWeight(a.apnea_level);
           const weightB = getTechnicalWeight(b.apnea_level);
