@@ -11,14 +11,68 @@ export interface TrombiMember {
   avatar_url: string | null;
 }
 
+// Keywords that define technical instructors/encadrants
+const TECHNICAL_KEYWORDS = [
+  "BPJEPS",
+  "DEJEPS",
+  "MEF",
+  "Instructeur",
+  "Moniteur",
+  "IE",
+  "Initiateur",
+];
+
+// Check if a member has technical qualification
+const hasTechnicalQualification = (apneaLevel: string | null): boolean => {
+  if (!apneaLevel) return false;
+  const levelLower = apneaLevel.toLowerCase();
+  return TECHNICAL_KEYWORDS.some((keyword) =>
+    levelLower.includes(keyword.toLowerCase())
+  );
+};
+
+// Get technical weight for sorting (lower = higher priority)
+const getTechnicalWeight = (apneaLevel: string | null): number => {
+  if (!apneaLevel) return 99;
+  const levelLower = apneaLevel.toLowerCase();
+
+  // Top priority: BPJEPS or DEJEPS
+  if (levelLower.includes("bpjeps") || levelLower.includes("dejeps")) {
+    return 1;
+  }
+  // Priority 2: MEF2 or Instructeur Regional/National
+  if (
+    levelLower.includes("mef2") ||
+    levelLower.includes("instructeur") ||
+    levelLower.includes("encadrant apnée de niveau 2")
+  ) {
+    return 2;
+  }
+  // Priority 3: MEF1 or Moniteur
+  if (
+    levelLower.includes("mef1") ||
+    levelLower.includes("moniteur") ||
+    levelLower.includes("encadrant apnée de niveau 1")
+  ) {
+    return 3;
+  }
+  // Priority 4: IE or Initiateur
+  if (levelLower.includes("ie") || levelLower.includes("initiateur")) {
+    return 4;
+  }
+  // Rest
+  return 5;
+};
+
 export const useTrombinoscope = () => {
   return useQuery({
     queryKey: ["trombinoscope-directory"],
     queryFn: async () => {
       // Fetch members using secure RPC function that only exposes non-sensitive fields
       // including avatar_url from profiles table
-      const { data: members, error: membersError } = await supabase
-        .rpc("get_trombinoscope_members");
+      const { data: members, error: membersError } = await supabase.rpc(
+        "get_trombinoscope_members"
+      );
 
       if (membersError) throw membersError;
 
@@ -35,10 +89,10 @@ export const useTrombinoscope = () => {
 
       // Hierarchical weights for board roles
       const roleWeights: Record<string, number> = {
-        "Président": 1,
+        Président: 1,
         "Vice-Président": 2,
-        "Trésorier": 3,
-        "Secrétaire": 4,
+        Trésorier: 3,
+        Secrétaire: 4,
         "Trésorier Adjoint": 5,
         "Secrétaire Adjoint": 6,
         "Membre du bureau": 7,
@@ -46,7 +100,7 @@ export const useTrombinoscope = () => {
 
       // Separate into 3 categories based on new rules:
       // 1. Bureau: has board_role (sorted by hierarchy, then alphabetically)
-      // 2. Encadrants: is_encadrant = true AND no board_role
+      // 2. Encadrants: has TECHNICAL qualification in apnea_level (sorted by technical weight)
       // 3. Membres: the rest
       const bureau = allMembers
         .filter((m) => m.board_role)
@@ -57,12 +111,27 @@ export const useTrombinoscope = () => {
           return a.last_name.localeCompare(b.last_name, "fr");
         });
 
-      const encadrants = allMembers
-        .filter((m) => !m.board_role && m.is_encadrant)
-        .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
+      // Bureau member IDs (to exclude from encadrants section)
+      const bureauIds = new Set(bureau.map((m) => m.id));
 
+      // Encadrants: filter by technical qualification, exclude bureau members
+      const encadrants = allMembers
+        .filter(
+          (m) => !bureauIds.has(m.id) && hasTechnicalQualification(m.apnea_level)
+        )
+        .sort((a, b) => {
+          const weightA = getTechnicalWeight(a.apnea_level);
+          const weightB = getTechnicalWeight(b.apnea_level);
+          if (weightA !== weightB) return weightA - weightB;
+          return a.last_name.localeCompare(b.last_name, "fr");
+        });
+
+      // Encadrant IDs
+      const encadrantIds = new Set(encadrants.map((m) => m.id));
+
+      // Membres: everyone else (not bureau, not encadrant)
       const membres = allMembers
-        .filter((m) => !m.board_role && !m.is_encadrant)
+        .filter((m) => !bureauIds.has(m.id) && !encadrantIds.has(m.id))
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
       return { bureau, encadrants, membres, total: allMembers.length };
