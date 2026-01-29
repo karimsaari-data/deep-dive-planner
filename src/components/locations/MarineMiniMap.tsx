@@ -15,9 +15,12 @@ const MarineMiniMap = ({ latitude, longitude, siteName }: MarineMiniMapProps) =>
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Offset center southward so marker appears at top, showing more coast/sea below
+    const offsetLatitude = latitude - 0.008;
+
     // Initialize map with high zoom and scroll disabled
     const map = L.map(mapRef.current, {
-      center: [latitude, longitude],
+      center: [offsetLatitude, longitude],
       zoom: 15,
       minZoom: 10,
       maxZoom: 19,
@@ -75,15 +78,16 @@ const MarineMiniMap = ({ latitude, longitude, siteName }: MarineMiniMapProps) =>
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([latitude, longitude], 15);
+      const offsetLatitude = latitude - 0.008;
+      mapInstanceRef.current.setView([offsetLatitude, longitude], 15);
     }
   }, [latitude, longitude]);
 
   return (
     <div
       ref={mapRef}
-      className="w-full h-64 rounded-lg shadow-card"
-      style={{ minHeight: "256px" }}
+      className="w-full h-80 rounded-lg shadow-card"
+      style={{ minHeight: "320px" }}
     />
   );
 };
