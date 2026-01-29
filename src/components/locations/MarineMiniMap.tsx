@@ -18,7 +18,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName }: MarineMiniMapProps) =>
     // Initialize map with high zoom and scroll disabled
     const map = L.map(mapRef.current, {
       center: [latitude, longitude],
-      zoom: 16,
+      zoom: 15,
       minZoom: 10,
       maxZoom: 19,
       scrollWheelZoom: false,
@@ -75,7 +75,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName }: MarineMiniMapProps) =>
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([latitude, longitude], 16);
+      mapInstanceRef.current.setView([latitude, longitude], 15);
     }
   }, [latitude, longitude]);
 
