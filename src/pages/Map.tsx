@@ -155,38 +155,35 @@ const Map = () => {
       maxZoom: 19,
     });
 
-    // IGN WMTS - Plan IGN v2 (Open Data, stable)
-    const ignLayer = L.tileLayer(
-      "https://data.geopf.fr/wmts?" +
-        "SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
-        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2" +
-        "&STYLE=normal&TILEMATRIXSET=PM" +
-        "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}" +
-        "&FORMAT=image/png",
+    // Option 1: Plan Standard (OpenStreetMap) - DEFAULT
+    const osmLayer = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
-        attribution: '© <a href="https://geoservices.ign.fr/">IGN</a>',
-        maxZoom: 19,
-        maxNativeZoom: 18,
-      }
-    );
-
-    // Esri Ocean Basemap (free, no API key) - with zoom fix
-    const esriOceanLayer = L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
-      {
-        attribution: '© <a href="https://www.esri.com/">Esri</a> Ocean Basemap',
-        maxNativeZoom: 13,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
       }
     );
 
-    // Esri World Imagery Satellite (free, no API key)
+    // Option 2: Vue Satellite (Esri World Imagery)
     const esriSatelliteLayer = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         attribution: '© <a href="https://www.esri.com/">Esri</a> World Imagery',
+        maxNativeZoom: 17,
         maxZoom: 19,
+      }
+    );
+
+    // Option 3: Carte Marine (SHOM/IGN - Géoplateforme)
+    const marineLayer = L.tileLayer(
+      "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
+        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.COASTALMAPS" +
+        "&STYLE=normal&TILEMATRIXSET=PM" +
+        "&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+      {
+        attribution: '© <a href="https://www.shom.fr/">IGN - SHOM</a>',
         maxNativeZoom: 18,
+        maxZoom: 19,
       }
     );
 
@@ -200,15 +197,15 @@ const Map = () => {
       }
     );
 
-    // Add default layer (Plan IGN)
-    ignLayer.addTo(map);
+    // Add default layer (Plan Standard)
+    osmLayer.addTo(map);
     openSeaMapLayer.addTo(map);
 
     // Layer control
     const baseMaps = {
-      "Plan IGN": ignLayer,
-      "Relief Sous-marin": esriOceanLayer,
-      "Satellite": esriSatelliteLayer,
+      "Plan Standard": osmLayer,
+      "Vue Satellite": esriSatelliteLayer,
+      "Carte Marine (SHOM/IGN)": marineLayer,
     };
 
     const overlays = {

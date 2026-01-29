@@ -90,18 +90,61 @@ const CarpoolMapPicker = ({
     iconAnchor: [20, 20],
   });
 
-  // Initialize map
+  // Initialize map with layer control
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
     // Default center (Marseille)
     const defaultCenter: [number, number] = [43.3, 5.4];
     
-    mapRef.current = L.map(mapContainerRef.current).setView(defaultCenter, 10);
+    mapRef.current = L.map(mapContainerRef.current, {
+      minZoom: 5,
+      maxZoom: 19,
+    }).setView(defaultCenter, 10);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-    }).addTo(mapRef.current);
+    // Option 1: Plan Standard (OpenStreetMap) - DEFAULT
+    const osmLayer = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
+      }
+    );
+
+    // Option 2: Vue Satellite (Esri World Imagery)
+    const esriSatelliteLayer = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: '© <a href="https://www.esri.com/">Esri</a> World Imagery',
+        maxNativeZoom: 17,
+        maxZoom: 19,
+      }
+    );
+
+    // Option 3: Carte Marine (SHOM/IGN - Géoplateforme)
+    const marineLayer = L.tileLayer(
+      "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
+        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.COASTALMAPS" +
+        "&STYLE=normal&TILEMATRIXSET=PM" +
+        "&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+      {
+        attribution: '© <a href="https://www.shom.fr/">IGN - SHOM</a>',
+        maxNativeZoom: 18,
+        maxZoom: 19,
+      }
+    );
+
+    // Set default layer
+    osmLayer.addTo(mapRef.current);
+
+    // Layer control
+    const baseMaps = {
+      "Plan Standard": osmLayer,
+      "Vue Satellite": esriSatelliteLayer,
+      "Carte Marine (SHOM/IGN)": marineLayer,
+    };
+
+    L.control.layers(baseMaps, {}, { position: "topright" }).addTo(mapRef.current);
 
     // Click handler
     mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
