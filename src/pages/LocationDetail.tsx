@@ -8,13 +8,15 @@ import {
   Loader2,
   Compass,
   Info,
-  ExternalLink
+  ExternalLink,
+  Anchor
 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LocationImage from "@/components/locations/LocationImage";
+import MarineMiniMap from "@/components/locations/MarineMiniMap";
 import { supabase } from "@/integrations/supabase/client";
 import type { Location } from "@/hooks/useLocations";
 
@@ -190,6 +192,28 @@ const LocationDetail = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Marine Chart Mini Map */}
+            {hasCoordinates && (
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Anchor className="h-5 w-5 text-primary" />
+                    Carte Marine (Bathymétrie)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <MarineMiniMap
+                    latitude={location.latitude!}
+                    longitude={location.longitude!}
+                    siteName={location.name}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Carte SHOM/IGN – Lignes de profondeur et sondes marines
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Info Card */}
             <Card className="shadow-card">
