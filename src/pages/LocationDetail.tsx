@@ -207,6 +207,7 @@ const LocationDetail = () => {
                     latitude={location.latitude!}
                     longitude={location.longitude!}
                     siteName={location.name}
+                    siteId={location.id}
                   />
                   <p className="text-xs text-muted-foreground text-center py-2 px-3">
                     Carte SHOM/IGN – Lignes de profondeur et sondes marines

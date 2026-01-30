@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus } from "lucide-react";
+import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useCreateOuting, OutingType } from "@/hooks/useOutings";
 import { useLocations } from "@/hooks/useLocations";
+import { useBoats } from "@/hooks/useBoats";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -34,9 +37,14 @@ const outingSchema = z.object({
   is_staff_only: z.boolean().default(false),
   carpool_option: z.enum(["none", "driver", "passenger"]).default("none"),
   carpool_seats: z.number().min(1).max(8).optional(),
+  dive_mode: z.enum(["boat", "shore"]).optional(),
+  boat_id: z.string().optional(),
 });
 
 type OutingFormData = z.infer<typeof outingSchema>;
+
+// Types de sorties en milieu naturel (où le choix bateau/bord est pertinent)
+const NATURAL_ENVIRONMENT_TYPES: OutingType[] = ["Mer", "Étang", "Dépollution"];
 
 interface CreateOutingFormProps {
   prefilledLocationId?: string;
@@ -48,6 +56,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const { user } = useAuth();
   const createOuting = useCreateOuting();
   const { data: locations } = useLocations();
+  const { data: boats } = useBoats();
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [createdOutingId, setCreatedOutingId] = useState<string | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -67,11 +76,26 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       is_staff_only: false,
       carpool_option: "none",
       carpool_seats: 1,
+      dive_mode: undefined,
+      boat_id: undefined,
     },
   });
 
   const carpoolOption = form.watch("carpool_option");
   const carpoolSeats = form.watch("carpool_seats") || 1;
+  const outingType = form.watch("outing_type");
+  const diveMode = form.watch("dive_mode");
+
+  // Check if current outing type requires boat/shore selection
+  const isNaturalEnvironment = NATURAL_ENVIRONMENT_TYPES.includes(outingType as OutingType);
+
+  // Reset dive_mode and boat_id when switching to non-natural environment
+  useEffect(() => {
+    if (!isNaturalEnvironment) {
+      form.setValue("dive_mode", undefined);
+      form.setValue("boat_id", undefined);
+    }
+  }, [isNaturalEnvironment, form]);
 
   // Pre-fill location when props change
   useEffect(() => {
@@ -118,6 +142,8 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
         is_staff_only: data.is_staff_only,
         carpool_option: data.carpool_option,
         carpool_seats: data.carpool_seats,
+        dive_mode: isNaturalEnvironment ? data.dive_mode : undefined,
+        boat_id: isNaturalEnvironment && data.dive_mode === "boat" ? data.boat_id : undefined,
       },
       {
         onSuccess: (newOuting) => {
@@ -448,6 +474,86 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 </div>
               )}
             </div>
+
+            {/* Dive Mode - Only for natural environment outings */}
+            {isNaturalEnvironment && (
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Ship className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Mode de départ</span>
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="dive_mode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <RadioGroup
+                          value={field.value || ""}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            if (value !== "boat") {
+                              form.setValue("boat_id", undefined);
+                            }
+                          }}
+                          className="flex flex-col gap-3"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <RadioGroupItem value="boat" id="dive-boat" />
+                            <Label htmlFor="dive-boat" className="flex items-center gap-2 cursor-pointer">
+                              <Ship className="h-4 w-4" />
+                              Départ Bateau
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <RadioGroupItem value="shore" id="dive-shore" />
+                            <Label htmlFor="dive-shore" className="flex items-center gap-2 cursor-pointer">
+                              <Footprints className="h-4 w-4" />
+                              Départ du Bord
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {diveMode === "boat" && (
+                  <FormField
+                    control={form.control}
+                    name="boat_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Choisir le bateau</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner un bateau" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {boats?.map((boat) => (
+                              <SelectItem key={boat.id} value={boat.id}>
+                                {boat.name} ({boat.capacity} places)
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {diveMode === "shore" && (
+                  <p className="text-sm text-muted-foreground">
+                    Les points de sécurité du site seront utilisés.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Staff-only toggle */}
             <FormField

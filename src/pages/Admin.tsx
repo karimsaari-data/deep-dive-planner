@@ -6,6 +6,7 @@ import LocationManager from "@/components/admin/LocationManager";
 import MemberManager from "@/components/admin/MemberManager";
 import ClubMembersDirectory from "@/components/admin/ClubMembersDirectory";
 import EquipmentCatalogManager from "@/components/admin/EquipmentCatalogManager";
+import FleetManager from "@/components/admin/FleetManager";
 import StatsContent from "@/components/admin/StatsContent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -54,6 +55,7 @@ const Admin = () => {
           <Tabs defaultValue="locations" className="space-y-6">
             <TabsList className="flex-wrap h-auto gap-1">
               <TabsTrigger value="locations">Lieux</TabsTrigger>
+              <TabsTrigger value="fleet">Flotte</TabsTrigger>
               <TabsTrigger value="catalog">Catalogue Matériel</TabsTrigger>
               <TabsTrigger value="directory">Fichier Adhérents</TabsTrigger>
               <TabsTrigger value="accounts">Comptes App</TabsTrigger>
@@ -62,6 +64,10 @@ const Admin = () => {
 
             <TabsContent value="locations">
               <LocationManager />
+            </TabsContent>
+
+            <TabsContent value="fleet">
+              <FleetManager />
             </TabsContent>
 
             <TabsContent value="catalog">
