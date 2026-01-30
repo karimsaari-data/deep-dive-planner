@@ -401,6 +401,8 @@ export const useCreateOuting = () => {
       is_staff_only?: boolean;
       carpool_option?: CarpoolOption;
       carpool_seats?: number;
+      dive_mode?: "boat" | "shore";
+      boat_id?: string;
     }) => {
       // Extract carpool options before creating the outing
       const { carpool_option, carpool_seats, ...outingData } = outing;

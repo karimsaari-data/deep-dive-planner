@@ -1,16 +1,21 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useWaypoints, getWaypointLabel, getWaypointColor, Waypoint } from "@/hooks/useWaypoints";
 
 interface MarineMiniMapProps {
   latitude: number;
   longitude: number;
   siteName?: string;
+  siteId?: string;
 }
 
-const MarineMiniMap = ({ latitude, longitude, siteName }: MarineMiniMapProps) => {
+const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const waypointMarkersRef = useRef<L.Marker[]>([]);
+  
+  const { data: waypoints } = useWaypoints(siteId);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -82,6 +87,56 @@ const MarineMiniMap = ({ latitude, longitude, siteName }: MarineMiniMapProps) =>
       mapInstanceRef.current.setView([offsetLatitude, longitude], 15);
     }
   }, [latitude, longitude]);
+
+  // Add waypoint markers
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    // Clear existing waypoint markers
+    waypointMarkersRef.current.forEach(marker => {
+      mapInstanceRef.current?.removeLayer(marker);
+    });
+    waypointMarkersRef.current = [];
+
+    if (!waypoints || waypoints.length === 0) return;
+
+    // Add markers for each waypoint
+    waypoints.forEach((waypoint: Waypoint) => {
+      const color = getWaypointColor(waypoint.point_type);
+      const label = getWaypointLabel(waypoint.point_type);
+      const iconChar = waypoint.point_type === 'parking' ? 'P' 
+        : waypoint.point_type === 'water_entry' ? '↓' 
+        : waypoint.point_type === 'water_exit' ? '✚' 
+        : '●';
+
+      const waypointIcon = L.divIcon({
+        html: `<div style="
+          background: ${color};
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          border: 2px solid white;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: bold;
+          font-size: 12px;
+        ">${iconChar}</div>`,
+        className: "waypoint-marker",
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        popupAnchor: [0, -12],
+      });
+
+      const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })
+        .addTo(mapInstanceRef.current!);
+      
+      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}`);
+      waypointMarkersRef.current.push(marker);
+    });
+  }, [waypoints]);
 
   return (
     <div

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Plus, Trash2, ExternalLink, Pencil, Image, Upload, Link, Loader2 } from "lucide-react";
+import { MapPin, Plus, Trash2, ExternalLink, Pencil, Upload, Link, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,9 +10,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useLocations, useCreateLocation, useDeleteLocation, useUpdateLocation, Location } from "@/hooks/useLocations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import WaypointEditor from "./WaypointEditor";
 
 const locationSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(100),
@@ -401,6 +403,18 @@ const LocationManager = () => {
                 </Button>
               </form>
             </Form>
+
+            {/* Waypoint Editor - Only show when editing an existing location */}
+            {editingLocation && editingLocation.latitude && editingLocation.longitude && (
+              <>
+                <Separator className="my-6" />
+                <WaypointEditor
+                  siteId={editingLocation.id}
+                  siteLat={editingLocation.latitude}
+                  siteLng={editingLocation.longitude}
+                />
+              </>
+            )}
           </DialogContent>
         </Dialog>
       </CardHeader>

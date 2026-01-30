@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      boats: {
+        Row: {
+          capacity: number
+          created_at: string
+          home_port: string | null
+          id: string
+          name: string
+          oxygen_location: string | null
+          pilot_name: string | null
+          pilot_phone: string | null
+          registration_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          created_at?: string
+          home_port?: string | null
+          id?: string
+          name: string
+          oxygen_location?: string | null
+          pilot_name?: string | null
+          pilot_phone?: string | null
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          created_at?: string
+          home_port?: string | null
+          id?: string
+          name?: string
+          oxygen_location?: string | null
+          pilot_name?: string | null
+          pilot_phone?: string | null
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       carpool_passengers: {
         Row: {
           carpool_id: string
@@ -444,9 +483,11 @@ export type Database = {
       }
       outings: {
         Row: {
+          boat_id: string | null
           created_at: string | null
           date_time: string
           description: string | null
+          dive_mode: string | null
           end_date: string | null
           id: string
           is_archived: boolean
@@ -464,9 +505,11 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          boat_id?: string | null
           created_at?: string | null
           date_time: string
           description?: string | null
+          dive_mode?: string | null
           end_date?: string | null
           id?: string
           is_archived?: boolean
@@ -484,9 +527,11 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          boat_id?: string | null
           created_at?: string | null
           date_time?: string
           description?: string | null
+          dive_mode?: string | null
           end_date?: string | null
           id?: string
           is_archived?: boolean
@@ -504,6 +549,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "outings_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "outings_location_id_fkey"
             columns: ["location_id"]
@@ -616,6 +668,44 @@ export type Database = {
           },
         ]
       }
+      site_waypoints: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          name: string
+          point_type: Database["public"]["Enums"]["waypoint_type"]
+          site_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          name: string
+          point_type: Database["public"]["Enums"]["waypoint_type"]
+          site_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          name?: string
+          point_type?: Database["public"]["Enums"]["waypoint_type"]
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_waypoints_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -689,6 +779,7 @@ export type Database = {
       equipment_status: "disponible" | "prêté" | "perdu" | "cassé" | "rebuté"
       member_status: "Membre" | "Encadrant"
       outing_type: "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution"
+      waypoint_type: "parking" | "water_entry" | "water_exit" | "meeting_point"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -822,6 +913,7 @@ export const Constants = {
       equipment_status: ["disponible", "prêté", "perdu", "cassé", "rebuté"],
       member_status: ["Membre", "Encadrant"],
       outing_type: ["Fosse", "Mer", "Piscine", "Étang", "Dépollution"],
+      waypoint_type: ["parking", "water_entry", "water_exit", "meeting_point"],
     },
   },
 } as const
