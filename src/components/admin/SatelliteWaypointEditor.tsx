@@ -1,24 +1,31 @@
-import { useState, useEffect, useRef } from "react";
-import { MapPin, Trash2, Plus, Car, Flag, Cross } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Trash2, Plus, Download, Camera } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useWaypoints, useCreateWaypoint, useDeleteWaypoint, WaypointType, getWaypointLabel, getWaypointColor } from "@/hooks/useWaypoints";
+import { useWaypoints, useCreateWaypoint, useDeleteWaypoint, WaypointType, getWaypointLabel, getWaypointColor, getWaypointIcon } from "@/hooks/useWaypoints";
+import { toast } from "sonner";
+import html2canvas from "html2canvas";
 
-interface WaypointEditorProps {
+interface SatelliteWaypointEditorProps {
   siteId: string;
+  siteName?: string;
   siteLat?: number | null;
   siteLng?: number | null;
 }
 
-const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
+// All waypoint types for the main satellite map
+const SATELLITE_POINT_TYPES: WaypointType[] = ["parking", "water_entry", "water_exit", "meeting_point", "dive_zone"];
+
+const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: SatelliteWaypointEditorProps) => {
   const { data: waypoints, isLoading } = useWaypoints(siteId);
   const createWaypoint = useCreateWaypoint();
   const deleteWaypoint = useDeleteWaypoint();
   
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -28,8 +35,16 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
   const [newPointType, setNewPointType] = useState<WaypointType>("parking");
   const [newPointName, setNewPointName] = useState("");
   const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
 
-  // Initialize map
+  // Pre-fill name when point type changes
+  useEffect(() => {
+    if (isAddingMode) {
+      setNewPointName(getWaypointLabel(newPointType));
+    }
+  }, [newPointType, isAddingMode]);
+
+  // Initialize map with satellite layer
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
     
@@ -38,15 +53,19 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
 
     const map = L.map(mapRef.current, {
       center: [defaultLat, defaultLng],
-      zoom: 15,
+      zoom: 17,
       scrollWheelZoom: true,
     });
 
-    // Standard layer
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors",
-      maxZoom: 19,
-    }).addTo(map);
+    // Esri World Imagery (Satellite) as default layer
+    L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution: "Esri, Maxar, Earthstar Geographics",
+        maxNativeZoom: 17,
+        maxZoom: 19,
+      }
+    ).addTo(map);
 
     mapInstanceRef.current = map;
 
@@ -59,15 +78,16 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
       const tempMarker = L.marker([e.latlng.lat, e.latlng.lng], {
         icon: L.divIcon({
           className: "temp-marker",
-          html: `<div style="width: 20px; height: 20px; background: #9333ea; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
+          html: `<div style="width: 24px; height: 24px; background: #9333ea; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.4);"></div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
         }),
       }).addTo(map);
       
       tempMarkerRef.current = tempMarker;
       setClickedCoords({ lat: e.latlng.lat, lng: e.latlng.lng });
       setIsAddingMode(true);
+      setNewPointName(getWaypointLabel(newPointType));
     });
 
     return () => {
@@ -89,36 +109,46 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
     // Add markers for each waypoint
     waypoints.forEach(waypoint => {
       const color = getWaypointColor(waypoint.point_type);
-      const label = getWaypointLabel(waypoint.point_type);
+      const iconChar = getWaypointIcon(waypoint.point_type);
+      const isDiveZone = waypoint.point_type === 'dive_zone';
       
       const marker = L.marker([waypoint.latitude, waypoint.longitude], {
         icon: L.divIcon({
           className: "waypoint-marker",
-          html: `
-            <div style="
-              background: ${color}; 
-              width: 28px; 
-              height: 28px; 
-              border-radius: 50%; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-              border: 3px solid white; 
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              color: white;
-              font-weight: bold;
-              font-size: 12px;
-            ">
-              ${waypoint.point_type === 'parking' ? 'P' : waypoint.point_type === 'water_entry' ? '↓' : waypoint.point_type === 'water_exit' ? '✚' : '●'}
-            </div>
-          `,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
+          html: isDiveZone 
+            ? `<div style="
+                background: rgba(14, 165, 233, 0.4);
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 3px solid #0ea5e9;
+                box-shadow: 0 0 12px rgba(14, 165, 233, 0.5);
+                font-size: 16px;
+              ">${iconChar}</div>`
+            : `<div style="
+                background: ${color}; 
+                width: 28px; 
+                height: 28px; 
+                border-radius: 50%; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                border: 3px solid white; 
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                color: white;
+                font-weight: bold;
+                font-size: 12px;
+              ">${iconChar}</div>`,
+          iconSize: isDiveZone ? [40, 40] : [28, 28],
+          iconAnchor: isDiveZone ? [20, 20] : [14, 14],
         }),
       }).addTo(mapInstanceRef.current);
 
       marker.bindPopup(`
-        <strong>${label}</strong><br/>
+        <strong>${getWaypointLabel(waypoint.point_type)}</strong><br/>
         ${waypoint.name}
       `);
 
@@ -129,7 +159,7 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
   // Center map on site when it changes
   useEffect(() => {
     if (mapInstanceRef.current && siteLat && siteLng) {
-      mapInstanceRef.current.setView([siteLat, siteLng], 15);
+      mapInstanceRef.current.setView([siteLat, siteLng], 17);
     }
   }, [siteLat, siteLng]);
 
@@ -165,20 +195,69 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
     }
   };
 
+  const handleCaptureHD = useCallback(async () => {
+    if (!mapContainerRef.current) return;
+    
+    setIsCapturing(true);
+    toast.info("Génération de l'image HD en cours...");
+    
+    try {
+      // Hide Leaflet controls temporarily
+      const controls = mapContainerRef.current.querySelectorAll('.leaflet-control-container');
+      controls.forEach(ctrl => (ctrl as HTMLElement).style.display = 'none');
+      
+      const canvas = await html2canvas(mapContainerRef.current, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2, // HD quality
+        backgroundColor: null,
+      });
+      
+      // Restore controls
+      controls.forEach(ctrl => (ctrl as HTMLElement).style.display = '');
+      
+      // Download the image
+      const link = document.createElement('a');
+      link.download = `carte-satellite-${siteName || siteId}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast.success("Image Satellite HD téléchargée !");
+    } catch (error) {
+      console.error("Capture error:", error);
+      toast.error("Erreur lors de la capture de l'image");
+    } finally {
+      setIsCapturing(false);
+    }
+  }, [siteId, siteName]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">Points de sécurité GPS</Label>
+        <Label className="text-base font-medium">🛰️ Carte Satellite - Points de sécurité GPS</Label>
       </div>
       
       <p className="text-sm text-muted-foreground">
-        Cliquez sur la carte pour ajouter un point de sécurité (Parking, Mise à l'eau, Sortie secours, Point de RDV).
+        Cliquez sur la carte pour ajouter un point de sécurité. La vue satellite permet un positionnement précis.
       </p>
 
-      <div
-        ref={mapRef}
-        className="w-full h-64 rounded-lg shadow-sm border border-border"
-      />
+      <div ref={mapContainerRef}>
+        <div
+          ref={mapRef}
+          className="w-full h-80 rounded-lg shadow-sm border border-border"
+        />
+      </div>
+
+      {/* HD Capture Button */}
+      <Button
+        variant="outline"
+        className="w-full gap-2"
+        onClick={handleCaptureHD}
+        disabled={isCapturing}
+      >
+        <Camera className="h-4 w-4" />
+        {isCapturing ? "Génération en cours..." : "Sauvegarder l'image Satellite HD"}
+      </Button>
 
       {/* Add new waypoint form */}
       {isAddingMode && clickedCoords && (
@@ -190,15 +269,19 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>Type de point</Label>
-              <Select value={newPointType} onValueChange={(v) => setNewPointType(v as WaypointType)}>
+              <Select 
+                value={newPointType} 
+                onValueChange={(v) => setNewPointType(v as WaypointType)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="parking">Parking</SelectItem>
-                  <SelectItem value="water_entry">Mise à l'eau</SelectItem>
-                  <SelectItem value="water_exit">Sortie secours</SelectItem>
-                  <SelectItem value="meeting_point">Point de RDV</SelectItem>
+                  {SATELLITE_POINT_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {getWaypointLabel(type)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -233,7 +316,7 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
       {waypoints && waypoints.length > 0 && (
         <div className="space-y-2">
           <Label className="text-sm">Points existants</Label>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-48 overflow-y-auto">
             {waypoints.map((waypoint) => (
               <div
                 key={waypoint.id}
@@ -241,9 +324,17 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
               >
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: getWaypointColor(waypoint.point_type) }}
-                  />
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                    style={{ 
+                      backgroundColor: waypoint.point_type === 'dive_zone' 
+                        ? 'rgba(14, 165, 233, 0.4)' 
+                        : getWaypointColor(waypoint.point_type),
+                      border: waypoint.point_type === 'dive_zone' ? '2px solid #0ea5e9' : 'none',
+                      color: waypoint.point_type === 'dive_zone' ? '#0ea5e9' : 'white'
+                    }}
+                  >
+                    {getWaypointIcon(waypoint.point_type)}
+                  </div>
                   <span className="text-sm font-medium">
                     {getWaypointLabel(waypoint.point_type)}
                   </span>
@@ -272,4 +363,4 @@ const WaypointEditor = ({ siteId, siteLat, siteLng }: WaypointEditorProps) => {
   );
 };
 
-export default WaypointEditor;
+export default SatelliteWaypointEditor;

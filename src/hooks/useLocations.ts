@@ -13,6 +13,8 @@ export interface Location {
   photo_url: string | null;
   max_depth: number | null;
   comments: string | null;
+  satellite_map_url: string | null;
+  bathymetric_map_url: string | null;
   created_at: string;
 }
 
@@ -70,6 +72,8 @@ export const useUpdateLocation = () => {
       photo_url?: string;
       max_depth?: number;
       comments?: string;
+      satellite_map_url?: string;
+      bathymetric_map_url?: string;
     }) => {
       const { error } = await supabase
         .from("locations")

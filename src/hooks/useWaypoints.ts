@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type WaypointType = "parking" | "water_entry" | "water_exit" | "meeting_point";
+export type WaypointType = "parking" | "water_entry" | "water_exit" | "meeting_point" | "dive_zone";
 
 export interface Waypoint {
   id: string;
@@ -87,6 +87,7 @@ export const getWaypointLabel = (type: WaypointType): string => {
     water_entry: "Mise à l'eau",
     water_exit: "Sortie secours",
     meeting_point: "Point de RDV",
+    dive_zone: "Zone de plongée",
   };
   return labels[type];
 };
@@ -98,6 +99,19 @@ export const getWaypointColor = (type: WaypointType): string => {
     water_entry: "#22c55e", // green
     water_exit: "#ef4444", // red
     meeting_point: "#f59e0b", // amber
+    dive_zone: "#0ea5e9", // sky blue
   };
   return colors[type];
+};
+
+// Helper to get icon character for waypoint types
+export const getWaypointIcon = (type: WaypointType): string => {
+  const icons: Record<WaypointType, string> = {
+    parking: "P",
+    water_entry: "↓",
+    water_exit: "✚",
+    meeting_point: "●",
+    dive_zone: "🤿",
+  };
+  return icons[type];
 };
