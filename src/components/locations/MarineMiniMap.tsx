@@ -104,30 +104,45 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
     waypoints.forEach((waypoint: Waypoint) => {
       const color = getWaypointColor(waypoint.point_type);
       const label = getWaypointLabel(waypoint.point_type);
+      const isDiveZone = waypoint.point_type === 'dive_zone';
       const iconChar = waypoint.point_type === 'parking' ? 'P' 
         : waypoint.point_type === 'water_entry' ? '↓' 
         : waypoint.point_type === 'water_exit' ? '✚' 
+        : waypoint.point_type === 'dive_zone' ? '🤿'
         : '●';
 
       const waypointIcon = L.divIcon({
-        html: `<div style="
-          background: ${color};
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          border: 2px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: bold;
-          font-size: 12px;
-        ">${iconChar}</div>`,
+        html: isDiveZone 
+          ? `<div style="
+              background: rgba(14, 165, 233, 0.4);
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              border: 2px solid #0ea5e9;
+              box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 14px;
+            ">${iconChar}</div>`
+          : `<div style="
+              background: ${color};
+              width: 24px;
+              height: 24px;
+              border-radius: 50%;
+              border: 2px solid white;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-weight: bold;
+              font-size: 12px;
+            ">${iconChar}</div>`,
         className: "waypoint-marker",
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-        popupAnchor: [0, -12],
+        iconSize: isDiveZone ? [32, 32] : [24, 24],
+        iconAnchor: isDiveZone ? [16, 16] : [12, 12],
+        popupAnchor: [0, isDiveZone ? -16 : -12],
       });
 
       const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })

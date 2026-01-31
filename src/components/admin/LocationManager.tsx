@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Plus, Trash2, ExternalLink, Pencil, Upload, Link, Loader2 } from "lucide-react";
+import { MapPin, Plus, Trash2, ExternalLink, Pencil, Upload, Link, Loader2, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,10 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useLocations, useCreateLocation, useDeleteLocation, useUpdateLocation, Location } from "@/hooks/useLocations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import WaypointEditor from "./WaypointEditor";
+import SatelliteWaypointEditor from "./SatelliteWaypointEditor";
+import BathymetricMapEditor from "./BathymetricMapEditor";
 
 const locationSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(100),
@@ -39,7 +41,13 @@ const LocationManager = () => {
   const [photoMode, setPhotoMode] = useState<"url" | "upload">("url");
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [satelliteMapUrl, setSatelliteMapUrl] = useState<string | null>(null);
+  const [bathymetricMapUrl, setBathymetricMapUrl] = useState<string | null>(null);
+  const [isUploadingSatellite, setIsUploadingSatellite] = useState(false);
+  const [isUploadingBathymetric, setIsUploadingBathymetric] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const satelliteInputRef = useRef<HTMLInputElement>(null);
+  const bathymetricInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
@@ -66,6 +74,8 @@ const LocationManager = () => {
       comments: location.comments || "",
     });
     setPreviewUrl(location.photo_url || null);
+    setSatelliteMapUrl(location.satellite_map_url || null);
+    setBathymetricMapUrl(location.bathymetric_map_url || null);
     setPhotoMode(location.photo_url ? "url" : "url");
     setIsDialogOpen(true);
   };
@@ -82,6 +92,8 @@ const LocationManager = () => {
       comments: "",
     });
     setPreviewUrl(null);
+    setSatelliteMapUrl(null);
+    setBathymetricMapUrl(null);
     setPhotoMode("url");
     setIsDialogOpen(true);
   };
@@ -90,13 +102,11 @@ const LocationManager = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       toast.error("Veuillez sélectionner une image");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("L'image ne doit pas dépasser 5 Mo");
       return;
@@ -105,24 +115,20 @@ const LocationManager = () => {
     setIsUploading(true);
 
     try {
-      // Generate unique filename
       const fileExt = file.name.split(".").pop();
       const fileName = `location-${Date.now()}.${fileExt}`;
       const filePath = `locations/${fileName}`;
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from("outings_gallery")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("outings_gallery")
         .getPublicUrl(filePath);
 
-      // Update form and preview
       form.setValue("photo_url", publicUrl);
       setPreviewUrl(publicUrl);
       toast.success("Photo uploadée avec succès");
@@ -131,6 +137,53 @@ const LocationManager = () => {
       toast.error("Erreur lors de l'upload: " + error.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleMapImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: "satellite" | "bathymetric"
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 10 Mo");
+      return;
+    }
+
+    const setUploading = type === "satellite" ? setIsUploadingSatellite : setIsUploadingBathymetric;
+    const setUrl = type === "satellite" ? setSatelliteMapUrl : setBathymetricMapUrl;
+
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${type}-map-${editingLocation?.id || "new"}-${Date.now()}.${fileExt}`;
+      const filePath = `poss-maps/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("outings_gallery")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("outings_gallery")
+        .getPublicUrl(filePath);
+
+      setUrl(publicUrl);
+      toast.success(`Carte ${type === "satellite" ? "satellite" : "bathymétrique"} uploadée !`);
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.error("Erreur lors de l'upload: " + error.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -143,6 +196,8 @@ const LocationManager = () => {
       photo_url: data.photo_url || undefined,
       max_depth: data.max_depth ? Number(data.max_depth) : undefined,
       comments: data.comments || undefined,
+      satellite_map_url: satelliteMapUrl || undefined,
+      bathymetric_map_url: bathymetricMapUrl || undefined,
     };
 
     if (editingLocation) {
@@ -154,6 +209,8 @@ const LocationManager = () => {
             setIsDialogOpen(false);
             setEditingLocation(null);
             setPreviewUrl(null);
+            setSatelliteMapUrl(null);
+            setBathymetricMapUrl(null);
           },
         }
       );
@@ -163,6 +220,8 @@ const LocationManager = () => {
           form.reset();
           setIsDialogOpen(false);
           setPreviewUrl(null);
+          setSatelliteMapUrl(null);
+          setBathymetricMapUrl(null);
         },
       });
     }
@@ -180,6 +239,8 @@ const LocationManager = () => {
           if (!open) {
             setEditingLocation(null);
             setPreviewUrl(null);
+            setSatelliteMapUrl(null);
+            setBathymetricMapUrl(null);
           }
         }}>
           <DialogTrigger asChild>
@@ -188,7 +249,7 @@ const LocationManager = () => {
               Ajouter
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingLocation ? "Modifier le lieu" : "Nouveau lieu"}</DialogTitle>
             </DialogHeader>
@@ -325,7 +386,6 @@ const LocationManager = () => {
                     </TabsContent>
                   </Tabs>
 
-                  {/* Preview */}
                   {previewUrl && (
                     <div className="relative mt-3 rounded-lg overflow-hidden bg-muted aspect-video">
                       <img
@@ -404,15 +464,153 @@ const LocationManager = () => {
               </form>
             </Form>
 
-            {/* Waypoint Editor - Only show when editing an existing location */}
+            {/* Waypoint Editors - Only show when editing an existing location with coordinates */}
             {editingLocation && editingLocation.latitude && editingLocation.longitude && (
               <>
                 <Separator className="my-6" />
-                <WaypointEditor
+                
+                {/* Satellite Map Editor */}
+                <SatelliteWaypointEditor
                   siteId={editingLocation.id}
+                  siteName={editingLocation.name}
                   siteLat={editingLocation.latitude}
                   siteLng={editingLocation.longitude}
                 />
+
+                <Separator className="my-6" />
+
+                {/* Bathymetric Map Editor */}
+                <BathymetricMapEditor
+                  siteId={editingLocation.id}
+                  siteName={editingLocation.name}
+                  siteLat={editingLocation.latitude}
+                  siteLng={editingLocation.longitude}
+                />
+
+                <Separator className="my-6" />
+
+                {/* PDF Cartography Upload Section */}
+                <Collapsible defaultOpen>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start gap-2 text-base font-medium">
+                      <FileImage className="h-5 w-5 text-primary" />
+                      Cartographie PDF (POSS)
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-4 pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Uploadez les images HD générées pour les intégrer au Plan d'Organisation et de Surveillance des Secours.
+                    </p>
+
+                    {/* Satellite Map Upload */}
+                    <div className="space-y-2">
+                      <FormLabel>Plan de Secours (Satellite/Points)</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Uploader l'image Satellite HD générée précédemment.
+                      </p>
+                      <input
+                        ref={satelliteInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleMapImageUpload(e, "satellite")}
+                        className="hidden"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 gap-2"
+                          onClick={() => satelliteInputRef.current?.click()}
+                          disabled={isUploadingSatellite}
+                        >
+                          {isUploadingSatellite ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Upload...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4" />
+                              Uploader l'image Satellite
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {satelliteMapUrl && (
+                        <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                          <img
+                            src={satelliteMapUrl}
+                            alt="Carte Satellite"
+                            className="h-full w-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8"
+                            onClick={() => setSatelliteMapUrl(null)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bathymetric Map Upload */}
+                    <div className="space-y-2">
+                      <FormLabel>Carte des Fonds (SHOM/Bathymétrique)</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Uploader l'image Bathymétrique HD générée précédemment.
+                      </p>
+                      <input
+                        ref={bathymetricInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleMapImageUpload(e, "bathymetric")}
+                        className="hidden"
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="flex-1 gap-2 border-ocean/50 text-ocean hover:bg-ocean/10"
+                          onClick={() => bathymetricInputRef.current?.click()}
+                          disabled={isUploadingBathymetric}
+                        >
+                          {isUploadingBathymetric ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Upload...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="h-4 w-4" />
+                              Uploader l'image Bathymétrique
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {bathymetricMapUrl && (
+                        <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                          <img
+                            src={bathymetricMapUrl}
+                            alt="Carte Bathymétrique"
+                            className="h-full w-full object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8"
+                            onClick={() => setBathymetricMapUrl(null)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </>
             )}
           </DialogContent>
@@ -462,6 +660,11 @@ const LocationManager = () => {
                     {location.max_depth && (
                       <span className="text-xs bg-ocean/10 text-ocean-dark px-2 py-0.5 rounded">
                         {location.max_depth}m max
+                      </span>
+                    )}
+                    {(location.satellite_map_url || location.bathymetric_map_url) && (
+                      <span className="text-xs bg-green-500/10 text-green-700 px-2 py-0.5 rounded">
+                        📍 POSS
                       </span>
                     )}
                   </div>

@@ -395,6 +395,7 @@ export type Database = {
       locations: {
         Row: {
           address: string | null
+          bathymetric_map_url: string | null
           comments: string | null
           created_at: string | null
           id: string
@@ -404,11 +405,13 @@ export type Database = {
           max_depth: number | null
           name: string
           photo_url: string | null
+          satellite_map_url: string | null
           type: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          bathymetric_map_url?: string | null
           comments?: string | null
           created_at?: string | null
           id?: string
@@ -418,11 +421,13 @@ export type Database = {
           max_depth?: number | null
           name: string
           photo_url?: string | null
+          satellite_map_url?: string | null
           type?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          bathymetric_map_url?: string | null
           comments?: string | null
           created_at?: string | null
           id?: string
@@ -432,6 +437,7 @@ export type Database = {
           max_depth?: number | null
           name?: string
           photo_url?: string | null
+          satellite_map_url?: string | null
           type?: string | null
           updated_at?: string | null
         }
@@ -779,7 +785,12 @@ export type Database = {
       equipment_status: "disponible" | "prêté" | "perdu" | "cassé" | "rebuté"
       member_status: "Membre" | "Encadrant"
       outing_type: "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution"
-      waypoint_type: "parking" | "water_entry" | "water_exit" | "meeting_point"
+      waypoint_type:
+        | "parking"
+        | "water_entry"
+        | "water_exit"
+        | "meeting_point"
+        | "dive_zone"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -913,7 +924,13 @@ export const Constants = {
       equipment_status: ["disponible", "prêté", "perdu", "cassé", "rebuté"],
       member_status: ["Membre", "Encadrant"],
       outing_type: ["Fosse", "Mer", "Piscine", "Étang", "Dépollution"],
-      waypoint_type: ["parking", "water_entry", "water_exit", "meeting_point"],
+      waypoint_type: [
+        "parking",
+        "water_entry",
+        "water_exit",
+        "meeting_point",
+        "dive_zone",
+      ],
     },
   },
 } as const
