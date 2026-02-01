@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -504,7 +505,7 @@ const LocationManager = () => {
 
                     {/* Satellite Map Upload */}
                     <div className="space-y-2">
-                      <FormLabel>Plan de Secours (Satellite/Points)</FormLabel>
+                      <Label className="font-medium">Plan de Secours (Satellite/Points)</Label>
                       <p className="text-xs text-muted-foreground">
                         Uploader l'image Satellite HD générée précédemment.
                       </p>
@@ -558,7 +559,7 @@ const LocationManager = () => {
 
                     {/* Bathymetric Map Upload */}
                     <div className="space-y-2">
-                      <FormLabel>Carte des Fonds (SHOM/Bathymétrique)</FormLabel>
+                      <Label className="font-medium">Carte des Fonds (SHOM/Bathymétrique)</Label>
                       <p className="text-xs text-muted-foreground">
                         Uploader l'image Bathymétrique HD générée précédemment.
                       </p>
