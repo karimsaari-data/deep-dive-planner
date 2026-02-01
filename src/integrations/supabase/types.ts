@@ -498,6 +498,7 @@ export type Database = {
           id: string
           is_archived: boolean
           is_deleted: boolean
+          is_poss_locked: boolean
           is_staff_only: boolean
           location: string
           location_id: string | null
@@ -520,6 +521,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_deleted?: boolean
+          is_poss_locked?: boolean
           is_staff_only?: boolean
           location: string
           location_id?: string | null
@@ -542,6 +544,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_deleted?: boolean
+          is_poss_locked?: boolean
           is_staff_only?: boolean
           location?: string
           location_id?: string | null
