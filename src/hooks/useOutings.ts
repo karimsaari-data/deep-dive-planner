@@ -43,6 +43,7 @@ export interface Outing {
   is_deleted?: boolean;
   is_archived?: boolean;
   is_staff_only?: boolean;
+  is_poss_locked?: boolean;
   confirmed_count?: number; // Real count from SECURITY DEFINER function
   organizer?: {
     first_name: string;
@@ -534,6 +535,52 @@ export const useArchiveOuting = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de l'archivage");
+    },
+  });
+};
+
+export const useLockPOSS = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (outingId: string) => {
+      const { error } = await supabase
+        .from("outings")
+        .update({ is_poss_locked: true })
+        .eq("id", outingId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("POSS verrouillé - Inscriptions closes");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors du verrouillage");
+    },
+  });
+};
+
+export const useUnlockPOSS = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (outingId: string) => {
+      const { error } = await supabase
+        .from("outings")
+        .update({ is_poss_locked: false })
+        .eq("id", outingId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("POSS déverrouillé - Inscriptions réouvertes");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors du déverrouillage");
     },
   });
 };
