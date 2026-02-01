@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car } from "lucide-react";
+import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +74,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const isRegistered = !!userReservation;
   const isWaitlisted = userReservation?.status === "en_attente";
   const spotsLeft = outing.max_participants - currentParticipants;
+  const isPOSSLocked = outing.is_poss_locked === true;
 
   const Icon = typeIcons[outing.outing_type];
   const WeatherIcon = weatherIcons[outing.outing_type];
@@ -123,6 +124,12 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
           <Icon className="h-5 w-5" />
         </div>
         <div className="absolute top-3 right-3 flex items-center gap-2">
+          {isPOSSLocked && (
+            <Badge className="bg-amber-600 text-white text-xs shadow-lg gap-1">
+              <Lock className="h-3 w-3" />
+              POSS Verrouillé
+            </Badge>
+          )}
           {outing.is_staff_only && (
             <Badge className="bg-amber-500 text-white text-xs shadow-lg">
               PRIVÉ STAFF
@@ -222,7 +229,17 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
       </CardContent>
 
       <CardFooter className="border-t border-border/50 bg-muted/30 p-4">
-        {user ? (
+        {isPOSSLocked ? (
+          <div className="flex w-full flex-col items-center gap-2">
+            <Badge variant="outline" className="gap-1 bg-amber-100 text-amber-800 border-amber-300">
+              <Lock className="h-3 w-3" />
+              Inscriptions closes - POSS généré
+            </Badge>
+            {isRegistered && (
+              <p className="text-xs text-muted-foreground">Vous êtes inscrit(e)</p>
+            )}
+          </div>
+        ) : user ? (
           isRegistered ? (
             <div className="flex w-full flex-col gap-2">
               {isWaitlisted && (

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
@@ -28,7 +28,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS } from "@/hooks/useOutings";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
@@ -46,6 +46,8 @@ const OutingDetail = () => {
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
   const archiveOuting = useArchiveOuting();
+  const lockPOSS = useLockPOSS();
+  const unlockPOSS = useUnlockPOSS();
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
   const [linkCopied, setLinkCopied] = useState(false);
@@ -191,6 +193,12 @@ const OutingDetail = () => {
           <div className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="secondary">{outing.outing_type}</Badge>
+              {outing.is_poss_locked && (
+                <Badge className="gap-1 bg-amber-600 text-white">
+                  <Lock className="h-3 w-3" />
+                  POSS Verrouillé
+                </Badge>
+              )}
               {canMarkAttendance && canEditPresenceAndReport && (
                 <Button 
                   variant="destructive" 
@@ -232,6 +240,56 @@ const OutingDetail = () => {
               )}
               {!isPast && canCancelOuting && (
                 <EditOutingDialog outing={outing} />
+              )}
+              {/* POSS Lock/Unlock Button */}
+              {!isPast && canEditPresenceAndReport && (
+                outing.is_poss_locked ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => unlockPOSS.mutate(outing.id)}
+                    disabled={unlockPOSS.isPending}
+                  >
+                    <Unlock className="h-4 w-4" />
+                    Déverrouiller POSS
+                  </Button>
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ocean" size="sm" className="gap-2">
+                        <FileText className="h-4 w-4" />
+                        Générer le POSS
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <Lock className="h-5 w-5 text-amber-600" />
+                          Verrouiller les inscriptions ?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                          <p>La génération du POSS va <strong>clôturer les inscriptions</strong>.</p>
+                          <p>Les membres ne pourront plus s'inscrire ou se désinscrire.</p>
+                          <p className="text-sm text-muted-foreground">
+                            La liste des {confirmedReservations.length} participant(s) sera figée.
+                          </p>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => lockPOSS.mutate(outing.id)}
+                          disabled={lockPOSS.isPending}
+                          className="gap-2"
+                        >
+                          <Lock className="h-4 w-4" />
+                          {lockPOSS.isPending ? "Verrouillage..." : "Verrouiller et continuer"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )
               )}
               {!isPast && hasActiveReservations && canCancelOuting && (
                 <AlertDialog>
