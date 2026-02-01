@@ -104,7 +104,7 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
     };
   }, [siteLat, siteLng]);
 
-  // Update markers when waypoints change
+  // Update markers when waypoints change - numbered white badges for visibility on SHOM
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -114,30 +114,34 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
     });
     markersRef.current = [];
 
-    // Add markers only for dive_zone waypoints
-    diveZoneWaypoints.forEach(waypoint => {
+    // Add numbered markers for dive_zone waypoints
+    diveZoneWaypoints.forEach((waypoint, index) => {
+      const zoneNumber = index + 1;
       const marker = L.marker([waypoint.latitude, waypoint.longitude], {
         icon: L.divIcon({
-          className: "dive-zone-marker",
+          className: "dive-zone-numbered-marker",
           html: `<div style="
-            background: rgba(14, 165, 233, 0.4);
-            width: 44px;
-            height: 44px;
+            background: white;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 3px solid #0ea5e9;
-            box-shadow: 0 0 16px rgba(14, 165, 233, 0.5);
+            border: 4px solid #0ea5e9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 2px white;
             font-size: 18px;
-          ">🤿</div>`,
-          iconSize: [44, 44],
-          iconAnchor: [22, 22],
+            font-weight: 700;
+            color: #0369a1;
+            font-family: system-ui, sans-serif;
+          ">${zoneNumber}</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
         }),
       }).addTo(mapInstanceRef.current);
 
       marker.bindPopup(`
-        <strong>Zone de plongée</strong><br/>
+        <strong>Zone ${zoneNumber}</strong><br/>
         ${waypoint.name}<br/>
         <small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>
       `);
@@ -238,6 +242,21 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
           ref={mapRef}
           className="w-full h-80 rounded-lg shadow-sm border border-ocean/30"
         />
+        
+        {/* Legend for PDF capture - shows numbered zones */}
+        {diveZoneWaypoints.length > 0 && (
+          <div className="mt-2 p-3 bg-white rounded-lg border border-ocean/20 space-y-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Légende des zones</p>
+            {diveZoneWaypoints.map((waypoint, index) => (
+              <div key={waypoint.id} className="flex items-center gap-2 text-sm">
+                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 border-sky-500 text-sky-700 font-bold text-xs">
+                  {index + 1}
+                </span>
+                <span className="font-medium">{waypoint.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* HD Capture Button */}
@@ -284,18 +303,20 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
         </div>
       )}
 
-      {/* List of dive zone waypoints */}
+      {/* List of dive zone waypoints with numbers and delete */}
       {diveZoneWaypoints.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-sm">Zones de plongée définies</Label>
+          <Label className="text-sm">Zones de plongée définies (gestion)</Label>
           <div className="space-y-2">
-            {diveZoneWaypoints.map((waypoint) => (
+            {diveZoneWaypoints.map((waypoint, index) => (
               <div
                 key={waypoint.id}
                 className="flex items-center justify-between rounded border border-ocean/20 bg-ocean/5 px-3 py-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">🤿</span>
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-sky-500 text-sky-700 font-bold text-sm">
+                    {index + 1}
+                  </span>
                   <span className="text-sm font-medium">
                     {waypoint.name}
                   </span>
