@@ -29,6 +29,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS } from "@/hooks/useOutings";
+import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
@@ -48,10 +49,12 @@ const OutingDetail = () => {
   const archiveOuting = useArchiveOuting();
   const lockPOSS = useLockPOSS();
   const unlockPOSS = useUnlockPOSS();
+  const possGenerator = usePOSSGenerator();
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
   const [linkCopied, setLinkCopied] = useState(false);
   const [sosModalOpen, setSosModalOpen] = useState(false);
+  const [isGeneratingPOSS, setIsGeneratingPOSS] = useState(false);
 
   // Compute derived values for the query
   const outingDate = outing ? new Date(outing.date_time) : new Date();
@@ -244,16 +247,38 @@ const OutingDetail = () => {
               {/* POSS Lock/Unlock Button */}
               {!isPast && canEditPresenceAndReport && (
                 outing.is_poss_locked ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => unlockPOSS.mutate(outing.id)}
-                    disabled={unlockPOSS.isPending}
-                  >
-                    <Unlock className="h-4 w-4" />
-                    Déverrouiller POSS
-                  </Button>
+                  <>
+                    <Button
+                      variant="ocean"
+                      size="sm"
+                      className="gap-2"
+                      onClick={async () => {
+                        setIsGeneratingPOSS(true);
+                        try {
+                          const organizerName = outing.organizer 
+                            ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                            : "Encadrant";
+                          await possGenerator.generate({ outing, organizerName });
+                        } finally {
+                          setIsGeneratingPOSS(false);
+                        }
+                      }}
+                      disabled={isGeneratingPOSS}
+                    >
+                      <FileText className="h-4 w-4" />
+                      {isGeneratingPOSS ? "Génération..." : "Re-générer POSS"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => unlockPOSS.mutate(outing.id)}
+                      disabled={unlockPOSS.isPending}
+                    >
+                      <Unlock className="h-4 w-4" />
+                      Déverrouiller
+                    </Button>
+                  </>
                 ) : (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -279,12 +304,25 @@ const OutingDetail = () => {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => lockPOSS.mutate(outing.id)}
-                          disabled={lockPOSS.isPending}
+                          onClick={async () => {
+                            setIsGeneratingPOSS(true);
+                            try {
+                              // Lock the POSS first
+                              await lockPOSS.mutateAsync(outing.id);
+                              // Generate the PDF
+                              const organizerName = outing.organizer 
+                                ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                                : "Encadrant";
+                              await possGenerator.generate({ outing, organizerName });
+                            } finally {
+                              setIsGeneratingPOSS(false);
+                            }
+                          }}
+                          disabled={lockPOSS.isPending || isGeneratingPOSS}
                           className="gap-2"
                         >
-                          <Lock className="h-4 w-4" />
-                          {lockPOSS.isPending ? "Verrouillage..." : "Verrouiller et continuer"}
+                          <FileText className="h-4 w-4" />
+                          {lockPOSS.isPending || isGeneratingPOSS ? "Génération..." : "Verrouiller et générer"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
