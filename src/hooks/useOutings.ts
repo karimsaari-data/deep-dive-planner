@@ -44,6 +44,8 @@ export interface Outing {
   is_archived?: boolean;
   is_staff_only?: boolean;
   is_poss_locked?: boolean;
+  dive_mode?: "boat" | "shore" | null;
+  boat_id?: string | null;
   confirmed_count?: number; // Real count from SECURITY DEFINER function
   organizer?: {
     first_name: string;
@@ -56,6 +58,17 @@ export interface Outing {
     maps_url: string | null;
     latitude: number | null;
     longitude: number | null;
+    satellite_map_url?: string | null;
+    bathymetric_map_url?: string | null;
+  } | null;
+  boat?: {
+    id: string;
+    name: string;
+    registration_number: string | null;
+    pilot_name: string | null;
+    pilot_phone: string | null;
+    oxygen_location: string | null;
+    home_port: string | null;
   } | null;
   reservations?: Reservation[];
 }
@@ -119,7 +132,8 @@ export const useOuting = (outingId: string) => {
         .select(`
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-          location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth),
+          location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth, satellite_map_url, bathymetric_map_url),
+          boat:boats(id, name, registration_number, pilot_name, pilot_phone, oxygen_location, home_port),
           reservations(
             id,
             user_id, 
