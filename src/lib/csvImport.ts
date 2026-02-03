@@ -101,6 +101,31 @@ const HEADER_MAP: Record<string, string> = {
   remarques: "notes",
   commentaires: "notes",
 
+  // encadrant / board role
+  encadrant: "is_encadrant",
+  isencadrant: "is_encadrant",
+  instructeur: "is_encadrant",
+  fonctionbureau: "board_role",
+  rolebureau: "board_role",
+  boardrole: "board_role",
+  bureau: "board_role",
+
+  // status checkboxes
+  cotisationpayee: "payment_status",
+  cotisation: "payment_status",
+  paymentstatus: "payment_status",
+  paye: "payment_status",
+  certificatmedical: "medical_certificate_ok",
+  medical: "medical_certificate_ok",
+  medicalcertificateok: "medical_certificate_ok",
+  chartesignee: "buddies_charter_signed",
+  charte: "buddies_charter_signed",
+  buddieschartersigned: "buddies_charter_signed",
+  assurancefsgt: "fsgt_insurance_ok",
+  fsgt: "fsgt_insurance_ok",
+  fsgtinsuranceok: "fsgt_insurance_ok",
+  assurance: "fsgt_insurance_ok",
+
   // emergency (split)
   contacturgencenom: "emergency_contact_name",
   urgencenom: "emergency_contact_name",
