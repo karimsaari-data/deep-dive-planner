@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLocations, Location } from "@/hooks/useLocations";
@@ -56,6 +57,7 @@ const Map = () => {
   const [mapReady, setMapReady] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
 
@@ -78,6 +80,17 @@ const Map = () => {
       return distA - distB;
     });
   }, [locations, userPosition]);
+
+  // Filter locations based on search query
+  const filteredLocations = useMemo(() => {
+    if (!searchQuery.trim()) return sortedLocations;
+    const query = searchQuery.toLowerCase();
+    return sortedLocations.filter((location) =>
+      location.name.toLowerCase().includes(query) ||
+      location.address?.toLowerCase().includes(query) ||
+      location.type?.toLowerCase().includes(query)
+    );
+  }, [sortedLocations, searchQuery]);
 
   // Get user position on mount
   useEffect(() => {
@@ -352,18 +365,30 @@ const Map = () => {
               </Card>
             </div>
 
-            {/* Location list */}
             <div>
               <Card className="shadow-card">
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
                     Sites enregistrés ({locations?.length ?? 0})
                   </CardTitle>
+                  <div className="relative mt-3">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher un site..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3 max-h-[440px] overflow-y-auto pr-2">
-                    {sortedLocations.map((location) => {
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    {filteredLocations.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        {searchQuery ? `Aucun site trouvé pour "${searchQuery}"` : "Aucun site enregistré"}
+                      </p>
+                    ) : filteredLocations.map((location) => {
                       const distance = userPosition && location.latitude && location.longitude
                         ? calculateDistance(userPosition.lat, userPosition.lon, location.latitude, location.longitude)
                         : null;
