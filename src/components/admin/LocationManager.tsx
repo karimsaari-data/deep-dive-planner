@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MapPin, Plus, Trash2, ExternalLink, Pencil, Upload, Link, Loader2, FileImage } from "lucide-react";
+import { MapPin, Plus, Trash2, ExternalLink, Pencil, Upload, Link, Loader2, FileImage, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,9 +46,17 @@ const LocationManager = () => {
   const [bathymetricMapUrl, setBathymetricMapUrl] = useState<string | null>(null);
   const [isUploadingSatellite, setIsUploadingSatellite] = useState(false);
   const [isUploadingBathymetric, setIsUploadingBathymetric] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const satelliteInputRef = useRef<HTMLInputElement>(null);
   const bathymetricInputRef = useRef<HTMLInputElement>(null);
+
+  // Filter locations based on search query
+  const filteredLocations = locations?.filter((location) =>
+    location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    location.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    location.type?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) ?? [];
 
   const form = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
@@ -230,25 +238,35 @@ const LocationManager = () => {
 
   return (
     <Card className="shadow-card">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5 text-primary" />
           Gestion des lieux
         </CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) {
-            setEditingLocation(null);
-            setPreviewUrl(null);
-            setSatelliteMapUrl(null);
-            setBathymetricMapUrl(null);
-          }
-        }}>
-          <DialogTrigger asChild>
-            <Button variant="ocean" size="sm" onClick={openCreateDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Ajouter
-            </Button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Rechercher un lieu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 w-[200px] md:w-[250px]"
+            />
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) {
+              setEditingLocation(null);
+              setPreviewUrl(null);
+              setSatelliteMapUrl(null);
+              setBathymetricMapUrl(null);
+            }
+          }}>
+            <DialogTrigger asChild>
+              <Button variant="ocean" size="sm" onClick={openCreateDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter
+              </Button>
           </DialogTrigger>
           <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
             <DialogHeader>
@@ -616,19 +634,20 @@ const LocationManager = () => {
             )}
           </DialogContent>
         </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : locations?.length === 0 ? (
+        ) : filteredLocations.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            Aucun lieu enregistré
+            {searchQuery ? `Aucun lieu trouvé pour "${searchQuery}"` : "Aucun lieu enregistré"}
           </p>
         ) : (
           <div className="space-y-3">
-            {locations?.map((location) => (
+            {filteredLocations.map((location) => (
               <div
                 key={location.id}
                 className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
