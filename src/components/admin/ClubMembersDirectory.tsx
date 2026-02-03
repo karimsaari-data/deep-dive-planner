@@ -290,6 +290,8 @@ const ClubMembersDirectory = () => {
       "Genre",
       "Contact Urgence - Nom",
       "Contact Urgence - Tel",
+      "Encadrant",
+      "Fonction Bureau",
       `Cotisation Payée (${getSeasonLabel(selectedSeason)})`,
       `Certificat Médical (${getSeasonLabel(selectedSeason)})`,
       `Charte Signée (${getSeasonLabel(selectedSeason)})`,
@@ -312,6 +314,8 @@ const ClubMembersDirectory = () => {
         m.gender || "",
         m.emergency_contact_name || "",
         m.emergency_contact_phone || "",
+        m.is_encadrant ? "Oui" : "Non",
+        m.board_role || "",
         status?.payment_status ? "Oui" : "Non",
         status?.medical_certificate_ok ? "Oui" : "Non",
         status?.buddies_charter_signed ? "Oui" : "Non",
@@ -407,6 +411,20 @@ const ClubMembersDirectory = () => {
         const apneaLevel = cleanCsvCell((row as any).apnea_level);
         const gender = cleanCsvCell((row as any).gender);
         const notes = cleanCsvCell((row as any).notes);
+        const boardRole = cleanCsvCell((row as any).board_role);
+        
+        // Parse boolean fields (Oui/Non, true/false, 1/0)
+        const parseBooleanField = (value: string | null): boolean => {
+          if (!value) return false;
+          const v = value.toLowerCase().trim();
+          return v === "oui" || v === "true" || v === "1" || v === "yes" || v === "x";
+        };
+        
+        const isEncadrant = parseBooleanField(cleanCsvCell((row as any).is_encadrant));
+        const paymentStatus = parseBooleanField(cleanCsvCell((row as any).payment_status));
+        const medicalCertificateOk = parseBooleanField(cleanCsvCell((row as any).medical_certificate_ok));
+        const buddiesCharterSigned = parseBooleanField(cleanCsvCell((row as any).buddies_charter_signed));
+        const fsgtInsuranceOk = parseBooleanField(cleanCsvCell((row as any).fsgt_insurance_ok));
 
         const birthRaw = cleanCsvCell((row as any).birth_date);
         const joinedRaw = cleanCsvCell((row as any).joined_at);
@@ -448,12 +466,35 @@ const ClubMembersDirectory = () => {
           emergency_contact_name: emergencyName,
           emergency_contact_phone: emergencyPhone,
           notes,
+          is_encadrant: isEncadrant,
+          board_role: boardRole,
         };
+        
+        // Store status fields for later upsert
+        const statusFields = { paymentStatus, medicalCertificateOk, buddiesCharterSigned, fsgtInsuranceOk };
 
         try {
           const result = await upsertMember.mutateAsync(memberData);
           if (result.updated) updated++;
           else created++;
+          
+          // Update yearly status fields if any checkbox value is present in CSV
+          const memberId = result.data.id;
+          if (memberId) {
+            // Update each status field based on CSV values
+            if (paymentStatus) {
+              await upsertStatus.mutateAsync({ memberId, field: "payment_status", value: true });
+            }
+            if (medicalCertificateOk) {
+              await upsertStatus.mutateAsync({ memberId, field: "medical_certificate_ok", value: true });
+            }
+            if (buddiesCharterSigned) {
+              await upsertStatus.mutateAsync({ memberId, field: "buddies_charter_signed", value: true });
+            }
+            if (fsgtInsuranceOk) {
+              await upsertStatus.mutateAsync({ memberId, field: "fsgt_insurance_ok", value: true });
+            }
+          }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
           errors.push({ line: lineNumber, email, reason: errorMessage });
