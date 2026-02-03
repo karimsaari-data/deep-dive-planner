@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle } from "lucide-react";
+import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -251,7 +251,7 @@ const Profile = () => {
                   />
                 </div>
 
-                {/* Member Code & Status Badges */}
+                {/* Member Code & Encadrant Badge */}
                 <div className="flex items-center gap-2">
                   {directoryProfile?.member_id && (
                     <Badge variant="outline" className="font-mono">
@@ -263,9 +263,10 @@ const Profile = () => {
                       {profile.member_code}
                     </Badge>
                   )}
-                  {profile?.member_status && (
-                    <Badge variant={profile.member_status === "Encadrant" ? "default" : "secondary"}>
-                      {profile.member_status}
+                  {directoryProfile?.is_encadrant && (
+                    <Badge className="bg-primary text-primary-foreground flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Encadrant
                     </Badge>
                   )}
                 </div>
@@ -296,11 +297,13 @@ const Profile = () => {
                         <span>{directoryProfile.gender}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        Niveau: {directoryProfile.apnea_level || profile?.apnea_level || "-"}
-                      </Badge>
-                    </div>
+                    {directoryProfile.apnea_level && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          Niveau: {directoryProfile.apnea_level}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     Ces informations sont gérées par l'administration du club.

@@ -16,6 +16,7 @@ export interface ProfileDirectoryData {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   gender: string | null;
+  is_encadrant: boolean;
 }
 
 export interface ProfileDirectoryUpdate {
@@ -35,7 +36,7 @@ export const useProfileDirectory = (userEmail: string | undefined) => {
       
       const { data, error } = await supabase
         .from("club_members_directory")
-        .select("id, member_id, first_name, last_name, email, phone, birth_date, address, apnea_level, joined_at, emergency_contact_name, emergency_contact_phone, gender")
+        .select("id, member_id, first_name, last_name, email, phone, birth_date, address, apnea_level, joined_at, emergency_contact_name, emergency_contact_phone, gender, is_encadrant")
         .eq("email", userEmail.toLowerCase())
         .maybeSingle();
 
