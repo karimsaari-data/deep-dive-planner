@@ -47,14 +47,32 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
 
-  // Fetch encadrants from club_members_directory (only those with is_encadrant = true)
+  // Fetch encadrants from membership_yearly_status joined with club_members_directory
   const { data: encadrants } = useQuery({
     queryKey: ["encadrants-for-selection"],
     queryFn: async () => {
+      // Get current season year
+      const currentSeasonYear = new Date().getMonth() >= 8 
+        ? new Date().getFullYear() + 1 
+        : new Date().getFullYear();
+      
+      // First get all encadrant member_ids from membership status
+      const { data: encadrantStatuses, error: statusError } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id")
+        .eq("season_year", currentSeasonYear)
+        .eq("is_encadrant", true);
+      
+      if (statusError) throw statusError;
+      
+      const encadrantIds = encadrantStatuses?.map(s => s.member_id) || [];
+      if (encadrantIds.length === 0) return [];
+      
+      // Then get the member details
       const { data, error } = await supabase
         .from("club_members_directory")
         .select("id, first_name, last_name, email")
-        .eq("is_encadrant", true)
+        .in("id", encadrantIds)
         .order("last_name");
       
       if (error) throw error;

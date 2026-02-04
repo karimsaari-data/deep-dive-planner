@@ -9,11 +9,23 @@ export interface MembershipYearlyStatus {
   medical_certificate_ok: boolean;
   buddies_charter_signed: boolean;
   fsgt_insurance_ok: boolean;
+  is_encadrant: boolean;
+  board_role: string | null;
+  apnea_level: string | null;
+  license_number: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export type StatusField = "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok";
+export type StatusField = 
+  | "payment_status" 
+  | "medical_certificate_ok" 
+  | "buddies_charter_signed" 
+  | "fsgt_insurance_ok"
+  | "is_encadrant"
+  | "board_role"
+  | "apnea_level"
+  | "license_number";
 
 // Get current season year (2025 for season 2024/2025, etc.)
 export const getCurrentSeasonYear = (): number => {
@@ -66,7 +78,7 @@ export const useMembershipYearlyStatus = (seasonYear: number) => {
     }: {
       memberId: string;
       field: StatusField;
-      value: boolean;
+      value: boolean | string | null;
     }) => {
       const existing = statuses?.find((s) => s.member_id === memberId);
 
@@ -90,7 +102,62 @@ export const useMembershipYearlyStatus = (seasonYear: number) => {
           medical_certificate_ok: false,
           buddies_charter_signed: false,
           fsgt_insurance_ok: false,
+          is_encadrant: false,
+          board_role: null as string | null,
+          apnea_level: null as string | null,
+          license_number: null as string | null,
           [field]: value,
+        };
+
+        const { data, error } = await supabase
+          .from("membership_yearly_status")
+          .insert(newStatus)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["membership-yearly-status", seasonYear] });
+    },
+  });
+
+  // Batch upsert for multiple fields at once
+  const upsertStatusBatch = useMutation({
+    mutationFn: async ({
+      memberId,
+      updates,
+    }: {
+      memberId: string;
+      updates: Partial<MembershipYearlyStatus>;
+    }) => {
+      const existing = statuses?.find((s) => s.member_id === memberId);
+
+      if (existing) {
+        const { data, error } = await supabase
+          .from("membership_yearly_status")
+          .update(updates)
+          .eq("id", existing.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      } else {
+        const newStatus = {
+          member_id: memberId,
+          season_year: seasonYear,
+          payment_status: false,
+          medical_certificate_ok: false,
+          buddies_charter_signed: false,
+          fsgt_insurance_ok: false,
+          is_encadrant: false,
+          board_role: null,
+          apnea_level: null,
+          license_number: null,
+          ...updates,
         };
 
         const { data, error } = await supabase
@@ -113,5 +180,6 @@ export const useMembershipYearlyStatus = (seasonYear: number) => {
     isLoading,
     getStatusForMember,
     upsertStatus,
+    upsertStatusBatch,
   };
 };
