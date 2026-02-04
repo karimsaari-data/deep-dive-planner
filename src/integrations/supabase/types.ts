@@ -132,73 +132,52 @@ export type Database = {
       club_members_directory: {
         Row: {
           address: string | null
-          apnea_level: string | null
           birth_date: string | null
-          board_role: string | null
-          buddies_charter_signed: boolean
           created_at: string
           email: string
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           first_name: string
-          fsgt_insurance_ok: boolean
           gender: string | null
           id: string
-          is_encadrant: boolean
           joined_at: string | null
           last_name: string
-          medical_certificate_ok: boolean
           member_id: string
           notes: string | null
-          payment_status: boolean
           phone: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
-          apnea_level?: string | null
           birth_date?: string | null
-          board_role?: string | null
-          buddies_charter_signed?: boolean
           created_at?: string
           email: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           first_name: string
-          fsgt_insurance_ok?: boolean
           gender?: string | null
           id?: string
-          is_encadrant?: boolean
           joined_at?: string | null
           last_name: string
-          medical_certificate_ok?: boolean
           member_id: string
           notes?: string | null
-          payment_status?: boolean
           phone?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
-          apnea_level?: string | null
           birth_date?: string | null
-          board_role?: string | null
-          buddies_charter_signed?: boolean
           created_at?: string
           email?: string
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           first_name?: string
-          fsgt_insurance_ok?: boolean
           gender?: string | null
           id?: string
-          is_encadrant?: boolean
           joined_at?: string | null
           last_name?: string
-          medical_certificate_ok?: boolean
           member_id?: string
           notes?: string | null
-          payment_status?: boolean
           phone?: string | null
           updated_at?: string
         }
@@ -445,10 +424,14 @@ export type Database = {
       }
       membership_yearly_status: {
         Row: {
+          apnea_level: string | null
+          board_role: string | null
           buddies_charter_signed: boolean
           created_at: string
           fsgt_insurance_ok: boolean
           id: string
+          is_encadrant: boolean
+          license_number: string | null
           medical_certificate_ok: boolean
           member_id: string
           payment_status: boolean
@@ -456,10 +439,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          apnea_level?: string | null
+          board_role?: string | null
           buddies_charter_signed?: boolean
           created_at?: string
           fsgt_insurance_ok?: boolean
           id?: string
+          is_encadrant?: boolean
+          license_number?: string | null
           medical_certificate_ok?: boolean
           member_id: string
           payment_status?: boolean
@@ -467,10 +454,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          apnea_level?: string | null
+          board_role?: string | null
           buddies_charter_signed?: boolean
           created_at?: string
           fsgt_insurance_ok?: boolean
           id?: string
+          is_encadrant?: boolean
+          license_number?: string | null
           medical_certificate_ok?: boolean
           member_id?: string
           payment_status?: boolean

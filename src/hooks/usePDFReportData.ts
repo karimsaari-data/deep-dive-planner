@@ -115,12 +115,22 @@ export const usePDFReportData = (year: number) => {
         .filter((m) => m.is_encadrant)
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
-      // 2. Fetch demographics
+      // 2. Fetch demographics from club_members_directory + membership_yearly_status
       const { data: membersDir, error: membersDirError } = await supabase
         .from("club_members_directory")
-        .select("birth_date, gender, apnea_level");
+        .select("id, birth_date, gender");
 
       if (membersDirError) throw membersDirError;
+
+      // Get apnea_level from membership_yearly_status for the year
+      const memberIds = membersDir?.map(m => m.id) || [];
+      const { data: membershipStatuses } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id, apnea_level")
+        .eq("season_year", year)
+        .in("member_id", memberIds.length > 0 ? memberIds : ['00000000-0000-0000-0000-000000000000']);
+
+      const levelMap = new Map(membershipStatuses?.map(s => [s.member_id, s.apnea_level]) || []);
 
       const ageRanges: Record<string, number> = {
         "18-25": 0, "26-35": 0, "36-45": 0, "46-55": 0, "56-65": 0, "65+": 0,
@@ -152,8 +162,9 @@ export const usePDFReportData = (year: number) => {
         } else {
           genderCount["Non renseigné"]++;
         }
-        if (m.apnea_level) {
-          levelCount[m.apnea_level] = (levelCount[m.apnea_level] || 0) + 1;
+        const apneaLevel = levelMap.get(m.id);
+        if (apneaLevel) {
+          levelCount[apneaLevel] = (levelCount[apneaLevel] || 0) + 1;
         }
       });
 
@@ -182,10 +193,20 @@ export const usePDFReportData = (year: number) => {
       // Get historical participants
       const { data: historicalParticipants, error: hpError } = await supabase
         .from("historical_outing_participants")
-        .select("outing_id, member_id, member:club_members_directory(is_encadrant, email)")
+        .select("outing_id, member_id, member:club_members_directory(id, email)")
         .in("outing_id", outingIds.length > 0 ? outingIds : ['00000000-0000-0000-0000-000000000000']);
 
       if (hpError) throw hpError;
+
+      // Get is_encadrant from membership status for historical participants
+      const historicalMemberIds = [...new Set(historicalParticipants?.map(hp => hp.member_id) || [])];
+      const { data: historicalMembershipStatuses } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id, is_encadrant")
+        .eq("season_year", year)
+        .in("member_id", historicalMemberIds.length > 0 ? historicalMemberIds : ['00000000-0000-0000-0000-000000000000']);
+
+      const historicalEncadrantMap = new Map(historicalMembershipStatuses?.map(s => [s.member_id, s.is_encadrant]) || []);
 
       const historicalOutingIds = new Set(historicalParticipants?.map(hp => hp.outing_id) || []);
 
@@ -321,7 +342,7 @@ export const usePDFReportData = (year: number) => {
       });
 
       hpByOuting.forEach((hps, outingId) => {
-        const encadrants = hps.filter((hp: any) => hp.member?.is_encadrant);
+        const encadrants = hps.filter((hp: any) => historicalEncadrantMap.get(hp.member_id) === true);
         if (encadrants.length === 1) {
           const member = clubMemberMap.get(encadrants[0].member_id);
           if (member) {

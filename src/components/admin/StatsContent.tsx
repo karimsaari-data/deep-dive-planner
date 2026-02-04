@@ -131,12 +131,20 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
 
       if (profilesError) throw profilesError;
 
-      // 5. Fetch club_members_directory for historical members (including is_encadrant)
+      // 5. Fetch club_members_directory for historical members
       const { data: clubMembers, error: clubMembersError } = await supabase
         .from("club_members_directory")
-        .select("id, first_name, last_name, member_id, email, is_encadrant");
+        .select("id, first_name, last_name, member_id, email");
 
       if (clubMembersError) throw clubMembersError;
+
+      // 6. Fetch membership_yearly_status for is_encadrant info
+      const { data: membershipStatuses } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id, is_encadrant")
+        .eq("season_year", selectedYear);
+
+      const encadrantMap = new Map(membershipStatuses?.map(s => [s.member_id, s.is_encadrant]) || []);
 
       const profileMap = new Map(profiles?.map(p => [
         p.id, 
@@ -144,7 +152,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       ]));
       const clubMemberMap = new Map(clubMembers?.map(m => [
         m.id, 
-        { name: `${m.first_name} ${m.last_name}`, code: m.member_id || '', email: m.email, isEncadrant: m.is_encadrant }
+        { name: `${m.first_name} ${m.last_name}`, code: m.member_id || '', email: m.email, isEncadrant: encadrantMap.get(m.id) ?? false }
       ]));
       // Map email to club member ID for matching organizers
       const emailToClubMemberMap = new Map(clubMembers?.map(m => [m.email.toLowerCase(), m]) || []);
@@ -228,7 +236,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
               memberCode: organizerClubMember.member_id || "",
               outings: [],
               totalPresences: 0,
-              isEncadrant: organizerClubMember.is_encadrant
+              isEncadrant: encadrantMap.get(organizerClubMember.id) ?? false
             });
           }
           const member = memberMap.get(organizerKey)!;
@@ -274,24 +282,34 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
           `
           outing_id,
           outing:outings!inner(date_time),
-          member:club_members_directory(id, first_name, last_name, email, is_encadrant)
+          member:club_members_directory(id, first_name, last_name, email)
         `.trim()
         )
         .gte("outing.date_time", startOfYear)
         .lte("outing.date_time", endOfYear)
         .lt("outing.date_time", nowIso);
 
+      // Fetch membership status to get is_encadrant info
+      const { data: membershipStatusesForOrg } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id, is_encadrant")
+        .eq("season_year", selectedYear);
+
       if (historicalError) throw historicalError;
 
       // Get set of historical outing IDs
       const historicalOutingIds = new Set(historicalParticipants?.map((hp: any) => hp.outing_id) || []);
+
+      // Build a map of member_id -> is_encadrant for quick lookup
+      const encadrantStatusMap = new Map(membershipStatusesForOrg?.map(s => [s.member_id, s.is_encadrant]) || []);
 
       const encadrantEmailsByHistoricalOuting = new Map<string, Set<string>>();
       historicalParticipants?.forEach((hp: any) => {
         const member = hp.member;
         const email = member?.email?.toLowerCase();
         if (!email) return;
-        if (!member?.is_encadrant) return;
+        const isEncadrant = encadrantStatusMap.get(member?.id) ?? false;
+        if (!isEncadrant) return;
 
         if (!encadrantEmailsByHistoricalOuting.has(hp.outing_id)) {
           encadrantEmailsByHistoricalOuting.set(hp.outing_id, new Set());
@@ -330,13 +348,15 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         }
       }
 
-      // Fetch encadrants from club_members_directory
-      const { data: clubEncadrants, error: clubError } = await supabase
+      // Fetch all club members
+      const { data: allClubMembers, error: clubError } = await supabase
         .from("club_members_directory")
-        .select("id, first_name, last_name, email")
-        .eq("is_encadrant", true);
+        .select("id, first_name, last_name, email");
 
       if (clubError) throw clubError;
+      
+      // Filter to only encadrants based on membership status
+      const clubEncadrants = allClubMembers?.filter(m => encadrantStatusMap.get(m.id) === true) || [];
 
       // Fetch profiles for organizer matching
       const { data: profiles, error: profilesError } = await supabase

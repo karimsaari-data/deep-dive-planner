@@ -26,6 +26,14 @@ export interface ProfileDirectoryUpdate {
   emergency_contact_phone?: string | null;
 }
 
+// Get current season year
+const getCurrentSeasonYear = (): number => {
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  return month >= 8 ? year + 1 : year;
+};
+
 export const useProfileDirectory = (userEmail: string | undefined) => {
   const queryClient = useQueryClient();
 
@@ -34,14 +42,30 @@ export const useProfileDirectory = (userEmail: string | undefined) => {
     queryFn: async () => {
       if (!userEmail) return null;
       
-      const { data, error } = await supabase
+      // Fetch base directory data
+      const { data: dirData, error: dirError } = await supabase
         .from("club_members_directory")
-        .select("id, member_id, first_name, last_name, email, phone, birth_date, address, apnea_level, joined_at, emergency_contact_name, emergency_contact_phone, gender, is_encadrant")
+        .select("id, member_id, first_name, last_name, email, phone, birth_date, address, joined_at, emergency_contact_name, emergency_contact_phone, gender")
         .eq("email", userEmail.toLowerCase())
         .maybeSingle();
 
-      if (error) throw error;
-      return data as ProfileDirectoryData | null;
+      if (dirError) throw dirError;
+      if (!dirData) return null;
+
+      // Fetch seasonal data from membership_yearly_status
+      const currentSeason = getCurrentSeasonYear();
+      const { data: statusData } = await supabase
+        .from("membership_yearly_status")
+        .select("apnea_level, is_encadrant")
+        .eq("member_id", dirData.id)
+        .eq("season_year", currentSeason)
+        .maybeSingle();
+
+      return {
+        ...dirData,
+        apnea_level: statusData?.apnea_level || null,
+        is_encadrant: statusData?.is_encadrant ?? false,
+      } as ProfileDirectoryData;
     },
     enabled: !!userEmail,
   });

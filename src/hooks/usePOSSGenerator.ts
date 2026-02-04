@@ -43,11 +43,25 @@ export const usePOSSGenerator = () => {
           // Get emergency contacts from club_members_directory
           const { data: directory } = await supabase
             .from("club_members_directory")
-            .select("email, apnea_level, emergency_contact_name, emergency_contact_phone")
+            .select("id, email, emergency_contact_name, emergency_contact_phone")
             .in("email", profileEmails.map(e => e.toLowerCase()));
 
+          // Get apnea_level from membership_yearly_status (current season)
+          const currentSeasonYear = new Date().getMonth() >= 8 
+            ? new Date().getFullYear() + 1 
+            : new Date().getFullYear();
+          
+          const memberIds = directory?.map(d => d.id) || [];
+          const { data: membershipStatuses } = await supabase
+            .from("membership_yearly_status")
+            .select("member_id, apnea_level")
+            .eq("season_year", currentSeasonYear)
+            .in("member_id", memberIds.length > 0 ? memberIds : ['00000000-0000-0000-0000-000000000000']);
+
+          const apneaLevelMap = new Map(membershipStatuses?.map(s => [s.member_id, s.apnea_level]) || []);
+
           const directoryMap = new Map(
-            directory?.map(d => [d.email.toLowerCase(), d]) || []
+            directory?.map(d => [d.email.toLowerCase(), { ...d, apnea_level: apneaLevelMap.get(d.id) }]) || []
           );
 
           for (const res of confirmedReservations) {

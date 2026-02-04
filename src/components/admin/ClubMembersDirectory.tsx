@@ -63,14 +63,14 @@ import {
   getCurrentSeasonYear, 
   getSeasonLabel, 
   getAvailableSeasons,
-  StatusField 
+  StatusField,
+  MembershipYearlyStatus
 } from "@/hooks/useMembershipYearlyStatus";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { 
   cleanCsvCell,
-  mapHeaderToFieldKey,
   normalizePhone,
   parseCsvText,
   parseFlexibleDateToISO,
@@ -87,6 +87,13 @@ interface ImportError {
   line: number;
   email: string;
   reason: string;
+}
+
+// Seasonal form data (stored in membership_yearly_status)
+interface SeasonalFormData {
+  apnea_level: string;
+  board_role: string;
+  is_encadrant: boolean;
 }
 
 // Parse emergency contact string into name and phone
@@ -124,6 +131,7 @@ const ClubMembersDirectory = () => {
     isLoading: isLoadingStatuses,
     getStatusForMember,
     upsertStatus,
+    upsertStatusBatch,
   } = useMembershipYearlyStatus(selectedSeason);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -137,6 +145,7 @@ const ClubMembersDirectory = () => {
   const [importReport, setImportReport] = useState<{ created: number; updated: number; errors: ImportError[] }>({ created: 0, updated: 0, errors: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Identity form data (stored in club_members_directory)
   const [formData, setFormData] = useState<ClubMemberInsert>({
     first_name: "",
     last_name: "",
@@ -144,12 +153,16 @@ const ClubMembersDirectory = () => {
     phone: "",
     birth_date: "",
     address: "",
-    apnea_level: "",
     joined_at: "",
     emergency_contact_name: "",
     emergency_contact_phone: "",
     gender: "",
     notes: "",
+  });
+
+  // Seasonal form data (stored in membership_yearly_status)
+  const [seasonalFormData, setSeasonalFormData] = useState<SeasonalFormData>({
+    apnea_level: "",
     board_role: "",
     is_encadrant: false,
   });
@@ -162,12 +175,14 @@ const ClubMembersDirectory = () => {
       phone: "",
       birth_date: "",
       address: "",
-      apnea_level: "",
       joined_at: "",
       emergency_contact_name: "",
       emergency_contact_phone: "",
       gender: "",
       notes: "",
+    });
+    setSeasonalFormData({
+      apnea_level: "",
       board_role: "",
       is_encadrant: false,
     });
@@ -181,6 +196,7 @@ const ClubMembersDirectory = () => {
 
   const openEditForm = (member: ClubMember) => {
     setEditingMember(member);
+    // Identity data
     setFormData({
       first_name: member.first_name,
       last_name: member.last_name,
@@ -188,14 +204,18 @@ const ClubMembersDirectory = () => {
       phone: member.phone || "",
       birth_date: member.birth_date || "",
       address: member.address || "",
-      apnea_level: member.apnea_level || "",
       joined_at: member.joined_at || "",
       emergency_contact_name: member.emergency_contact_name || "",
       emergency_contact_phone: member.emergency_contact_phone || "",
       gender: member.gender || "",
       notes: member.notes || "",
-      board_role: member.board_role || "",
-      is_encadrant: member.is_encadrant ?? false,
+    });
+    // Seasonal data from membership status
+    const status = getStatusForMember(member.id);
+    setSeasonalFormData({
+      apnea_level: status?.apnea_level || "",
+      board_role: status?.board_role || "",
+      is_encadrant: status?.is_encadrant ?? false,
     });
     setIsFormOpen(true);
   };
@@ -207,18 +227,33 @@ const ClubMembersDirectory = () => {
     }
 
     try {
+      let memberId: string;
+      
       if (editingMember) {
         await updateMember.mutateAsync({
           id: editingMember.id,
           ...formData,
           email: formData.email.toLowerCase(),
         });
+        memberId = editingMember.id;
       } else {
-        await createMember.mutateAsync({
+        const result = await createMember.mutateAsync({
           ...formData,
           email: formData.email.toLowerCase(),
         });
+        memberId = result.id;
       }
+
+      // Update seasonal data in membership_yearly_status
+      await upsertStatusBatch.mutateAsync({
+        memberId,
+        updates: {
+          apnea_level: seasonalFormData.apnea_level || null,
+          board_role: seasonalFormData.board_role || null,
+          is_encadrant: seasonalFormData.is_encadrant,
+        },
+      });
+      
       setIsFormOpen(false);
       resetForm();
     } catch (error) {
@@ -234,7 +269,7 @@ const ClubMembersDirectory = () => {
   // Toggle checkbox status - uses the yearly status table
   const handleCheckboxToggle = async (member: ClubMember, field: StatusField) => {
     const currentStatus = getStatusForMember(member.id);
-    const currentValue = currentStatus?.[field] ?? false;
+    const currentValue = currentStatus?.[field as keyof MembershipYearlyStatus] ?? false;
     
     try {
       await upsertStatus.mutateAsync({
@@ -250,7 +285,8 @@ const ClubMembersDirectory = () => {
   // Get status value for a member (with fallback to false if no record exists)
   const getMemberStatusValue = (memberId: string, field: StatusField): boolean => {
     const status = getStatusForMember(memberId);
-    return status?.[field] ?? false;
+    const value = status?.[field as keyof MembershipYearlyStatus];
+    return typeof value === 'boolean' ? value : false;
   };
 
   // Sort handler
@@ -270,7 +306,7 @@ const ClubMembersDirectory = () => {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
-  // CSV Export with new columns (exports for selected season)
+  // CSV Export with seasonal columns
   const exportCSV = () => {
     if (!members?.length) {
       toast.error("Aucun adhérent à exporter");
@@ -278,25 +314,26 @@ const ClubMembersDirectory = () => {
     }
 
     const headers = [
-      "ID Interne",
-      "Prénom",
-      "Nom",
-      "Email",
-      "Téléphone",
-      "Date Naissance",
-      "Adresse",
-      "Niveau Apnée",
-      "Date Arrivée",
-      "Genre",
-      "Contact Urgence - Nom",
-      "Contact Urgence - Tel",
-      "Encadrant",
-      "Fonction Bureau",
-      `Cotisation Payée (${getSeasonLabel(selectedSeason)})`,
-      `Certificat Médical (${getSeasonLabel(selectedSeason)})`,
-      `Charte Signée (${getSeasonLabel(selectedSeason)})`,
-      `Assurance FSGT (${getSeasonLabel(selectedSeason)})`,
-      "Notes",
+      "member_id",
+      "first_name",
+      "last_name",
+      "email",
+      "phone",
+      "birth_date",
+      "address",
+      "joined_at",
+      "gender",
+      "emergency_contact_name",
+      "emergency_contact_phone",
+      "apnea_level",
+      "is_encadrant",
+      "board_role",
+      "payment_status",
+      "medical_certificate_ok",
+      "buddies_charter_signed",
+      "fsgt_insurance_ok",
+      "notes",
+      "season",
     ];
 
     const rows = members.map((m) => {
@@ -309,18 +346,19 @@ const ClubMembersDirectory = () => {
         m.phone || "",
         m.birth_date || "",
         m.address || "",
-        m.apnea_level || "",
         m.joined_at || "",
         m.gender || "",
         m.emergency_contact_name || "",
         m.emergency_contact_phone || "",
-        m.is_encadrant ? "Oui" : "Non",
-        m.board_role || "",
+        status?.apnea_level || "",
+        status?.is_encadrant ? "Oui" : "Non",
+        status?.board_role || "",
         status?.payment_status ? "Oui" : "Non",
         status?.medical_certificate_ok ? "Oui" : "Non",
         status?.buddies_charter_signed ? "Oui" : "Non",
         status?.fsgt_insurance_ok ? "Oui" : "Non",
         m.notes || "",
+        getSeasonLabel(selectedSeason),
       ];
     });
 
@@ -355,13 +393,9 @@ const ClubMembersDirectory = () => {
     let updated = 0;
 
     try {
-      // 1) Decode with fallback (UTF-8 / Windows-1252 / ISO-8859-1)
       const rawText = await readCsvFileText(file);
-
-      // 2) Robust parsing (delimiter auto + fallbacks) + header normalization
       const parsed = parseCsvText(rawText);
 
-      // Collect parser-level errors (delimiter/quotes…)
       parsed.errors?.forEach((err) => {
         const line = (err as any).row ? (err as any).row + 1 : 1;
         errors.push({ line, email: "-", reason: `Parsing CSV : ${err.message}` });
@@ -390,9 +424,16 @@ const ClubMembersDirectory = () => {
         });
       }
 
+      // Helper to parse boolean fields
+      const parseBooleanField = (value: string | null): boolean => {
+        if (!value) return false;
+        const v = value.toLowerCase().trim();
+        return v === "oui" || v === "true" || v === "1" || v === "yes" || v === "x";
+      };
+
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        const lineNumber = i + 2; // +1 header, +1 1-index
+        const lineNumber = i + 2;
 
         const reasons: string[] = [];
 
@@ -408,18 +449,12 @@ const ClubMembersDirectory = () => {
 
         const phone = normalizePhone(cleanCsvCell((row as any).phone));
         const address = cleanCsvCell((row as any).address);
-        const apneaLevel = cleanCsvCell((row as any).apnea_level);
         const gender = cleanCsvCell((row as any).gender);
         const notes = cleanCsvCell((row as any).notes);
+        
+        // Seasonal fields
+        const apneaLevel = cleanCsvCell((row as any).apnea_level);
         const boardRole = cleanCsvCell((row as any).board_role);
-        
-        // Parse boolean fields (Oui/Non, true/false, 1/0)
-        const parseBooleanField = (value: string | null): boolean => {
-          if (!value) return false;
-          const v = value.toLowerCase().trim();
-          return v === "oui" || v === "true" || v === "1" || v === "yes" || v === "x";
-        };
-        
         const isEncadrant = parseBooleanField(cleanCsvCell((row as any).is_encadrant));
         const paymentStatus = parseBooleanField(cleanCsvCell((row as any).payment_status));
         const medicalCertificateOk = parseBooleanField(cleanCsvCell((row as any).medical_certificate_ok));
@@ -435,7 +470,7 @@ const ClubMembersDirectory = () => {
         const joinedParsed = parseFlexibleDateToISO(joinedRaw);
         if (joinedRaw && joinedParsed.error) reasons.push(`Date d'inscription : ${joinedParsed.error}`);
 
-        // Emergency contact: either split columns, or combined column (smart parsing)
+        // Emergency contact
         let emergencyName = cleanCsvCell((row as any).emergency_contact_name);
         let emergencyPhone = normalizePhone(cleanCsvCell((row as any).emergency_contact_phone));
 
@@ -453,6 +488,7 @@ const ClubMembersDirectory = () => {
           continue;
         }
 
+        // Identity data only
         const memberData: ClubMemberInsert = {
           first_name: firstName,
           last_name: lastName,
@@ -460,40 +496,33 @@ const ClubMembersDirectory = () => {
           phone,
           birth_date: birthParsed.iso,
           address,
-          apnea_level: apneaLevel,
           joined_at: joinedParsed.iso,
           gender,
           emergency_contact_name: emergencyName,
           emergency_contact_phone: emergencyPhone,
           notes,
-          is_encadrant: isEncadrant,
-          board_role: boardRole,
         };
-        
-        // Store status fields for later upsert
-        const statusFields = { paymentStatus, medicalCertificateOk, buddiesCharterSigned, fsgtInsuranceOk };
 
         try {
           const result = await upsertMember.mutateAsync(memberData);
           if (result.updated) updated++;
           else created++;
           
-          // Update yearly status fields if any checkbox value is present in CSV
+          // Update seasonal fields in membership_yearly_status
           const memberId = result.data.id;
           if (memberId) {
-            // Update each status field based on CSV values
-            if (paymentStatus) {
-              await upsertStatus.mutateAsync({ memberId, field: "payment_status", value: true });
-            }
-            if (medicalCertificateOk) {
-              await upsertStatus.mutateAsync({ memberId, field: "medical_certificate_ok", value: true });
-            }
-            if (buddiesCharterSigned) {
-              await upsertStatus.mutateAsync({ memberId, field: "buddies_charter_signed", value: true });
-            }
-            if (fsgtInsuranceOk) {
-              await upsertStatus.mutateAsync({ memberId, field: "fsgt_insurance_ok", value: true });
-            }
+            await upsertStatusBatch.mutateAsync({
+              memberId,
+              updates: {
+                apnea_level: apneaLevel || null,
+                board_role: boardRole || null,
+                is_encadrant: isEncadrant,
+                payment_status: paymentStatus,
+                medical_certificate_ok: medicalCertificateOk,
+                buddies_charter_signed: buddiesCharterSigned,
+                fsgt_insurance_ok: fsgtInsuranceOk,
+              },
+            });
           }
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
@@ -511,7 +540,7 @@ const ClubMembersDirectory = () => {
     }
   };
 
-  // Filter and sort members (sorting on status uses the yearly status data)
+  // Filter and sort members
   const filteredAndSortedMembers = useMemo(() => {
     let result = members?.filter((member) => {
       const searchLower = searchTerm.toLowerCase();
@@ -540,8 +569,8 @@ const ClubMembersDirectory = () => {
           bValue = b.joined_at || "";
           break;
         default:
-          aValue = a[sortField]?.toLowerCase() || "";
-          bValue = b[sortField]?.toLowerCase() || "";
+          aValue = (a as any)[sortField]?.toLowerCase() || "";
+          bValue = (b as any)[sortField]?.toLowerCase() || "";
       }
 
       if (typeof aValue === "boolean" && typeof bValue === "boolean") {
@@ -932,11 +961,11 @@ const ClubMembersDirectory = () => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="apnea_level">Niveau Apnée</Label>
+                  <Label htmlFor="apnea_level">Niveau Apnée ({getSeasonLabel(selectedSeason)})</Label>
                   <Input
                     id="apnea_level"
-                    value={formData.apnea_level || ""}
-                    onChange={(e) => setFormData({ ...formData, apnea_level: e.target.value })}
+                    value={seasonalFormData.apnea_level || ""}
+                    onChange={(e) => setSeasonalFormData({ ...seasonalFormData, apnea_level: e.target.value })}
                     placeholder="ex: A2, A3..."
                   />
                 </div>
@@ -961,10 +990,10 @@ const ClubMembersDirectory = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="board_role">Rôle au Bureau</Label>
+                  <Label htmlFor="board_role">Rôle au Bureau ({getSeasonLabel(selectedSeason)})</Label>
                   <Select 
-                    value={formData.board_role || ""} 
-                    onValueChange={(v) => setFormData({ ...formData, board_role: v === "none" ? "" : v })}
+                    value={seasonalFormData.board_role || ""} 
+                    onValueChange={(v) => setSeasonalFormData({ ...seasonalFormData, board_role: v === "none" ? "" : v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Aucun" />
@@ -1001,11 +1030,11 @@ const ClubMembersDirectory = () => {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
                 <Checkbox
                   id="is_encadrant"
-                  checked={formData.is_encadrant ?? false}
-                  onCheckedChange={(checked) => setFormData({ ...formData, is_encadrant: !!checked })}
+                  checked={seasonalFormData.is_encadrant ?? false}
+                  onCheckedChange={(checked) => setSeasonalFormData({ ...seasonalFormData, is_encadrant: !!checked })}
                 />
                 <Label htmlFor="is_encadrant" className="text-sm font-medium cursor-pointer">
-                  🤿 Est Encadrant
+                  🤿 Est Encadrant ({getSeasonLabel(selectedSeason)})
                   <span className="block text-xs text-muted-foreground font-normal">
                     Cette personne encadre les sorties et a accès aux outils d'organisation
                   </span>
@@ -1028,9 +1057,9 @@ const ClubMembersDirectory = () => {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={createMember.isPending || updateMember.isPending}
+                disabled={createMember.isPending || updateMember.isPending || upsertStatusBatch.isPending}
               >
-                {(createMember.isPending || updateMember.isPending) && (
+                {(createMember.isPending || updateMember.isPending || upsertStatusBatch.isPending) && (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 )}
                 {editingMember ? "Enregistrer" : "Ajouter"}
