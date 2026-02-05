@@ -423,7 +423,7 @@ const Archives = () => {
             <Card className="shadow-card">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Participations totales</p>
-                <p className="text-2xl font-bold text-foreground">{totalConfirmed}</p>
+                <p className="text-2xl font-bold text-foreground">{totalPresent}</p>
               </CardContent>
             </Card>
             <Card className="shadow-card">
