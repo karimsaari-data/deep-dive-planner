@@ -29,6 +29,7 @@ const Archives = () => {
   const [uploadingOutingId, setUploadingOutingId] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [reportDraft, setReportDraft] = useState<string>("");
+  const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -217,15 +218,39 @@ const Archives = () => {
     }
   };
 
-  const exportCSV = (outing: any) => {
-    const headers = ["Prénom", "Nom", "Email", "Niveau", "Présent"];
-    const rows = outing.confirmedParticipants.map((r: any) => [
-      r.profile?.first_name ?? "",
-      r.profile?.last_name ?? "",
-      r.profile?.email ?? "",
-      r.profile?.apnea_level ?? "",
-      r.is_present ? "Oui" : "Non",
-    ]);
+  // Export all filtered outings to CSV
+  const exportAllCSV = (outings: any[]) => {
+    const headers = ["Date", "Type", "Lieu", "Encadrant", "Nb Participants", "Participants"];
+    
+    const rows = outings.map((outing: any) => {
+      const dateStr = format(new Date(outing.date_time), "dd/MM/yyyy", { locale: fr });
+      const encadrantName = outing.displayedOrganizer 
+        ? `${outing.displayedOrganizer.first_name} ${outing.displayedOrganizer.last_name}`
+        : "";
+      
+      // Get participants list
+      let participantsList = "";
+      if (outing.isHistorical) {
+        participantsList = outing.historicalMembers
+          .map((m: any) => `${m?.first_name ?? ""} ${m?.last_name ?? ""}`.trim())
+          .filter(Boolean)
+          .join(", ");
+      } else {
+        participantsList = outing.presentParticipants
+          .map((r: any) => `${r.profile?.first_name ?? ""} ${r.profile?.last_name ?? ""}`.trim())
+          .filter(Boolean)
+          .join(", ");
+      }
+      
+      return [
+        dateStr,
+        outing.outing_type,
+        outing.location_details?.name || outing.location,
+        encadrantName,
+        outing.totalParticipantCount.toString(),
+        `"${participantsList}"`, // Quote to handle commas in names
+      ];
+    });
     
     const csvContent = [
       headers.join(";"),
@@ -235,7 +260,8 @@ const Archives = () => {
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${outing.title.replace(/\s+/g, "_")}_participants.csv`;
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    link.download = `archives_sorties_${dateStr}.csv`;
     link.click();
   };
 
@@ -287,18 +313,44 @@ const Archives = () => {
     return null;
   }
 
-  const filteredOutings = pastOutings?.filter(outing => 
-    outing.title.toLowerCase().includes(search.toLowerCase()) ||
-    outing.location.toLowerCase().includes(search.toLowerCase())
-  ) ?? [];
+  // Filter outings: exclude those with 0 participants, apply search, and encadrant filter
+  const filteredOutings = pastOutings?.filter(outing => {
+    // Exclude outings with 0 participants
+    if (outing.totalParticipantCount === 0) return false;
+    
+    // Apply search filter
+    const matchesSearch = 
+      outing.title.toLowerCase().includes(search.toLowerCase()) ||
+      outing.location.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    // Apply encadrant filter
+    if (selectedEncadrant !== "all") {
+      const organizerName = outing.displayedOrganizer 
+        ? `${outing.displayedOrganizer.first_name} ${outing.displayedOrganizer.last_name}`
+        : "";
+      if (organizerName !== selectedEncadrant) return false;
+    }
+    
+    return true;
+  }) ?? [];
+
+  // Extract unique encadrants from all outings (before filtering) for the filter dropdown
+  const uniqueEncadrants = Array.from(
+    new Set(
+      pastOutings
+        ?.filter(o => o.totalParticipantCount > 0 && o.displayedOrganizer)
+        .map(o => `${o.displayedOrganizer.first_name} ${o.displayedOrganizer.last_name}`)
+        .filter(Boolean) ?? []
+    )
+  ).sort();
 
   // For historical outings: all participants are considered present
   // For regular outings: use confirmed/present from reservations
-  const totalParticipants = pastOutings?.reduce((acc, o) => acc + o.totalParticipantCount, 0) ?? 0;
-  const totalConfirmed = pastOutings?.reduce((acc, o) => 
+  const totalConfirmed = filteredOutings?.reduce((acc, o) => 
     o.isHistorical ? o.totalParticipantCount : o.confirmedParticipants.length, 0
   ) ?? 0;
-  const totalPresent = pastOutings?.reduce((acc, o) => 
+  const totalPresent = filteredOutings?.reduce((acc, o) => 
     o.isHistorical ? o.totalParticipantCount : o.presentParticipants.length, 0
   ) ?? 0;
   const presenceRate = totalConfirmed > 0 ? Math.round((totalPresent / totalConfirmed) * 100) : 0;
@@ -315,7 +367,7 @@ const Archives = () => {
           </div>
 
           {/* Filters */}
-          <div className="mb-6 flex flex-wrap gap-4">
+          <div className="mb-6 flex flex-wrap items-center gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -336,6 +388,28 @@ const Archives = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={selectedEncadrant} onValueChange={setSelectedEncadrant}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Encadrant" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les encadrants</SelectItem>
+                {uniqueEncadrants.map(name => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {filteredOutings.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => exportAllCSV(filteredOutings)}
+                className="ml-auto"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV ({filteredOutings.length})
+              </Button>
+            )}
           </div>
 
           {/* Stats summary */}
@@ -343,7 +417,7 @@ const Archives = () => {
             <Card className="shadow-card">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Sorties archivées</p>
-                <p className="text-2xl font-bold text-foreground">{pastOutings?.length ?? 0}</p>
+                <p className="text-2xl font-bold text-foreground">{filteredOutings.length}</p>
               </CardContent>
             </Card>
             <Card className="shadow-card">
@@ -398,10 +472,6 @@ const Archives = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => exportCSV(outing)}>
-                          <Download className="h-4 w-4 mr-2" />
-                          Export CSV
-                        </Button>
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="ocean" size="sm">
