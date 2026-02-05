@@ -495,6 +495,7 @@ export type Database = {
           location_id: string | null
           max_participants: number
           organizer_id: string | null
+          organizer_member_id: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
           photos: string[] | null
           reminder_sent: boolean | null
@@ -518,6 +519,7 @@ export type Database = {
           location_id?: string | null
           max_participants?: number
           organizer_id?: string | null
+          organizer_member_id?: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
           photos?: string[] | null
           reminder_sent?: boolean | null
@@ -541,6 +543,7 @@ export type Database = {
           location_id?: string | null
           max_participants?: number
           organizer_id?: string | null
+          organizer_member_id?: string | null
           outing_type?: Database["public"]["Enums"]["outing_type"]
           photos?: string[] | null
           reminder_sent?: boolean | null
@@ -568,6 +571,13 @@ export type Database = {
             columns: ["organizer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outings_organizer_member_id_fkey"
+            columns: ["organizer_member_id"]
+            isOneToOne: false
+            referencedRelation: "club_members_directory"
             referencedColumns: ["id"]
           },
         ]

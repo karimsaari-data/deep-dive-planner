@@ -48,6 +48,7 @@ const Archives = () => {
           session_report,
           is_deleted,
           is_archived,
+          organizer_member_id,
           organizer:profiles!outings_organizer_id_fkey(id, first_name, last_name),
           location_details:locations(name),
           reservations(
@@ -77,9 +78,25 @@ const Archives = () => {
         .from("historical_outing_participants")
         .select(`
           outing_id,
-          member:club_members_directory(id, first_name, last_name, email, is_encadrant)
+          member:club_members_directory(id, first_name, last_name, email)
         `)
         .in("outing_id", outingIds);
+
+      // Get organizer member details for historical outings that have organizer_member_id
+      const outingsWithMemberOrganizer = data?.filter(o => o.organizer_member_id) ?? [];
+      const organizerMemberIds = outingsWithMemberOrganizer.map(o => o.organizer_member_id);
+      
+      let organizerMemberMap = new Map<string, { id: string; first_name: string; last_name: string }>();
+      if (organizerMemberIds.length > 0) {
+        const { data: organizerMembers } = await supabase
+          .from("club_members_directory")
+          .select("id, first_name, last_name")
+          .in("id", organizerMemberIds);
+        
+        organizerMembers?.forEach(m => {
+          organizerMemberMap.set(m.id, m);
+        });
+      }
 
       // Group historical participants by outing_id
       const historicalByOuting = new Map<string, any[]>();
@@ -89,21 +106,6 @@ const Archives = () => {
         historicalByOuting.set(hp.outing_id, existing);
       });
 
-      // Infer the real encadrant (organizer) for historical outings
-      // Store full member info including ID to identify them in the list
-      const inferredEncadrantByOuting = new Map<string, { id: string; first_name: string; last_name: string } | null>();
-      historicalByOuting.forEach((members, outingId) => {
-        const encadrants = members.filter((m: any) => m?.is_encadrant);
-        if (encadrants.length === 1) {
-          inferredEncadrantByOuting.set(outingId, encadrants[0]);
-        } else if (encadrants.length > 1) {
-          // If multiple encadrants, pick the first one as organizer (could be enhanced later)
-          inferredEncadrantByOuting.set(outingId, encadrants[0]);
-        } else {
-          inferredEncadrantByOuting.set(outingId, null);
-        }
-      });
-      
       // Process outings: all archived outings are shown
       return data?.map(outing => {
         const confirmedParticipants = outing.reservations?.filter(
@@ -117,37 +119,31 @@ const Archives = () => {
         // Historical outings have historical_outing_participants
         const isHistorical = historicalMembers.length > 0;
         
-        // Get the inferred organizer for historical outings
-        const inferredOrganizer = isHistorical ? inferredEncadrantByOuting.get(outing.id) : null;
+        // Get the organizer from organizer_member_id for historical outings
+        const organizerFromMemberDirectory = outing.organizer_member_id 
+          ? organizerMemberMap.get(outing.organizer_member_id) 
+          : null;
         
-        // Check if organizer is already in historical members (by email match)
-        const organizerId = outing.organizer?.id;
-        const organizerInHistorical = isHistorical && historicalMembers.some(
-          (m: any) => m.id === organizerId
-        );
-        
-        // For historical outings, use the inferred encadrant if available
-        // Otherwise fall back to the technical organizer
-        const displayedOrganizer = isHistorical && inferredOrganizer
-          ? { first_name: inferredOrganizer.first_name, last_name: inferredOrganizer.last_name }
+        // For historical outings: prefer organizer_member_id, fallback to profiles organizer
+        // For regular outings: use profiles organizer
+        const displayedOrganizer = organizerFromMemberDirectory
+          ? { first_name: organizerFromMemberDirectory.first_name, last_name: organizerFromMemberDirectory.last_name }
           : outing.organizer;
         
-        // Sort historical members: Organizer first, then Encadrants, then Members
+        // Sort historical members: Organizer first, then alphabetically
         const sortedHistoricalMembers = [...historicalMembers].sort((a: any, b: any) => {
-          const aIsOrganizer = inferredOrganizer && a.id === inferredOrganizer.id;
-          const bIsOrganizer = inferredOrganizer && b.id === inferredOrganizer.id;
-          const aIsEncadrant = a?.is_encadrant === true;
-          const bIsEncadrant = b?.is_encadrant === true;
+          const aIsOrganizer = organizerFromMemberDirectory && a.id === organizerFromMemberDirectory.id;
+          const bIsOrganizer = organizerFromMemberDirectory && b.id === organizerFromMemberDirectory.id;
           
           // Organizer comes first
           if (aIsOrganizer && !bIsOrganizer) return -1;
           if (!aIsOrganizer && bIsOrganizer) return 1;
-          // Then encadrants
-          if (aIsEncadrant && !bIsEncadrant) return -1;
-          if (!aIsEncadrant && bIsEncadrant) return 1;
           // Then alphabetical by first name
           return (a?.first_name ?? "").localeCompare(b?.first_name ?? "");
         });
+        
+        // Determine the organizer ID for highlighting in the list
+        const organizerMemberId = outing.organizer_member_id ?? null;
         
         // Calculate total participants
         const totalParticipantCount = isHistorical 
@@ -160,10 +156,9 @@ const Archives = () => {
           presentParticipants,
           historicalMembers: sortedHistoricalMembers,
           isHistorical,
-          organizerInHistorical,
+          organizerMemberId,
           totalParticipantCount,
           displayedOrganizer,
-          inferredOrganizerId: inferredOrganizer?.id ?? null,
         };
       }) ?? [];
     },
@@ -443,8 +438,7 @@ const Archives = () => {
                                       {outing.historicalMembers.map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
                                         // Identify organizer and encadrants
-                                        const isOrganizer = outing.inferredOrganizerId && member.id === outing.inferredOrganizerId;
-                                        const isEncadrant = member?.is_encadrant === true;
+                                        const isOrganizer = outing.organizerMemberId && member.id === outing.organizerMemberId;
                                         
                                         // Determine badge text and styles
                                         let badgeText = "Présent";
@@ -456,11 +450,6 @@ const Archives = () => {
                                           badgeText = "Organisateur";
                                           badgeVariant = "outline";
                                           cardStyle = "border-primary bg-primary/15 ring-2 ring-primary/30";
-                                          avatarStyle = "bg-primary text-primary-foreground";
-                                        } else if (isEncadrant) {
-                                          badgeText = "Encadrant";
-                                          badgeVariant = "secondary";
-                                          cardStyle = "border-primary/50 bg-primary/10";
                                           avatarStyle = "bg-primary text-primary-foreground";
                                         }
                                         
