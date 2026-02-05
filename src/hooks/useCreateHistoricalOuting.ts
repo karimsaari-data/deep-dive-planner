@@ -10,7 +10,7 @@ interface HistoricalOutingData {
   location: string;
   location_id?: string;
   outing_type: OutingType;
-  organizer_id: string; // Profile ID (for outings table)
+  organizer_id: string | null; // Profile ID (for outings table) - null if encadrant has no app account
   organizer_member_id: string; // club_members_directory ID (for historical participants)
   participant_member_ids: string[]; // IDs from club_members_directory
 }
@@ -37,7 +37,8 @@ export const useCreateHistoricalOuting = () => {
           location: data.location,
           location_id: data.location_id || null,
           outing_type: data.outing_type,
-          organizer_id: data.organizer_id,
+          organizer_id: data.organizer_id || null,
+          organizer_member_id: data.organizer_member_id, // Store club_members_directory ID
           max_participants: Math.max(data.participant_member_ids.length, 10),
           is_archived: true, // Mark as archived/completed
           is_deleted: false,

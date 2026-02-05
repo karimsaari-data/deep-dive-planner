@@ -178,15 +178,17 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
     // Find the selected encadrant from club_members_directory
     const selectedEncadrant = encadrants?.find((e) => e.id === data.organizer_id);
     
-    // Get the profile ID from the encadrant's email
-    // This maps the club_members_directory encadrant to their profiles entry
-    let organizerProfileId = user?.id || ""; // Fallback to current user
+    // Get the profile ID from the encadrant's email (if they have an app account)
+    // For historical outings, if the encadrant doesn't have a profile, we set organizer_id to null
+    // The organizer_member_id (club_members_directory ID) will be used for display
+    let organizerProfileId: string | null = null;
     
     if (selectedEncadrant?.email) {
       const profileId = emailToProfileIdMap.get(selectedEncadrant.email.toLowerCase());
       if (profileId) {
         organizerProfileId = profileId;
       }
+      // If no profile found, organizerProfileId stays null - this is intentional for historical outings
     }
     
     const startDateTime = new Date(data.date);
