@@ -42,6 +42,9 @@ export const useCreateLocation = () => {
       address?: string;
       type?: string;
       maps_url?: string;
+      latitude?: number;
+      longitude?: number;
+      max_depth?: number;
     }) => {
       const { data, error } = await supabase
         .from("locations")

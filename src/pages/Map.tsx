@@ -2,13 +2,16 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search, X } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocations, Location } from "@/hooks/useLocations";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocations, useCreateLocation, Location } from "@/hooks/useLocations";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 
@@ -53,13 +56,22 @@ const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const tempMarkerRef = useRef<L.Marker | null>(null);
   const { data: locations, isLoading } = useLocations();
+  const createLocation = useCreateLocation();
   const [mapReady, setMapReady] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
+
+  // State for create location dialog
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [newLocationName, setNewLocationName] = useState("");
+  const [newLocationType, setNewLocationType] = useState<string>("");
+  const [newLocationMaxDepth, setNewLocationMaxDepth] = useState("");
 
   // Filter locations with valid coordinates
   const locationsWithCoords = locations?.filter(
@@ -153,11 +165,114 @@ const Map = () => {
     );
   };
 
+  // Remove temporary marker
+  const removeTempMarker = () => {
+    if (tempMarkerRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(tempMarkerRef.current);
+      tempMarkerRef.current = null;
+    }
+    setClickedCoords(null);
+  };
+
+  // Handle map click for organizers
+  const handleMapClick = (e: L.LeafletMouseEvent) => {
+    if (!isOrganizer || !mapInstanceRef.current) return;
+
+    const { lat, lng } = e.latlng;
+    
+    // Remove existing temp marker
+    removeTempMarker();
+
+    // Create temporary marker with popup
+    const tempIcon = L.divIcon({
+      className: 'temp-location-marker',
+      html: `<div style="width: 32px; height: 32px; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+        <span style="color: white; font-size: 16px;">+</span>
+      </div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    tempMarkerRef.current = L.marker([lat, lng], { icon: tempIcon })
+      .addTo(mapInstanceRef.current);
+
+    // Create popup content with button
+    const popupContent = document.createElement('div');
+    popupContent.innerHTML = `
+      <div style="min-width: 180px; text-align: center;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
+          ${lat.toFixed(5)}, ${lng.toFixed(5)}
+        </p>
+        <button id="create-location-btn" style="
+          width: 100%;
+          padding: 8px 16px;
+          background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        ">
+          ➕ Créer un lieu ici
+        </button>
+      </div>
+    `;
+
+    const popup = L.popup({ closeOnClick: false })
+      .setContent(popupContent);
+
+    tempMarkerRef.current.bindPopup(popup).openPopup();
+
+    // Add click handler for the button
+    setTimeout(() => {
+      const btn = document.getElementById('create-location-btn');
+      if (btn) {
+        btn.onclick = () => {
+          setClickedCoords({ lat, lng });
+          setShowCreateDialog(true);
+          tempMarkerRef.current?.closePopup();
+        };
+      }
+    }, 50);
+
+    setClickedCoords({ lat, lng });
+  };
+
+  // Handle create location form submit
+  const handleCreateLocation = async () => {
+    if (!clickedCoords || !newLocationName.trim()) {
+      toast.error("Le nom du lieu est obligatoire");
+      return;
+    }
+
+    try {
+      await createLocation.mutateAsync({
+        name: newLocationName.trim(),
+        type: newLocationType || undefined,
+        max_depth: newLocationMaxDepth ? parseFloat(newLocationMaxDepth) : undefined,
+        latitude: clickedCoords.lat,
+        longitude: clickedCoords.lng,
+      });
+
+      // Reset form and close dialog
+      setShowCreateDialog(false);
+      setNewLocationName("");
+      setNewLocationType("");
+      setNewLocationMaxDepth("");
+      removeTempMarker();
+      toast.success("Lieu créé avec succès !");
+    } catch (error) {
+      console.error("Error creating location:", error);
+    }
+  };
+
   // Initialize map with marine chart layers
   useEffect(() => {
-    // Important: during the first render we may show a loading state that doesn't mount the map div yet.
-    // If we keep an empty dependency array, the effect runs once with mapRef.current === null and never
-    // initializes the map. When data is cached, switching tabs re-mounts and it "magically" works.
     if (isLoading) return;
     if (!mapRef.current || mapInstanceRef.current) return;
 
@@ -230,6 +345,9 @@ const Map = () => {
     // Add scale control
     L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(map);
 
+    // Add click handler for organizers
+    map.on("click", handleMapClick);
+
     mapInstanceRef.current = map;
     setMapReady(true);
 
@@ -246,8 +364,11 @@ const Map = () => {
       if (userMarkerRef.current) {
         userMarkerRef.current = null;
       }
+      if (tempMarkerRef.current) {
+        tempMarkerRef.current = null;
+      }
     };
-  }, [isLoading]);
+  }, [isLoading, isOrganizer]);
 
   // Add markers when locations change
   useEffect(() => {
@@ -255,7 +376,7 @@ const Map = () => {
 
     // Clear existing markers
     mapInstanceRef.current.eachLayer((layer) => {
-      if (layer instanceof L.Marker) {
+      if (layer instanceof L.Marker && layer !== userMarkerRef.current && layer !== tempMarkerRef.current) {
         mapInstanceRef.current?.removeLayer(layer);
       }
     });
@@ -333,6 +454,7 @@ const Map = () => {
             <h1 className="text-3xl font-bold text-foreground">Carte des sites</h1>
             <p className="mt-2 text-muted-foreground">
               Visualisez tous les lieux de plongée enregistrés
+              {isOrganizer && " • Cliquez sur la carte pour ajouter un lieu"}
             </p>
           </div>
 
@@ -483,6 +605,90 @@ const Map = () => {
           )}
         </div>
       </section>
+
+      {/* Create Location Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        setShowCreateDialog(open);
+        if (!open) removeTempMarker();
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Créer un nouveau lieu
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {clickedCoords && (
+              <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                <strong>Coordonnées GPS :</strong><br />
+                Latitude : {clickedCoords.lat.toFixed(6)}<br />
+                Longitude : {clickedCoords.lng.toFixed(6)}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="location-name">Nom du lieu *</Label>
+              <Input
+                id="location-name"
+                placeholder="Ex: Calanque de Sormiou"
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location-type">Type</Label>
+              <Select value={newLocationType} onValueChange={setNewLocationType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mer">Mer</SelectItem>
+                  <SelectItem value="Piscine">Piscine</SelectItem>
+                  <SelectItem value="Fosse">Fosse</SelectItem>
+                  <SelectItem value="Étang">Étang</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location-depth">Profondeur max (m)</Label>
+              <Input
+                id="location-depth"
+                type="number"
+                placeholder="Ex: 25"
+                value={newLocationMaxDepth}
+                onChange={(e) => setNewLocationMaxDepth(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateDialog(false);
+                removeTempMarker();
+              }}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleCreateLocation}
+              disabled={!newLocationName.trim() || createLocation.isPending}
+            >
+              {createLocation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Créer le lieu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
