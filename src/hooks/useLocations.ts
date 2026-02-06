@@ -43,8 +43,27 @@ export const useCreateLocation = () => {
       type?: string;
       maps_url?: string;
     }) => {
-      const { error } = await supabase.from("locations").insert(location);
+      const { data, error } = await supabase
+        .from("locations")
+        .insert(location)
+        .select("id")
+        .single();
       if (error) throw error;
+
+      // If maps_url was provided, extract coordinates
+      if (location.maps_url && data?.id) {
+        console.log("Maps URL provided, extracting coordinates...");
+        try {
+          const { error: fnError } = await supabase.functions.invoke("extract-coordinates", {
+            body: { locationId: data.id, forceUpdate: true },
+          });
+          if (fnError) {
+            console.error("Error extracting coordinates:", fnError);
+          }
+        } catch (err) {
+          console.error("Failed to call extract-coordinates:", err);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["locations"] });
