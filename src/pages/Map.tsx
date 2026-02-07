@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search, X } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search, X, Maximize2, Minimize2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -52,16 +52,34 @@ const getTypeIcon = (type: string | null) => {
   }
 };
 
+// Custom marker icons based on POSS status
+const createLocationIcon = (hasPOSS: boolean) => {
+  const color = hasPOSS ? '#16a34a' : '#dc2626'; // green-600 / red-600
+  const glowColor = hasPOSS ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)';
+  return L.divIcon({
+    className: 'custom-location-marker',
+    html: `<div style="width:28px;height:28px;background:${color};border:3px solid white;border-radius:50%;box-shadow:0 2px 8px ${glowColor}, 0 2px 4px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    </div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
+  });
+};
+
 const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const tempMarkerRef = useRef<L.Marker | null>(null);
+  const hasInitialFit = useRef(false);
   const { data: locations, isLoading } = useLocations();
   const createLocation = useCreateLocation();
   const [mapReady, setMapReady] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
@@ -164,6 +182,32 @@ const Map = () => {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
+
+  // Fullscreen toggle
+  const toggleFullscreen = useCallback(() => {
+    if (!mapContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      mapContainerRef.current.requestFullscreen().catch(() => {
+        toast.error("Le plein écran n'est pas supporté");
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
+
+  // Sync fullscreen state
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      // Let Leaflet recalculate dimensions
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 100);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
 
   // Remove temporary marker
   const removeTempMarker = () => {
@@ -384,7 +428,9 @@ const Map = () => {
     // Add new markers
     locationsWithCoords.forEach((location) => {
       if (location.latitude && location.longitude) {
-        const marker = L.marker([location.latitude, location.longitude])
+        const hasPOSS = location.satellite_map_url !== null || location.bathymetric_map_url !== null;
+        const icon = createLocationIcon(hasPOSS);
+        const marker = L.marker([location.latitude, location.longitude], { icon })
           .addTo(mapInstanceRef.current!);
 
         // Create popup with photo thumbnail
@@ -397,12 +443,17 @@ const Map = () => {
           ? `<button id="create-outing-${location.id}" style="margin-top: 8px; width: 100%; padding: 6px 12px; background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">➕ Organiser une sortie ici</button>`
           : "";
 
+        const possStatusHtml = hasPOSS
+          ? `<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 4px;">✓ POSS</span>`
+          : `<span style="background: #fef2f2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 4px;">Sans carto</span>`;
+
         const popupContent = `
           <div style="min-width: 200px;">
             ${photoHtml}
             <h3 style="font-weight: 600; margin: 0 0 8px 0;">${location.name}</h3>
             ${location.type ? `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${location.type}</span>` : ""}
             ${location.max_depth ? `<span style="background: #e0f2fe; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 4px;">Prof. ${location.max_depth}m</span>` : ""}
+            ${possStatusHtml}
             ${location.address ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #64748b;">${location.address}</p>` : ""}
             <div style="margin-top: 8px; display: flex; gap: 8px;">
               <a href="/location/${location.id}" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
@@ -427,12 +478,13 @@ const Map = () => {
       }
     });
 
-    // Fit bounds if we have markers
-    if (locationsWithCoords.length > 0) {
+    // Fit bounds only on initial load
+    if (!hasInitialFit.current && locationsWithCoords.length > 0) {
       const bounds = L.latLngBounds(
         locationsWithCoords.map((loc) => [loc.latitude!, loc.longitude!] as [number, number])
       );
       mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+      hasInitialFit.current = true;
     }
   }, [locationsWithCoords, mapReady, isOrganizer, navigate]);
 
@@ -460,8 +512,8 @@ const Map = () => {
 
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
-            <div className="lg:col-span-2">
-              <Card className="overflow-hidden shadow-card relative">
+          <div className="lg:col-span-2">
+              <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
                 <CardContent className="p-0">
                   <div 
                     ref={mapRef} 
@@ -483,7 +535,32 @@ const Map = () => {
                       <Crosshair className="h-4 w-4 text-primary" />
                     )}
                   </Button>
+                  {/* Fullscreen button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-32 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4 text-primary" />
+                    )}
+                  </Button>
                 </CardContent>
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground border-t border-border">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow-sm" />
+                    <span>Lieu validé (POSS)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-red-600 border border-white shadow-sm" />
+                    <span>Lieu sans cartographie</span>
+                  </div>
+                </div>
               </Card>
             </div>
 
