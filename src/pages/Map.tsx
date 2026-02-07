@@ -200,10 +200,10 @@ const Map = () => {
     const handleFullscreenChange = () => {
       const fs = !!document.fullscreenElement;
       setIsFullscreen(fs);
-      // Let Leaflet recalculate dimensions
+      // Let Leaflet recalculate dimensions with delay for DOM update
       setTimeout(() => {
         mapInstanceRef.current?.invalidateSize();
-      }, 100);
+      }, 200);
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -513,11 +513,11 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
           <div className="lg:col-span-2">
-              <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
-                <CardContent className="p-0">
+              <Card className={`overflow-hidden shadow-card relative ${isFullscreen ? "h-screen w-screen bg-background" : ""}`} ref={mapContainerRef}>
+                <CardContent className={`p-0 ${isFullscreen ? "h-full" : ""}`}>
                   <div 
                     ref={mapRef} 
-                    className="h-[500px] w-full"
+                    className={`${isFullscreen ? "h-full" : "h-[500px]"} w-full`}
                     style={{ zIndex: 0 }}
                   />
                   {/* Geolocation button */}
@@ -551,7 +551,7 @@ const Map = () => {
                   </Button>
                 </CardContent>
                 {/* Legend */}
-                <div className="flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground border-t border-border">
+                <div className={`flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground ${isFullscreen ? "absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm z-[1000]" : "border-t border-border"}`}>
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow-sm" />
                     <span>Lieu validé (POSS)</span>
@@ -688,7 +688,7 @@ const Map = () => {
         setShowCreateDialog(open);
         if (!open) removeTempMarker();
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" container={isFullscreen ? mapContainerRef.current : null}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
