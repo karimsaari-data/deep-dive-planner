@@ -182,7 +182,10 @@ CREATE TRIGGER update_profiles_updated_at
 
 CREATE TRIGGER update_outings_updated_at
   BEFORE UPDATE ON public.outings
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();-- Add new outing type 'Dépollution'
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();;
+
+
+-- Add new outing type 'Dépollution'
 ALTER TYPE public.outing_type ADD VALUE IF NOT EXISTS 'Dépollution';
 
 -- Create booking status enum
@@ -372,7 +375,10 @@ CREATE POLICY "Users can delete their own avatar" ON storage.objects
 CREATE TRIGGER update_locations_updated_at
   BEFORE UPDATE ON public.locations
   FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();-- Create storage bucket for outing gallery photos
+  EXECUTE FUNCTION public.update_updated_at_column();;
+
+
+-- Create storage bucket for outing gallery photos
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('outings_gallery', 'outings_gallery', true)
 ON CONFLICT (id) DO NOTHING;
@@ -424,13 +430,22 @@ AS $$
   )
   OR public.has_role(_user_id, 'admin')
   OR public.has_role(_user_id, 'organizer')
-$$;-- Add GPS coordinates columns to locations table
+$$;;
+
+
+-- Add GPS coordinates columns to locations table
 ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS latitude double precision;
-ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS longitude double precision;-- Add new columns to locations table
+ALTER TABLE public.locations ADD COLUMN IF NOT EXISTS longitude double precision;;
+
+
+-- Add new columns to locations table
 ALTER TABLE public.locations 
 ADD COLUMN IF NOT EXISTS photo_url text,
 ADD COLUMN IF NOT EXISTS max_depth numeric,
-ADD COLUMN IF NOT EXISTS comments text;-- Add DELETE policy for profiles (admin only)
+ADD COLUMN IF NOT EXISTS comments text;;
+
+
+-- Add DELETE policy for profiles (admin only)
 CREATE POLICY "Admins can delete profiles"
   ON public.profiles FOR DELETE
   TO authenticated
@@ -440,7 +455,10 @@ CREATE POLICY "Admins can delete profiles"
 CREATE POLICY "Admins can delete reservations"
   ON public.reservations FOR DELETE
   TO authenticated
-  USING (has_role(auth.uid(), 'admin'::app_role));-- Create admin-only RPC function for club statistics
+  USING (has_role(auth.uid(), 'admin'::app_role));;
+
+
+-- Create admin-only RPC function for club statistics
 CREATE OR REPLACE FUNCTION public.get_club_stats(p_year INTEGER DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -613,7 +631,10 @@ ALTER TABLE public.locations
   ADD CONSTRAINT check_location_name_length
     CHECK (char_length(TRIM(name)) >= 2 AND char_length(name) <= 100),
   ADD CONSTRAINT check_max_depth_range
-    CHECK (max_depth IS NULL OR (max_depth >= 0 AND max_depth <= 500));CREATE OR REPLACE FUNCTION public.get_club_stats(p_year integer DEFAULT (EXTRACT(year FROM CURRENT_DATE))::integer)
+    CHECK (max_depth IS NULL OR (max_depth >= 0 AND max_depth <= 500));;
+
+
+CREATE OR REPLACE FUNCTION public.get_club_stats(p_year integer DEFAULT (EXTRACT(year FROM CURRENT_DATE))::integer)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -767,7 +788,10 @@ BEGIN
 
   RETURN result;
 END;
-$function$;-- Add member_code column to profiles
+$function$;;
+
+
+-- Add member_code column to profiles
 ALTER TABLE public.profiles ADD COLUMN member_code TEXT UNIQUE;
 
 -- Create sequence for member codes
@@ -811,13 +835,19 @@ BEGIN
   
   -- Update sequence to continue from the last value
   PERFORM setval('public.member_code_seq', counter);
-END $$;
+END $$;;
+
+
+
 -- Add is_deleted column to outings table for soft delete
 ALTER TABLE public.outings 
 ADD COLUMN is_deleted boolean NOT NULL DEFAULT false;
 
 -- Create index for faster queries on non-deleted outings
 CREATE INDEX idx_outings_is_deleted ON public.outings(is_deleted) WHERE is_deleted = false;
+;
+
+
 -- Create equipment status enum
 CREATE TYPE public.equipment_status AS ENUM ('disponible', 'prêté', 'perdu', 'cassé', 'rebuté');
 
@@ -920,7 +950,10 @@ EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER update_equipment_inventory_updated_at
 BEFORE UPDATE ON public.equipment_inventory
 FOR EACH ROW
-EXECUTE FUNCTION public.update_updated_at_column();-- Add photo_url and unique_code columns to equipment_inventory
+EXECUTE FUNCTION public.update_updated_at_column();;
+
+
+-- Add photo_url and unique_code columns to equipment_inventory
 ALTER TABLE public.equipment_inventory 
 ADD COLUMN photo_url TEXT,
 ADD COLUMN unique_code TEXT;
@@ -948,9 +981,15 @@ $$ LANGUAGE plpgsql SET search_path = public;
 CREATE TRIGGER generate_equipment_code_trigger
 BEFORE INSERT ON public.equipment_inventory
 FOR EACH ROW
-EXECUTE FUNCTION public.generate_equipment_code();-- Add is_archived column to outings table
+EXECUTE FUNCTION public.generate_equipment_code();;
+
+
+-- Add is_archived column to outings table
 ALTER TABLE public.outings
-ADD COLUMN is_archived boolean NOT NULL DEFAULT false;-- Allow authenticated users to see profiles of participants in the same outings
+ADD COLUMN is_archived boolean NOT NULL DEFAULT false;;
+
+
+-- Allow authenticated users to see profiles of participants in the same outings
 CREATE POLICY "Members can view participant profiles in outings" 
 ON public.profiles 
 FOR SELECT 
@@ -964,7 +1003,10 @@ USING (
     AND r1.status != 'annulé'
     AND r2.status != 'annulé'
   )
-);-- Create a function to get the confirmed count for an outing (bypasses RLS)
+);;
+
+
+-- Create a function to get the confirmed count for an outing (bypasses RLS)
 CREATE OR REPLACE FUNCTION public.get_outing_confirmed_count(outing_uuid uuid)
 RETURNS integer
 LANGUAGE sql
@@ -976,7 +1018,10 @@ AS $$
   FROM public.reservations
   WHERE outing_id = outing_uuid
     AND status = 'confirmé'
-$$;-- Create a security definer function to get outing participants
+$$;;
+
+
+-- Create a security definer function to get outing participants
 -- This bypasses RLS to show all confirmed participants to members of the same outing
 CREATE OR REPLACE FUNCTION public.get_outing_participants(outing_uuid uuid)
 RETURNS TABLE (
@@ -1003,7 +1048,10 @@ AS $$
   ORDER BY 
     CASE WHEN p.member_status = 'Encadrant' THEN 0 ELSE 1 END,
     p.first_name
-$$;-- Add staff-only column to outings table
+$$;;
+
+
+-- Add staff-only column to outings table
 ALTER TABLE public.outings ADD COLUMN is_staff_only boolean NOT NULL DEFAULT false;
 
 -- Create a function to check if user is staff (encadrant or admin)
@@ -1045,9 +1093,15 @@ WITH CHECK (
     AND is_staff_only = true 
     AND NOT public.is_staff(auth.uid())
   )
-);-- Add estimated_value column to equipment_catalog table
+);;
+
+
+-- Add estimated_value column to equipment_catalog table
 ALTER TABLE public.equipment_catalog
-ADD COLUMN estimated_value numeric DEFAULT 0;-- Create sequence for member IDs
+ADD COLUMN estimated_value numeric DEFAULT 0;;
+
+
+-- Create sequence for member IDs
 CREATE SEQUENCE IF NOT EXISTS public.club_member_id_seq START 1;
 
 -- Create club_members_directory table for administrative CRM
@@ -1103,7 +1157,10 @@ CREATE TRIGGER set_club_member_id
 CREATE TRIGGER update_club_members_directory_updated_at
   BEFORE UPDATE ON public.club_members_directory
   FOR EACH ROW
-  EXECUTE FUNCTION public.update_updated_at_column();-- Add new columns to club_members_directory
+  EXECUTE FUNCTION public.update_updated_at_column();;
+
+
+-- Add new columns to club_members_directory
 ALTER TABLE public.club_members_directory 
   ADD COLUMN IF NOT EXISTS emergency_contact_name TEXT,
   ADD COLUMN IF NOT EXISTS emergency_contact_phone TEXT,
@@ -1116,12 +1173,18 @@ WHERE emergency_contact IS NOT NULL
   AND emergency_contact_name IS NULL;
 
 -- Drop the old column
-ALTER TABLE public.club_members_directory DROP COLUMN IF EXISTS emergency_contact;-- Add 4 boolean columns for administrative tracking
+ALTER TABLE public.club_members_directory DROP COLUMN IF EXISTS emergency_contact;;
+
+
+-- Add 4 boolean columns for administrative tracking
 ALTER TABLE public.club_members_directory 
   ADD COLUMN payment_status BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN medical_certificate_ok BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN buddies_charter_signed BOOLEAN NOT NULL DEFAULT false,
-  ADD COLUMN fsgt_insurance_ok BOOLEAN NOT NULL DEFAULT false;-- Create membership_yearly_status table for tracking member status per season
+  ADD COLUMN fsgt_insurance_ok BOOLEAN NOT NULL DEFAULT false;;
+
+
+-- Create membership_yearly_status table for tracking member status per season
 CREATE TABLE public.membership_yearly_status (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   member_id UUID NOT NULL REFERENCES public.club_members_directory(id) ON DELETE CASCADE,
@@ -1153,7 +1216,10 @@ FROM public.club_members_directory;
 CREATE TRIGGER update_membership_yearly_status_updated_at
 BEFORE UPDATE ON public.membership_yearly_status
 FOR EACH ROW
-EXECUTE FUNCTION public.update_updated_at_column();-- Add policy allowing users to view their own record in club_members_directory
+EXECUTE FUNCTION public.update_updated_at_column();;
+
+
+-- Add policy allowing users to view their own record in club_members_directory
 CREATE POLICY "Users can view their own directory record"
 ON public.club_members_directory
 FOR SELECT
@@ -1163,7 +1229,10 @@ USING (LOWER(email) = LOWER((SELECT email FROM auth.users WHERE id = auth.uid())
 CREATE POLICY "Users can update their own contact info"
 ON public.club_members_directory
 FOR UPDATE
-USING (LOWER(email) = LOWER((SELECT email FROM auth.users WHERE id = auth.uid())))-- Drop existing restrictive policies
+USING (LOWER(email) = LOWER((SELECT email FROM auth.users WHERE id = auth.uid())));
+
+
+-- Drop existing restrictive policies
 DROP POLICY IF EXISTS "Admins can manage club members directory" ON public.club_members_directory;
 DROP POLICY IF EXISTS "Users can view their own directory record" ON public.club_members_directory;
 DROP POLICY IF EXISTS "Users can update their own contact info" ON public.club_members_directory;
@@ -1186,7 +1255,10 @@ CREATE POLICY "Users can update their own contact info"
 ON public.club_members_directory 
 FOR UPDATE 
 TO authenticated
-USING (LOWER(email) = LOWER((SELECT email FROM auth.users WHERE id = auth.uid())));-- Avoid referencing auth.users in RLS (can cause permission errors)
+USING (LOWER(email) = LOWER((SELECT email FROM auth.users WHERE id = auth.uid())));;
+
+
+-- Avoid referencing auth.users in RLS (can cause permission errors)
 -- Use the email from the JWT instead.
 
 ALTER POLICY "Users can view their own directory record"
@@ -1196,22 +1268,34 @@ USING (lower(email) = lower((auth.jwt() ->> 'email')));
 ALTER POLICY "Users can update their own contact info"
 ON public.club_members_directory
 USING (lower(email) = lower((auth.jwt() ->> 'email')))
-WITH CHECK (lower(email) = lower((auth.jwt() ->> 'email')));-- Add board_role column for bureau members
+WITH CHECK (lower(email) = lower((auth.jwt() ->> 'email')));;
+
+
+-- Add board_role column for bureau members
 ALTER TABLE public.club_members_directory
 ADD COLUMN board_role TEXT NULL;
 
 -- Add comment for documentation
-COMMENT ON COLUMN public.club_members_directory.board_role IS 'Role in the club bureau: Président, Vice-Président, Trésorier, Secrétaire, etc.';-- Add policy for authenticated users to view all members in directory (for Trombinoscope)
+COMMENT ON COLUMN public.club_members_directory.board_role IS 'Role in the club bureau: Président, Vice-Président, Trésorier, Secrétaire, etc.';;
+
+
+-- Add policy for authenticated users to view all members in directory (for Trombinoscope)
 CREATE POLICY "Authenticated users can view directory for trombinoscope"
 ON public.club_members_directory
 FOR SELECT
 TO authenticated
-USING (true);-- Add is_encadrant column to club_members_directory
+USING (true);;
+
+
+-- Add is_encadrant column to club_members_directory
 ALTER TABLE public.club_members_directory
 ADD COLUMN is_encadrant BOOLEAN NOT NULL DEFAULT false;
 
 -- Comment for clarity
-COMMENT ON COLUMN public.club_members_directory.is_encadrant IS 'Indicates if the member is a staff/encadrant (source of truth for this status)';-- Drop the overly permissive policy that exposes all data
+COMMENT ON COLUMN public.club_members_directory.is_encadrant IS 'Indicates if the member is a staff/encadrant (source of truth for this status)';;
+
+
+-- Drop the overly permissive policy that exposes all data
 DROP POLICY IF EXISTS "Authenticated users can view directory for trombinoscope" ON public.club_members_directory;
 
 -- Create a secure view for trombinoscope that only exposes non-sensitive fields
@@ -1250,7 +1334,10 @@ ON public.club_members_directory
 FOR SELECT
 USING (has_role(auth.uid(), 'admin'));
 
--- Note: The existing "Users can view their own directory record" policy already handles self-access-- Drop the security definer view and recreate as SECURITY INVOKER (default, safer)
+-- Note: The existing "Users can view their own directory record" policy already handles self-access;
+
+
+-- Drop the security definer view and recreate as SECURITY INVOKER (default, safer)
 DROP VIEW IF EXISTS public.club_members_trombinoscope;
 
 -- Recreate view with SECURITY INVOKER (explicit) - queries run with caller's permissions
@@ -1277,7 +1364,10 @@ CREATE POLICY "Authenticated can select for trombinoscope view"
 ON public.club_members_directory
 FOR SELECT
 TO authenticated
-USING (true);-- Clean up: drop the view and the too-permissive policy
+USING (true);;
+
+
+-- Clean up: drop the view and the too-permissive policy
 DROP VIEW IF EXISTS public.club_members_trombinoscope;
 DROP POLICY IF EXISTS "Authenticated can select for trombinoscope view" ON public.club_members_directory;
 DROP POLICY IF EXISTS "Admins can view all directory records" ON public.club_members_directory;
@@ -1312,7 +1402,10 @@ AS $$
 $$;
 
 -- Grant execute to authenticated users
-GRANT EXECUTE ON FUNCTION public.get_trombinoscope_members() TO authenticated;-- Drop and recreate the function with avatar_url included
+GRANT EXECUTE ON FUNCTION public.get_trombinoscope_members() TO authenticated;;
+
+
+-- Drop and recreate the function with avatar_url included
 DROP FUNCTION IF EXISTS public.get_trombinoscope_members();
 
 CREATE FUNCTION public.get_trombinoscope_members()
@@ -1346,7 +1439,10 @@ AS $$
 $$;
 
 -- Grant execute to authenticated users
-GRANT EXECUTE ON FUNCTION public.get_trombinoscope_members() TO authenticated;-- Create a security definer function to check if current user is encadrant
+GRANT EXECUTE ON FUNCTION public.get_trombinoscope_members() TO authenticated;;
+
+
+-- Create a security definer function to check if current user is encadrant
 CREATE OR REPLACE FUNCTION public.is_current_user_encadrant()
 RETURNS boolean
 LANGUAGE sql
@@ -1364,7 +1460,10 @@ AS $$
 $$;
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION public.is_current_user_encadrant() TO authenticated;-- Create a table to store historical outing participants
+GRANT EXECUTE ON FUNCTION public.is_current_user_encadrant() TO authenticated;;
+
+
+-- Create a table to store historical outing participants
 -- These participants are linked to club_members_directory, not to app profiles
 CREATE TABLE public.historical_outing_participants (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -1391,7 +1490,10 @@ USING (true);
 
 -- Add index for better query performance
 CREATE INDEX idx_historical_participants_outing ON public.historical_outing_participants(outing_id);
-CREATE INDEX idx_historical_participants_member ON public.historical_outing_participants(member_id);-- Update get_club_stats function to include historical outings in all statistics
+CREATE INDEX idx_historical_participants_member ON public.historical_outing_participants(member_id);;
+
+
+-- Update get_club_stats function to include historical outings in all statistics
 CREATE OR REPLACE FUNCTION public.get_club_stats(p_year integer DEFAULT (EXTRACT(year FROM CURRENT_DATE))::integer)
  RETURNS json
  LANGUAGE plpgsql
@@ -1584,7 +1686,10 @@ BEGIN
 
   RETURN result;
 END;
-$function$;-- Create the carpools table for managing carpool offers
+$function$;;
+
+
+-- Create the carpools table for managing carpool offers
 CREATE TABLE public.carpools (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   outing_id UUID NOT NULL REFERENCES public.outings(id) ON DELETE CASCADE,
@@ -1707,12 +1812,18 @@ CREATE TRIGGER update_carpools_updated_at
 
 -- Create index for performance
 CREATE INDEX idx_carpools_outing_id ON public.carpools(outing_id);
-CREATE INDEX idx_carpool_passengers_carpool_id ON public.carpool_passengers(carpool_id);-- Add phone column to profiles table
+CREATE INDEX idx_carpool_passengers_carpool_id ON public.carpool_passengers(carpool_id);;
+
+
+-- Add phone column to profiles table
 ALTER TABLE public.profiles 
 ADD COLUMN phone text;
 
 -- Add comment for documentation
-COMMENT ON COLUMN public.profiles.phone IS 'User phone number for carpool contact';-- Add RLS policy for carpool participants to view driver profiles
+COMMENT ON COLUMN public.profiles.phone IS 'User phone number for carpool contact';;
+
+
+-- Add RLS policy for carpool participants to view driver profiles
 CREATE POLICY "Carpool participants can view driver profiles"
 ON public.profiles
 FOR SELECT
@@ -1725,7 +1836,10 @@ USING (
       AND r.user_id = auth.uid()
       AND r.status <> 'annulé'
   )
-);-- ÉTAPE 1: Table boats (Flotte externe)
+);;
+
+
+-- ÉTAPE 1: Table boats (Flotte externe)
 CREATE TABLE public.boats (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -1781,13 +1895,19 @@ CREATE POLICY "Anyone can view waypoints" ON public.site_waypoints
 -- ÉTAPE 3: Colonnes sur outings (Mode de départ)
 ALTER TABLE public.outings 
   ADD COLUMN dive_mode TEXT CHECK (dive_mode IN ('boat', 'shore')),
-  ADD COLUMN boat_id UUID REFERENCES public.boats(id) ON DELETE SET NULL;-- Add dive_zone to waypoint_type enum
+  ADD COLUMN boat_id UUID REFERENCES public.boats(id) ON DELETE SET NULL;;
+
+
+-- Add dive_zone to waypoint_type enum
 ALTER TYPE public.waypoint_type ADD VALUE IF NOT EXISTS 'dive_zone';
 
 -- Add columns for POSS PDF cartography images
 ALTER TABLE public.locations
 ADD COLUMN IF NOT EXISTS satellite_map_url TEXT,
-ADD COLUMN IF NOT EXISTS bathymetric_map_url TEXT;-- 1. Add new columns to membership_yearly_status
+ADD COLUMN IF NOT EXISTS bathymetric_map_url TEXT;;
+
+
+-- 1. Add new columns to membership_yearly_status
 ALTER TABLE public.membership_yearly_status
 ADD COLUMN IF NOT EXISTS is_encadrant BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN IF NOT EXISTS board_role TEXT,
@@ -1841,7 +1961,10 @@ DROP COLUMN IF EXISTS buddies_charter_signed,
 DROP COLUMN IF EXISTS fsgt_insurance_ok,
 DROP COLUMN IF EXISTS is_encadrant,
 DROP COLUMN IF EXISTS board_role,
-DROP COLUMN IF EXISTS apnea_level;-- Update get_trombinoscope_members to use membership_yearly_status for seasonal data
+DROP COLUMN IF EXISTS apnea_level;;
+
+
+-- Update get_trombinoscope_members to use membership_yearly_status for seasonal data
 CREATE OR REPLACE FUNCTION public.get_trombinoscope_members()
  RETURNS TABLE(id uuid, first_name text, last_name text, apnea_level text, board_role text, is_encadrant boolean, email text, avatar_url text)
  LANGUAGE sql
@@ -1894,11 +2017,16 @@ AS $function$
      LIMIT 1),
     false
   );
-$function$;-- Add organizer_member_id column to outings table for historical outings
+$function$;;
+
+
+-- Add organizer_member_id column to outings table for historical outings
 -- This stores the club_members_directory ID of the organizer
 -- Used when the organizer doesn't have an app account (no profile)
 ALTER TABLE public.outings 
 ADD COLUMN organizer_member_id uuid REFERENCES public.club_members_directory(id);
 
 -- Add comment for documentation
-COMMENT ON COLUMN public.outings.organizer_member_id IS 'For historical outings: references the organizer in club_members_directory. Used when organizer has no app account (organizer_id is null).';
+COMMENT ON COLUMN public.outings.organizer_member_id IS 'For historical outings: references the organizer in club_members_directory. Used when organizer has no app account (organizer_id is null).';;
+
+
