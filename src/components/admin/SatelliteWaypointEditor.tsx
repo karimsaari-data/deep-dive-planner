@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWaypoints, useCreateWaypoint, useDeleteWaypoint, WaypointType, getWaypointLabel, getWaypointColor, getWaypointIcon } from "@/hooks/useWaypoints";
+import { MapFullscreenToggle } from "@/components/map/MapFullscreenToggle";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 
@@ -241,10 +242,17 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
         Cliquez sur la carte pour ajouter un point de sécurité. La vue satellite permet un positionnement précis.
       </p>
 
-      <div ref={mapContainerRef}>
+      <div ref={mapContainerRef} className="relative">
         <div
           ref={mapRef}
           className="w-full h-80 rounded-lg shadow-sm border border-border"
+        />
+        <MapFullscreenToggle
+          mapContainerRef={mapContainerRef as React.RefObject<HTMLDivElement>}
+          mapInstanceRef={mapInstanceRef}
+          bgClass="bg-black"
+          originalHeightClass="h-80"
+          mapDivRef={mapRef as React.RefObject<HTMLDivElement>}
         />
       </div>
 
