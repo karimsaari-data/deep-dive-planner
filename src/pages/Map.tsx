@@ -486,11 +486,11 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
           <div className="lg:col-span-2">
-              <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
-                <CardContent className="p-0">
+              <Card className={`overflow-hidden shadow-card relative ${isFullscreen ? "h-screen w-screen bg-background" : ""}`} ref={mapContainerRef}>
+                <CardContent className={`p-0 ${isFullscreen ? "h-full" : ""}`}>
                   <div
                     ref={mapRef}
-                    className="h-[500px] w-full"
+                    className={`${isFullscreen ? "h-full" : "h-[75vh]"} w-full`}
                     style={{ zIndex: 0 }}
                   />
                   {/* Geolocation button */}

@@ -244,7 +244,7 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
       <div ref={mapContainerRef}>
         <div
           ref={mapRef}
-          className="w-full h-80 rounded-lg shadow-sm border border-border"
+          className="w-full h-[50vh] rounded-lg shadow-sm border border-border"
         />
       </div>
 

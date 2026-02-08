@@ -240,7 +240,7 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
       <div ref={mapContainerRef}>
         <div
           ref={mapRef}
-          className="w-full h-80 rounded-lg shadow-sm border border-ocean/30"
+          className="w-full h-[50vh] rounded-lg shadow-sm border border-ocean/30"
         />
 
         {/* Legend for PDF capture - shows numbered zones */}
