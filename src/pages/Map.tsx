@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocations, useCreateLocation, Location } from "@/hooks/useLocations";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useMapFullscreen, MapFullscreenButtons } from "@/components/map/MapFullscreenToggle";
 import { toast } from "sonner";
 
 // Haversine formula to calculate distance between two GPS points (in km)
@@ -82,7 +81,6 @@ const Map = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
-  const { isFullscreen, toggle: toggleFullscreen, exitFullscreen } = useMapFullscreen({ mapInstanceRef });
   const navigate = useNavigate();
 
   // State for create location dialog
@@ -488,37 +486,31 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
           <div className="lg:col-span-2">
-              <div
-                ref={mapContainerRef}
-                className={`relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-white" : ""}`}
-              >
-                <div
-                  ref={mapRef}
-                  className={isFullscreen ? "absolute inset-0" : "h-[500px] w-full rounded-lg overflow-hidden shadow-card"}
-                />
-                {/* Geolocation button */}
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute top-2.5 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
-                  onClick={centerOnUser}
-                  disabled={isLocating}
-                  title="Ma position"
-                >
-                  {isLocating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Crosshair className="h-4 w-4 text-primary" />
-                  )}
-                </Button>
-                {/* CSS Fullscreen toggle */}
-                <MapFullscreenButtons
-                  isFullscreen={isFullscreen}
-                  onToggle={toggleFullscreen}
-                  onExit={exitFullscreen}
-                />
+              <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
+                <CardContent className="p-0">
+                  <div
+                    ref={mapRef}
+                    className="h-[500px] w-full"
+                    style={{ zIndex: 0 }}
+                  />
+                  {/* Geolocation button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2.5 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                    onClick={centerOnUser}
+                    disabled={isLocating}
+                    title="Ma position"
+                  >
+                    {isLocating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Crosshair className="h-4 w-4 text-primary" />
+                    )}
+                  </Button>
+                </CardContent>
                 {/* Legend */}
-                <div className="absolute bottom-2 left-2 z-[1000] flex flex-wrap gap-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow text-xs text-muted-foreground">
+                <div className="flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground border-t border-border">
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow-sm" />
                     <span>Lieu validé (POSS)</span>
@@ -528,7 +520,7 @@ const Map = () => {
                     <span>Lieu sans cartographie</span>
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
 
             <div>
