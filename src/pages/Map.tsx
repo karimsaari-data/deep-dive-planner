@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search, X, Maximize2, Minimize2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocations, Location } from "@/hooks/useLocations";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocations, useCreateLocation, Location } from "@/hooks/useLocations";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 
@@ -49,17 +52,44 @@ const getTypeIcon = (type: string | null) => {
   }
 };
 
+// Custom marker icons based on POSS status
+const createLocationIcon = (hasPOSS: boolean) => {
+  const color = hasPOSS ? '#16a34a' : '#dc2626'; // green-600 / red-600
+  const glowColor = hasPOSS ? 'rgba(22,163,74,0.3)' : 'rgba(220,38,38,0.3)';
+  return L.divIcon({
+    className: 'custom-location-marker',
+    html: `<div style="width:28px;height:28px;background:${color};border:3px solid white;border-radius:50%;box-shadow:0 2px 8px ${glowColor}, 0 2px 4px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    </div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -14],
+  });
+};
+
 const Map = () => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const tempMarkerRef = useRef<L.Marker | null>(null);
+  const hasInitialFit = useRef(false);
   const { data: locations, isLoading } = useLocations();
+  const createLocation = useCreateLocation();
   const [mapReady, setMapReady] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
+
+  // State for create location dialog
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [newLocationName, setNewLocationName] = useState("");
+  const [newLocationType, setNewLocationType] = useState<string>("");
+  const [newLocationMaxDepth, setNewLocationMaxDepth] = useState("");
 
   // Filter locations with valid coordinates
   const locationsWithCoords = locations?.filter(
@@ -153,11 +183,140 @@ const Map = () => {
     );
   };
 
+  // Fullscreen toggle
+  const toggleFullscreen = useCallback(() => {
+    if (!mapContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      mapContainerRef.current.requestFullscreen().catch(() => {
+        toast.error("Le plein écran n'est pas supporté");
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
+
+  // Sync fullscreen state
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      // Let Leaflet recalculate dimensions with delay for DOM update
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 200);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // Remove temporary marker
+  const removeTempMarker = () => {
+    if (tempMarkerRef.current && mapInstanceRef.current) {
+      mapInstanceRef.current.removeLayer(tempMarkerRef.current);
+      tempMarkerRef.current = null;
+    }
+    setClickedCoords(null);
+  };
+
+  // Handle map click for organizers
+  const handleMapClick = (e: L.LeafletMouseEvent) => {
+    if (!isOrganizer || !mapInstanceRef.current) return;
+
+    const { lat, lng } = e.latlng;
+    
+    // Remove existing temp marker
+    removeTempMarker();
+
+    // Create temporary marker with popup
+    const tempIcon = L.divIcon({
+      className: 'temp-location-marker',
+      html: `<div style="width: 32px; height: 32px; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+        <span style="color: white; font-size: 16px;">+</span>
+      </div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    tempMarkerRef.current = L.marker([lat, lng], { icon: tempIcon })
+      .addTo(mapInstanceRef.current);
+
+    // Create popup content with button
+    const popupContent = document.createElement('div');
+    popupContent.innerHTML = `
+      <div style="min-width: 180px; text-align: center;">
+        <p style="margin: 0 0 8px 0; font-size: 13px; color: #64748b;">
+          ${lat.toFixed(5)}, ${lng.toFixed(5)}
+        </p>
+        <button id="create-location-btn" style="
+          width: 100%;
+          padding: 8px 16px;
+          background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        ">
+          ➕ Créer un lieu ici
+        </button>
+      </div>
+    `;
+
+    const popup = L.popup({ closeOnClick: false })
+      .setContent(popupContent);
+
+    tempMarkerRef.current.bindPopup(popup).openPopup();
+
+    // Add click handler for the button
+    setTimeout(() => {
+      const btn = document.getElementById('create-location-btn');
+      if (btn) {
+        btn.onclick = () => {
+          setClickedCoords({ lat, lng });
+          setShowCreateDialog(true);
+          tempMarkerRef.current?.closePopup();
+        };
+      }
+    }, 50);
+
+    setClickedCoords({ lat, lng });
+  };
+
+  // Handle create location form submit
+  const handleCreateLocation = async () => {
+    if (!clickedCoords || !newLocationName.trim()) {
+      toast.error("Le nom du lieu est obligatoire");
+      return;
+    }
+
+    try {
+      await createLocation.mutateAsync({
+        name: newLocationName.trim(),
+        type: newLocationType || undefined,
+        max_depth: newLocationMaxDepth ? parseFloat(newLocationMaxDepth) : undefined,
+        latitude: clickedCoords.lat,
+        longitude: clickedCoords.lng,
+      });
+
+      // Reset form and close dialog
+      setShowCreateDialog(false);
+      setNewLocationName("");
+      setNewLocationType("");
+      setNewLocationMaxDepth("");
+      removeTempMarker();
+      toast.success("Lieu créé avec succès !");
+    } catch (error) {
+      console.error("Error creating location:", error);
+    }
+  };
+
   // Initialize map with marine chart layers
   useEffect(() => {
-    // Important: during the first render we may show a loading state that doesn't mount the map div yet.
-    // If we keep an empty dependency array, the effect runs once with mapRef.current === null and never
-    // initializes the map. When data is cached, switching tabs re-mounts and it "magically" works.
     if (isLoading) return;
     if (!mapRef.current || mapInstanceRef.current) return;
 
@@ -230,6 +389,9 @@ const Map = () => {
     // Add scale control
     L.control.scale({ metric: true, imperial: false, position: "bottomleft" }).addTo(map);
 
+    // Add click handler for organizers
+    map.on("click", handleMapClick);
+
     mapInstanceRef.current = map;
     setMapReady(true);
 
@@ -246,8 +408,11 @@ const Map = () => {
       if (userMarkerRef.current) {
         userMarkerRef.current = null;
       }
+      if (tempMarkerRef.current) {
+        tempMarkerRef.current = null;
+      }
     };
-  }, [isLoading]);
+  }, [isLoading, isOrganizer]);
 
   // Add markers when locations change
   useEffect(() => {
@@ -255,7 +420,7 @@ const Map = () => {
 
     // Clear existing markers
     mapInstanceRef.current.eachLayer((layer) => {
-      if (layer instanceof L.Marker) {
+      if (layer instanceof L.Marker && layer !== userMarkerRef.current && layer !== tempMarkerRef.current) {
         mapInstanceRef.current?.removeLayer(layer);
       }
     });
@@ -263,7 +428,9 @@ const Map = () => {
     // Add new markers
     locationsWithCoords.forEach((location) => {
       if (location.latitude && location.longitude) {
-        const marker = L.marker([location.latitude, location.longitude])
+        const hasPOSS = location.satellite_map_url !== null || location.bathymetric_map_url !== null;
+        const icon = createLocationIcon(hasPOSS);
+        const marker = L.marker([location.latitude, location.longitude], { icon })
           .addTo(mapInstanceRef.current!);
 
         // Create popup with photo thumbnail
@@ -276,12 +443,17 @@ const Map = () => {
           ? `<button id="create-outing-${location.id}" style="margin-top: 8px; width: 100%; padding: 6px 12px; background: linear-gradient(135deg, #0369a1 0%, #0891b2 100%); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">➕ Organiser une sortie ici</button>`
           : "";
 
+        const possStatusHtml = hasPOSS
+          ? `<span style="background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 4px;">✓ POSS</span>`
+          : `<span style="background: #fef2f2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 4px;">Sans carto</span>`;
+
         const popupContent = `
           <div style="min-width: 200px;">
             ${photoHtml}
             <h3 style="font-weight: 600; margin: 0 0 8px 0;">${location.name}</h3>
             ${location.type ? `<span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${location.type}</span>` : ""}
             ${location.max_depth ? `<span style="background: #e0f2fe; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 4px;">Prof. ${location.max_depth}m</span>` : ""}
+            ${possStatusHtml}
             ${location.address ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #64748b;">${location.address}</p>` : ""}
             <div style="margin-top: 8px; display: flex; gap: 8px;">
               <a href="/location/${location.id}" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
@@ -306,12 +478,13 @@ const Map = () => {
       }
     });
 
-    // Fit bounds if we have markers
-    if (locationsWithCoords.length > 0) {
+    // Fit bounds only on initial load
+    if (!hasInitialFit.current && locationsWithCoords.length > 0) {
       const bounds = L.latLngBounds(
         locationsWithCoords.map((loc) => [loc.latitude!, loc.longitude!] as [number, number])
       );
       mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+      hasInitialFit.current = true;
     }
   }, [locationsWithCoords, mapReady, isOrganizer, navigate]);
 
@@ -333,17 +506,18 @@ const Map = () => {
             <h1 className="text-3xl font-bold text-foreground">Carte des sites</h1>
             <p className="mt-2 text-muted-foreground">
               Visualisez tous les lieux de plongée enregistrés
+              {isOrganizer && " • Cliquez sur la carte pour ajouter un lieu"}
             </p>
           </div>
 
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
-            <div className="lg:col-span-2">
-              <Card className="overflow-hidden shadow-card relative">
-                <CardContent className="p-0">
+          <div className="lg:col-span-2">
+              <Card className={`overflow-hidden shadow-card relative ${isFullscreen ? "h-screen w-screen bg-background" : ""}`} ref={mapContainerRef}>
+                <CardContent className={`p-0 ${isFullscreen ? "h-full" : ""}`}>
                   <div 
                     ref={mapRef} 
-                    className="h-[500px] w-full"
+                    className={`${isFullscreen ? "h-full" : "h-[500px]"} w-full`}
                     style={{ zIndex: 0 }}
                   />
                   {/* Geolocation button */}
@@ -361,7 +535,32 @@ const Map = () => {
                       <Crosshair className="h-4 w-4 text-primary" />
                     )}
                   </Button>
+                  {/* Fullscreen button */}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-32 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4 text-primary" />
+                    )}
+                  </Button>
                 </CardContent>
+                {/* Legend */}
+                <div className={`flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground ${isFullscreen ? "absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm z-[1000]" : "border-t border-border"}`}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow-sm" />
+                    <span>Lieu validé (POSS)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-red-600 border border-white shadow-sm" />
+                    <span>Lieu sans cartographie</span>
+                  </div>
+                </div>
               </Card>
             </div>
 
@@ -483,6 +682,90 @@ const Map = () => {
           )}
         </div>
       </section>
+
+      {/* Create Location Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        setShowCreateDialog(open);
+        if (!open) removeTempMarker();
+      }}>
+        <DialogContent className="sm:max-w-md" container={isFullscreen ? mapContainerRef.current : null}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Créer un nouveau lieu
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {clickedCoords && (
+              <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                <strong>Coordonnées GPS :</strong><br />
+                Latitude : {clickedCoords.lat.toFixed(6)}<br />
+                Longitude : {clickedCoords.lng.toFixed(6)}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="location-name">Nom du lieu *</Label>
+              <Input
+                id="location-name"
+                placeholder="Ex: Calanque de Sormiou"
+                value={newLocationName}
+                onChange={(e) => setNewLocationName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location-type">Type</Label>
+              <Select value={newLocationType} onValueChange={setNewLocationType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mer">Mer</SelectItem>
+                  <SelectItem value="Piscine">Piscine</SelectItem>
+                  <SelectItem value="Fosse">Fosse</SelectItem>
+                  <SelectItem value="Étang">Étang</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="location-depth">Profondeur max (m)</Label>
+              <Input
+                id="location-depth"
+                type="number"
+                placeholder="Ex: 25"
+                value={newLocationMaxDepth}
+                onChange={(e) => setNewLocationMaxDepth(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateDialog(false);
+                removeTempMarker();
+              }}
+            >
+              Annuler
+            </Button>
+            <Button 
+              onClick={handleCreateLocation}
+              disabled={!newLocationName.trim() || createLocation.isPending}
+            >
+              {createLocation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Créer le lieu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

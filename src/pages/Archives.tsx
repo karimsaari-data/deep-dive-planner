@@ -348,10 +348,10 @@ const Archives = () => {
   // For historical outings: all participants are considered present
   // For regular outings: use confirmed/present from reservations
   const totalConfirmed = filteredOutings?.reduce((acc, o) => 
-    o.isHistorical ? o.totalParticipantCount : o.confirmedParticipants.length, 0
+    acc + (o.isHistorical ? o.totalParticipantCount : o.confirmedParticipants.length), 0
   ) ?? 0;
   const totalPresent = filteredOutings?.reduce((acc, o) => 
-    o.isHistorical ? o.totalParticipantCount : o.presentParticipants.length, 0
+    acc + (o.isHistorical ? o.totalParticipantCount : o.presentParticipants.length), 0
   ) ?? 0;
   const presenceRate = totalConfirmed > 0 ? Math.round((totalPresent / totalConfirmed) * 100) : 0;
 
@@ -423,7 +423,7 @@ const Archives = () => {
             <Card className="shadow-card">
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">Participations totales</p>
-                <p className="text-2xl font-bold text-foreground">{totalPresent}</p>
+                <p className="text-2xl font-bold text-foreground">{totalConfirmed}</p>
               </CardContent>
             </Card>
             <Card className="shadow-card">
