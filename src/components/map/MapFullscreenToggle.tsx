@@ -8,45 +8,54 @@ interface UseMapFullscreenOptions {
 
 /**
  * Hook that manages CSS-based fullscreen state for a Leaflet map.
- * Returns isFullscreen state, toggle/exit functions, and a button overlay component.
+ * Uses useEffect to call invalidateSize() after React has committed DOM changes.
  */
 function useMapFullscreen({ mapInstanceRef }: UseMapFullscreenOptions) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const enterFullscreen = useCallback(() => {
-    setIsFullscreen(true);
-    setTimeout(() => {
-      mapInstanceRef.current?.invalidateSize();
-    }, 200);
-  }, [mapInstanceRef]);
+  // Call invalidateSize after DOM update when fullscreen state changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    // Multiple calls to ensure tiles load after layout recalculation
+    const raf = requestAnimationFrame(() => {
+      map.invalidateSize({ animate: false });
+    });
+    const t1 = setTimeout(() => {
+      map.invalidateSize({ animate: false });
+    }, 100);
+    const t2 = setTimeout(() => {
+      map.invalidateSize({ animate: false });
+    }, 300);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [isFullscreen, mapInstanceRef]);
+
+  const toggle = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
 
   const exitFullscreen = useCallback(() => {
     setIsFullscreen(false);
-    setTimeout(() => {
-      mapInstanceRef.current?.invalidateSize();
-    }, 200);
-  }, [mapInstanceRef]);
-
-  const toggle = useCallback(() => {
-    if (isFullscreen) {
-      exitFullscreen();
-    } else {
-      enterFullscreen();
-    }
-  }, [isFullscreen, enterFullscreen, exitFullscreen]);
+  }, []);
 
   // Listen for Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isFullscreen) {
-        exitFullscreen();
+        setIsFullscreen(false);
       }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isFullscreen, exitFullscreen]);
+  }, [isFullscreen]);
 
-  return { isFullscreen, toggle, exitFullscreen, enterFullscreen };
+  return { isFullscreen, toggle, exitFullscreen };
 }
 
 interface MapFullscreenButtonsProps {

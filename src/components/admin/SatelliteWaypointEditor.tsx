@@ -247,7 +247,7 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
       <div ref={mapContainerRef} className={`relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-black" : ""}`}>
         <div
           ref={mapRef}
-          className={`w-full ${isFullscreen ? "h-full" : "h-80"} rounded-lg shadow-sm border border-border`}
+          className={isFullscreen ? "absolute inset-0" : "w-full h-80 rounded-lg shadow-sm border border-border"}
         />
         <MapFullscreenButtons
           isFullscreen={isFullscreen}
