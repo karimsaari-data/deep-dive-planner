@@ -492,7 +492,7 @@ const Map = () => {
                 <CardContent className="p-0 h-full">
                   <div
                     ref={mapRef}
-                    className={`${isFullscreen ? "h-full" : "h-[500px]"} w-full`}
+                    className={`w-full ${isFullscreen ? "h-screen" : "h-[500px]"}`}
                     style={{ zIndex: 0 }}
                   />
                   {/* Geolocation button */}
