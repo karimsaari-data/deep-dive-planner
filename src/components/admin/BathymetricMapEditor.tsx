@@ -243,7 +243,7 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
       <div ref={mapContainerRef} className={`relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-white" : ""}`}>
         <div
           ref={mapRef}
-          className={`w-full ${isFullscreen ? "h-screen" : "h-80"} rounded-lg shadow-sm border border-ocean/30`}
+          className={isFullscreen ? "absolute inset-0" : "w-full h-80 rounded-lg shadow-sm border border-ocean/30"}
         />
         <MapFullscreenButtons
           isFullscreen={isFullscreen}

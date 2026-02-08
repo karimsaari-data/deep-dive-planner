@@ -488,35 +488,35 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
           <div className="lg:col-span-2">
-              <Card className={`overflow-hidden shadow-card relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-white" : ""}`} ref={mapContainerRef}>
-                <CardContent className="p-0 h-full">
-                  <div
-                    ref={mapRef}
-                    className={`w-full ${isFullscreen ? "h-screen" : "h-[500px]"}`}
-                    style={{ zIndex: 0 }}
-                  />
-                  {/* Geolocation button */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-20 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
-                    onClick={centerOnUser}
-                    disabled={isLocating}
-                    title="Ma position"
-                  >
-                    {isLocating ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Crosshair className="h-4 w-4 text-primary" />
-                    )}
-                  </Button>
-                  {/* CSS Fullscreen toggle */}
-                  <MapFullscreenButtons
-                    isFullscreen={isFullscreen}
-                    onToggle={toggleFullscreen}
-                    onExit={exitFullscreen}
-                  />
-                </CardContent>
+              <div
+                ref={mapContainerRef}
+                className={`relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-white" : ""}`}
+              >
+                <div
+                  ref={mapRef}
+                  className={isFullscreen ? "absolute inset-0" : "h-[500px] w-full rounded-lg overflow-hidden shadow-card"}
+                />
+                {/* Geolocation button */}
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-2.5 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                  onClick={centerOnUser}
+                  disabled={isLocating}
+                  title="Ma position"
+                >
+                  {isLocating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Crosshair className="h-4 w-4 text-primary" />
+                  )}
+                </Button>
+                {/* CSS Fullscreen toggle */}
+                <MapFullscreenButtons
+                  isFullscreen={isFullscreen}
+                  onToggle={toggleFullscreen}
+                  onExit={exitFullscreen}
+                />
                 {/* Legend */}
                 <div className="absolute bottom-2 left-2 z-[1000] flex flex-wrap gap-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
@@ -528,7 +528,7 @@ const Map = () => {
                     <span>Lieu sans cartographie</span>
                   </div>
                 </div>
-              </Card>
+              </div>
             </div>
 
             <div>
