@@ -242,7 +242,7 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
           ref={mapRef}
           className="w-full h-[50vh] rounded-lg shadow-sm border border-ocean/30"
         />
-        
+
         {/* Legend for PDF capture - shows numbered zones */}
         {diveZoneWaypoints.length > 0 && (
           <div className="mt-2 p-3 bg-white rounded-lg border border-ocean/20 space-y-1">

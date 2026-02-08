@@ -93,6 +93,7 @@ const HEADER_MAP: Record<string, string> = {
   niveauapnee: "apnea_level",
   apnee: "apnea_level",
   apneelevel: "apnea_level",
+  apnealevel: "apnea_level",
   niveau: "apnea_level",
   genre: "gender",
   sexe: "gender",
