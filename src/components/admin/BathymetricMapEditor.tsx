@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWaypoints, useCreateWaypoint, useDeleteWaypoint, getWaypointLabel, getWaypointColor, getWaypointIcon } from "@/hooks/useWaypoints";
+import { MapFullscreenToggle } from "@/components/map/MapFullscreenToggle";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 
@@ -237,15 +238,22 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
         Carte marine SHOM avec les profondeurs. Cliquez pour définir la zone d'immersion.
       </p>
 
-      <div ref={mapContainerRef}>
+      <div ref={mapContainerRef} className="relative">
         <div
           ref={mapRef}
           className="w-full h-80 rounded-lg shadow-sm border border-ocean/30"
         />
-        
+        <MapFullscreenToggle
+          mapContainerRef={mapContainerRef as React.RefObject<HTMLDivElement>}
+          mapInstanceRef={mapInstanceRef}
+          bgClass="bg-white"
+          originalHeightClass="h-80"
+          mapDivRef={mapRef as React.RefObject<HTMLDivElement>}
+        />
+
         {/* Legend for PDF capture - shows numbered zones */}
         {diveZoneWaypoints.length > 0 && (
-          <div className="mt-2 p-3 bg-white rounded-lg border border-ocean/20 space-y-1">
+          <div className="absolute bottom-2 left-2 z-[1000] p-3 bg-white/90 backdrop-blur-sm rounded-lg shadow space-y-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Légende des zones</p>
             {diveZoneWaypoints.map((waypoint, index) => (
               <div key={waypoint.id} className="flex items-center gap-2 text-sm">
