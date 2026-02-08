@@ -2,67 +2,30 @@ import { useState, useEffect, useCallback, RefObject } from "react";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface MapFullscreenToggleProps {
-  mapContainerRef: RefObject<HTMLDivElement>;
+interface UseMapFullscreenOptions {
   mapInstanceRef: RefObject<L.Map | null>;
-  /** Background class applied to the container in fullscreen mode (default: "bg-white") */
-  bgClass?: string;
-  /** Original height class on the inner map div to restore when exiting fullscreen */
-  originalHeightClass?: string;
-  /** Ref to the inner map div whose height toggles between originalHeightClass and h-full */
-  mapDivRef?: RefObject<HTMLDivElement>;
 }
 
-const FULLSCREEN_CLASSES = ["fixed", "inset-0", "z-[9999]"];
-
-const MapFullscreenToggle = ({
-  mapContainerRef,
-  mapInstanceRef,
-  bgClass = "bg-white",
-  originalHeightClass = "h-80",
-  mapDivRef,
-}: MapFullscreenToggleProps) => {
+/**
+ * Hook that manages CSS-based fullscreen state for a Leaflet map.
+ * Returns isFullscreen state, toggle/exit functions, and a button overlay component.
+ */
+function useMapFullscreen({ mapInstanceRef }: UseMapFullscreenOptions) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const enterFullscreen = useCallback(() => {
-    const container = mapContainerRef.current;
-    if (!container) return;
-
-    FULLSCREEN_CLASSES.forEach((cls) => container.classList.add(cls));
-    container.classList.add(bgClass);
-
-    // Make the inner map div fill the container
-    if (mapDivRef?.current) {
-      mapDivRef.current.classList.remove(originalHeightClass);
-      mapDivRef.current.classList.add("h-full");
-    }
-
     setIsFullscreen(true);
-
     setTimeout(() => {
       mapInstanceRef.current?.invalidateSize();
     }, 200);
-  }, [mapContainerRef, mapInstanceRef, bgClass, originalHeightClass, mapDivRef]);
+  }, [mapInstanceRef]);
 
   const exitFullscreen = useCallback(() => {
-    const container = mapContainerRef.current;
-    if (!container) return;
-
-    FULLSCREEN_CLASSES.forEach((cls) => container.classList.remove(cls));
-    container.classList.remove(bgClass);
-
-    // Restore original height on the inner map div
-    if (mapDivRef?.current) {
-      mapDivRef.current.classList.remove("h-full");
-      mapDivRef.current.classList.add(originalHeightClass);
-    }
-
     setIsFullscreen(false);
-
     setTimeout(() => {
       mapInstanceRef.current?.invalidateSize();
     }, 200);
-  }, [mapContainerRef, mapInstanceRef, bgClass, originalHeightClass, mapDivRef]);
+  }, [mapInstanceRef]);
 
   const toggle = useCallback(() => {
     if (isFullscreen) {
@@ -83,6 +46,20 @@ const MapFullscreenToggle = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isFullscreen, exitFullscreen]);
 
+  return { isFullscreen, toggle, exitFullscreen, enterFullscreen };
+}
+
+interface MapFullscreenButtonsProps {
+  isFullscreen: boolean;
+  onToggle: () => void;
+  onExit: () => void;
+}
+
+/**
+ * Renders the fullscreen toggle button and mobile exit button.
+ * Must be placed inside a positioned (relative/absolute) container.
+ */
+const MapFullscreenButtons = ({ isFullscreen, onToggle, onExit }: MapFullscreenButtonsProps) => {
   return (
     <>
       {/* Fullscreen toggle button (icon) */}
@@ -90,7 +67,7 @@ const MapFullscreenToggle = ({
         variant="secondary"
         size="icon"
         className="absolute top-2.5 left-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
-        onClick={toggle}
+        onClick={onToggle}
         title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
       >
         {isFullscreen ? (
@@ -103,7 +80,7 @@ const MapFullscreenToggle = ({
       {/* Mobile exit button (visible only in fullscreen) */}
       {isFullscreen && (
         <button
-          onClick={exitFullscreen}
+          onClick={onExit}
           className="absolute top-2.5 right-2.5 z-[1000] flex items-center gap-1.5 rounded-lg bg-white/90 backdrop-blur-sm px-3 py-2 text-sm font-medium text-gray-700 shadow-md hover:bg-white"
         >
           <X className="h-4 w-4" />
@@ -114,5 +91,4 @@ const MapFullscreenToggle = ({
   );
 };
 
-export { MapFullscreenToggle };
-export type { MapFullscreenToggleProps };
+export { useMapFullscreen, MapFullscreenButtons };

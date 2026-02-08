@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocations, useCreateLocation, Location } from "@/hooks/useLocations";
 import { useUserRole } from "@/hooks/useUserRole";
-import { MapFullscreenToggle } from "@/components/map/MapFullscreenToggle";
+import { useMapFullscreen, MapFullscreenButtons } from "@/components/map/MapFullscreenToggle";
 import { toast } from "sonner";
 
 // Haversine formula to calculate distance between two GPS points (in km)
@@ -82,6 +82,7 @@ const Map = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
+  const { isFullscreen, toggle: toggleFullscreen, exitFullscreen } = useMapFullscreen({ mapInstanceRef });
   const navigate = useNavigate();
 
   // State for create location dialog
@@ -487,11 +488,11 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
           <div className="lg:col-span-2">
-              <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
+              <Card className={`overflow-hidden shadow-card relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-white" : ""}`} ref={mapContainerRef}>
                 <CardContent className="p-0 h-full">
                   <div
                     ref={mapRef}
-                    className="h-[500px] w-full"
+                    className={`${isFullscreen ? "h-full" : "h-[500px]"} w-full`}
                     style={{ zIndex: 0 }}
                   />
                   {/* Geolocation button */}
@@ -510,15 +511,13 @@ const Map = () => {
                     )}
                   </Button>
                   {/* CSS Fullscreen toggle */}
-                  <MapFullscreenToggle
-                    mapContainerRef={mapContainerRef as React.RefObject<HTMLDivElement>}
-                    mapInstanceRef={mapInstanceRef}
-                    bgClass="bg-white"
-                    originalHeightClass="h-[500px]"
-                    mapDivRef={mapRef as React.RefObject<HTMLDivElement>}
+                  <MapFullscreenButtons
+                    isFullscreen={isFullscreen}
+                    onToggle={toggleFullscreen}
+                    onExit={exitFullscreen}
                   />
                 </CardContent>
-                {/* Legend - overlay in fullscreen via CSS, normal flow otherwise */}
+                {/* Legend */}
                 <div className="absolute bottom-2 left-2 z-[1000] flex flex-wrap gap-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow-sm" />
