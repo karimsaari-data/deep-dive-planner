@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useWaypoints, useCreateWaypoint, useDeleteWaypoint, getWaypointLabel, getWaypointColor, getWaypointIcon } from "@/hooks/useWaypoints";
-import { useMapFullscreen, MapFullscreenButtons } from "@/components/map/MapFullscreenToggle";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 
@@ -31,8 +30,6 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
   const markersRef = useRef<L.Marker[]>([]);
   const tempMarkerRef = useRef<L.Marker | null>(null);
   
-  const { isFullscreen, toggle: toggleFullscreen, exitFullscreen } = useMapFullscreen({ mapInstanceRef });
-
   const [isAddingMode, setIsAddingMode] = useState(false);
   const [newPointName, setNewPointName] = useState("Zone de plongée");
   const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -240,20 +237,15 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
         Carte marine SHOM avec les profondeurs. Cliquez pour définir la zone d'immersion.
       </p>
 
-      <div ref={mapContainerRef} className={`relative ${isFullscreen ? "fixed inset-0 z-[9999] bg-white" : ""}`}>
+      <div ref={mapContainerRef}>
         <div
           ref={mapRef}
-          className={isFullscreen ? "absolute inset-0" : "w-full h-80 rounded-lg shadow-sm border border-ocean/30"}
-        />
-        <MapFullscreenButtons
-          isFullscreen={isFullscreen}
-          onToggle={toggleFullscreen}
-          onExit={exitFullscreen}
+          className="w-full h-80 rounded-lg shadow-sm border border-ocean/30"
         />
 
         {/* Legend for PDF capture - shows numbered zones */}
         {diveZoneWaypoints.length > 0 && (
-          <div className="absolute bottom-2 left-2 z-[1000] p-3 bg-white/90 backdrop-blur-sm rounded-lg shadow space-y-1">
+          <div className="mt-2 p-3 bg-white rounded-lg border border-ocean/20 space-y-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Légende des zones</p>
             {diveZoneWaypoints.map((waypoint, index) => (
               <div key={waypoint.id} className="flex items-center gap-2 text-sm">
