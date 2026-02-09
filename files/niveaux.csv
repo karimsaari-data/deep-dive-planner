@@ -1,0 +1,71 @@
+﻿Code;Nom;Prérogatives;Encadrement;FEDERATION_1;FEDERATION_2
+AIDA 1;AIDA 1;Introduction (piscine);non;AIDA;Association Internationale pour le Développement de l'Apnée
+AIDA 2;AIDA 2;-16m / 40m dynamique;non;AIDA;Association Internationale pour le Développement de l'Apnée
+AIDA 3;AIDA 3;-30m / 60m dynamique;non;AIDA;Association Internationale pour le Développement de l'Apnée
+AIDA 4;AIDA 4;-40m / 80m dynamique;non;AIDA;Association Internationale pour le Développement de l'Apnée
+AIDA Instructor;AIDA Instructor;AIDA 1 à 3- Enseignement international- Délivrance certifications AIDA;oui;AIDA;Association Internationale pour le Développement de l'Apnée
+AIDA Master;Master;Formation instructeur;non;AIDA;Association Internationale pour le Développement de l'Apnée
+BPJEPS;BPJEPS; apnée variable- Initiation découverte- Apprentissage -20/-30m- Encadrement rémunéré légal;oui;Diplôme d'État Supérieur de la Jeunesse, de l'Éducation Populaire et du Sport;
+CMAS 1;CMAS Apnea Diver (1 étoile);-10m;non;CMAS;Confédération Mondiale des Activités Subaquatiques
+CMAS 2;CMAS 2;-20m;non;CMAS;Confédération Mondiale des Activités Subaquatiques
+CMAS 3;CMAS 3;-30m;non;CMAS;Confédération Mondiale des Activités Subaquatiques
+CMAS 4;CMAS 4;-40m;non;CMAS;Confédération Mondiale des Activités Subaquatiques
+DEJEPS;DEJEPS Plongée + Apnée; Encadrement -40m- Coordination équipes- Direction structure- Formation cadres;oui;Diplôme d'État Supérieur de la Jeunesse, de l'Éducation Populaire et du Sport;
+DESJEPS;DESJEPS;Direction structures complexes- Formation formateurs- Expertise nationale;oui;Diplôme d'État Supérieur de la Jeunesse, de l'Éducation Populaire et du Sport;
+FFESSM A1;FFESSM Apnée 1;-10m;non;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM A2;FFESSM Apnée 2;-20m;non;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM A3;FFESSM Apnée 3;-30m;non;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM A4;FFESSM Apnée 4;-40m;non;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM A5;FFESSM Apnée 5;-50m+;non;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM AEEL;FFESSM AEEL;-20m;non;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM E1;E1 (Initiateur);Baptêmes découverte- Apnée 1 en autonomie- Assistance Apnée 2 (sous tutorat E2+);oui;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM E2;E2 (Moniteur 1er degré);Apnée 1 et 2 en autonomie- Préparation Apnée 3- Formation E1 (sous tutorat E3);oui;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM E3;E3 (Moniteur 2ème degré);Tous niveaux Apnée (1 à 5)- Formation E1 et E2- Responsabilité pédagogique club;oui;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FFESSM E4;E4 (Instructeur national);Formation de tous niveaux- Formation E1-E2-E3- Jurys examens- Expertise nationale;oui;FFESSM;Fédération Française d'Études et de Sports Sous-Marins
+FSGT A1;Apnée 1 FSGT;-10 à -15m;non;FSGT;Fédération Sportive et Gymnique du Travail
+FSGT A2;Apnée 2 FSGT;-20 à -25m;non;FSGT;Fédération Sportive et Gymnique du Travail
+FSGT A3;Apnée 3 FSGT;-30 à -40m;non;FSGT;Fédération Sportive et Gymnique du Travail
+FSGT CT;Cadre Technique;Formation formateurs- Jurys- Expertise régionale/nationale;oui;FSGT;Fédération Sportive et Gymnique du Travail
+FSGT EA1;EA1;Découverte/baptêmes- Assistance formations- Pas autonomie complète;oui;FSGT;Fédération Sportive et Gymnique du Travail
+FSGT EA2;EA2;Apnée 1 FSGT autonome- Apnée 2 FSGT autonome ou tutorat selon comité- Assistance Apnée 3;oui;FSGT;Fédération Sportive et Gymnique du Travail
+FSGT EA3;EA3;Tous niveaux élèves (Apnée 1-2-3 FSGT)- Formation EA1-EA2- Responsable technique club;oui;FSGT;Fédération Sportive et Gymnique du Travail
+MOL Advanced Instructor;Advanced Instructor;Wave 1-3, Lap 1-3;oui;Molchanovs;
+MOL Instructor;Instructor;Wave 1-2, Lap 1-2;oui;Molchanovs;
+MOL Master Instructor;Master Instructor;Tous niveaux + formation instructeurs;oui;Molchanovs;
+PADI Advanced Freediver;PADI Advanced Freediver;-24m;non;PADI; Professional Association of Diving Instructors
+PADI Basic Freediver;PADI Basic Freediver;-10m;non;PADI; Professional Association of Diving Instructors
+PADI Freediver;PADI Freediver;-16m;non;PADI; Professional Association of Diving Instructors
+PADI Freediver Instructor;PADI Freediver Instructor;Basic Freediver- PADI Freediver- Advanced Freediver- Réseau mondial PADI;oui;PADI; Professional Association of Diving Instructors
+PADI Master Freediver;PADI Master Freediver;-32m;non;PADI; Professional Association of Diving Instructors
+SSI 1;SSI 1;-20m;non;SSI; Scuba Schools International
+SSI 2;SSI 2;-30m;non;SSI; Scuba Schools International
+SSI 3;SSI 3;-40m;non;SSI; Scuba Schools International
+SSI AI;Assistant Instructor (AI);"Niveau intermédiaire entre Divemaster et Instructeur.
+Enseignement partiel sous supervision.
+Évaluation de certaines compétences.
+Pas d’autonomie complète sur les cursus.";oui;SSI; Scuba Schools International
+SSI AOWI;Advanced Open Water Instructor (AOWI);"Instructeur étendu.
+Certification Advanced Adventurer et spécialités.
+Encadrement de plongeurs intermédiaires.";oui;SSI; Scuba Schools International
+SSI BF;Basic Freediving;-12m;non;SSI; Scuba Schools International
+SSI Divemaster Instructor;Divemaster Instructor;"Formation et certification des Divemasters.
+Responsabilité d’encadrement professionnel.";oui;SSI; Scuba Schools International
+SSI DM;Divemaster (DM);"Premier niveau professionnel.
+Encadrement de plongeurs certifiés.
+Assistance pédagogique aux instructeurs.";oui;SSI; Scuba Schools International
+SSI IT;Instructor Trainer (IT);"Formateur d’instructeurs.
+Conduit les Instructor Training Courses (ITC).
+Niveau le plus élevé de l’encadrement SSI.";oui;SSI; Scuba Schools International
+SSI Master Instructor;Master Instructor;"Instructeur senior reconnu par SSI.
+Large portefeuille de spécialités.
+Expérience pédagogique significative.";oui;SSI; Scuba Schools International
+SSI MF;Master Freediver;-;non;SSI; Scuba Schools International
+SSI OWI;Open Water Instructor (OWI);"Instructeur autonome.
+Formation et certification jusqu’à Open Water Diver.
+Encadrement pédagogique complet des débutants.";oui;SSI; Scuba Schools International
+SSI TF;Try Freediving;-5m;non;SSI; Scuba Schools International
+MOL Wave 1;Wave 1;-20m;non;Molchanovs;
+MOL Wave 2;Wave 2;-30m;non;Molchanovs;
+MOL Wave 3;Wave 3;-40m;non;Molchanovs;
+MOL Wave 4;Wave 4;-55m;non;Molchanovs;
+MOL Wave 5;Wave 5;-70m;non;Molchanovs;
