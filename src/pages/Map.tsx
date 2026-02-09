@@ -429,7 +429,7 @@ const Map = () => {
             ${possStatusHtml}
             ${location.address ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #64748b;">${location.address}</p>` : ""}
             <div style="margin-top: 8px; display: flex; gap: 8px;">
-              <a href="/location/${location.id}" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
+              <a id="detail-link-${location.id}" href="#" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
               ${location.maps_url ? `<a href="${location.maps_url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">📍 Itinéraire</a>` : ""}
             </div>
             ${createOutingBtn}
@@ -439,8 +439,15 @@ const Map = () => {
         const popup = L.popup().setContent(popupContent);
         marker.bindPopup(popup);
 
-        // Add event listener for the create outing button
+        // Add event listeners for popup buttons
         marker.on('popupopen', () => {
+          const detailLink = document.getElementById(`detail-link-${location.id}`);
+          if (detailLink) {
+            detailLink.onclick = (e) => {
+              e.preventDefault();
+              navigate(`/location/${location.id}`);
+            };
+          }
           const btn = document.getElementById(`create-outing-${location.id}`);
           if (btn) {
             btn.onclick = () => {
