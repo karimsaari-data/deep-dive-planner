@@ -38,12 +38,13 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false 
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
   const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
+  const isBureau = showBoardRole && !!member.board_role;
 
   return (
     <div className="flex flex-col items-center text-center group">
-      {/* Avatar with optional glow effect for BPJEPS/DEJEPS */}
-      <div className={`relative ${isTopTier ? "before:absolute before:inset-0 before:rounded-full before:bg-amber-400/40 before:blur-lg before:animate-pulse" : ""}`}>
-        <Avatar className={`h-20 w-20 md:h-24 md:w-24 transition-transform duration-200 md:group-hover:scale-110 relative z-10 ${isTopTier ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30" : "ring-2 ring-border/50"}`}>
+      {/* Avatar with optional glow effect for BPJEPS/DEJEPS or bureau */}
+      <div className={`relative ${isTopTier ? "before:absolute before:inset-0 before:rounded-full before:bg-amber-400/40 before:blur-lg before:animate-pulse" : isBureau ? "before:absolute before:inset-0 before:rounded-full before:bg-primary/30 before:blur-lg before:animate-pulse" : ""}`}>
+        <Avatar className={`h-20 w-20 md:h-24 md:w-24 transition-transform duration-200 md:group-hover:scale-110 relative z-10 ${isTopTier ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30" : isBureau ? "ring-4 ring-primary shadow-lg shadow-primary/30" : "ring-2 ring-border/50"}`}>
           {member.avatar_url ? (
             <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />
           ) : null}

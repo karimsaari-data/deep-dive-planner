@@ -18,7 +18,7 @@ interface SatelliteWaypointEditorProps {
 }
 
 // All waypoint types for the main satellite map
-const SATELLITE_POINT_TYPES: WaypointType[] = ["parking", "water_entry", "water_exit", "meeting_point", "dive_zone"];
+const SATELLITE_POINT_TYPES: WaypointType[] = ["parking", "water_entry", "water_exit", "meeting_point", "dive_zone", "toilet"];
 
 const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: SatelliteWaypointEditorProps) => {
   const { data: waypoints, isLoading } = useWaypoints(siteId);
@@ -202,19 +202,30 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
     toast.info("Génération de l'image HD en cours...");
     
     try {
-      // Hide Leaflet controls temporarily
+      // Hide Leaflet controls and tile borders temporarily
       const controls = mapContainerRef.current.querySelectorAll('.leaflet-control-container');
       controls.forEach(ctrl => (ctrl as HTMLElement).style.display = 'none');
-      
+      const tiles = mapContainerRef.current.querySelectorAll('.leaflet-tile');
+      tiles.forEach(tile => {
+        (tile as HTMLElement).style.outline = 'none';
+        (tile as HTMLElement).style.border = 'none';
+      });
+      // Force a small delay for style application
+      await new Promise(r => setTimeout(r, 100));
+
       const canvas = await html2canvas(mapContainerRef.current, {
         useCORS: true,
         allowTaint: true,
         scale: 2, // HD quality
         backgroundColor: null,
       });
-      
-      // Restore controls
+
+      // Restore controls and tile styles
       controls.forEach(ctrl => (ctrl as HTMLElement).style.display = '');
+      tiles.forEach(tile => {
+        (tile as HTMLElement).style.outline = '';
+        (tile as HTMLElement).style.border = '';
+      });
       
       // Download the image
       const link = document.createElement('a');
@@ -244,7 +255,7 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
       <div ref={mapContainerRef}>
         <div
           ref={mapRef}
-          className="w-full h-80 rounded-lg shadow-sm border border-border"
+          className="w-full h-[50vh] rounded-lg shadow-sm border border-border"
         />
       </div>
 
@@ -324,17 +335,16 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
               >
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-xs"
-                    style={{ 
-                      backgroundColor: waypoint.point_type === 'dive_zone' 
-                        ? 'rgba(14, 165, 233, 0.4)' 
+                    className="w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: waypoint.point_type === 'dive_zone'
+                        ? 'rgba(14, 165, 233, 0.4)'
                         : getWaypointColor(waypoint.point_type),
                       border: waypoint.point_type === 'dive_zone' ? '2px solid #0ea5e9' : 'none',
                       color: waypoint.point_type === 'dive_zone' ? '#0ea5e9' : 'white'
                     }}
-                  >
-                    {getWaypointIcon(waypoint.point_type)}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: getWaypointIcon(waypoint.point_type) }}
+                  />
                   <span className="text-sm font-medium">
                     {getWaypointLabel(waypoint.point_type)}
                   </span>

@@ -3,18 +3,18 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useWaypoints, getWaypointLabel, getWaypointColor, Waypoint } from "@/hooks/useWaypoints";
 
-interface MarineMiniMapProps {
+interface SatelliteMiniMapProps {
   latitude: number;
   longitude: number;
   siteName?: string;
   siteId?: string;
 }
 
-const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapProps) => {
+const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMiniMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const waypointMarkersRef = useRef<L.Marker[]>([]);
-  
+
   const { data: waypoints } = useWaypoints(siteId);
 
   useEffect(() => {
@@ -35,15 +35,12 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
 
     mapInstanceRef.current = map;
 
-    // ONLY use IGN/SHOM Marine Chart layer - no layer control
+    // Esri World Imagery (satellite) layer
     L.tileLayer(
-      "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
-        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.COASTALMAPS" +
-        "&STYLE=normal&TILEMATRIXSET=PM" +
-        "&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
-        attribution: '© <a href="https://www.shom.fr/">IGN - SHOM</a>',
-        maxNativeZoom: 18,
+        attribution: '© <a href="https://www.esri.com/">Esri</a> World Imagery',
+        maxNativeZoom: 17,
         maxZoom: 19,
       }
     ).addTo(map);
@@ -170,4 +167,4 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   );
 };
 
-export default MarineMiniMap;
+export default SatelliteMiniMap;

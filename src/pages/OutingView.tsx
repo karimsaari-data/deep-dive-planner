@@ -13,6 +13,8 @@ import {
   Waves,
   Minus,
   Plus,
+  Shield,
+  ArrowDown,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -44,8 +46,24 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
+import WeatherSummaryBanner from "@/components/weather/WeatherSummaryBanner";
+import OutingWeatherCard from "@/components/weather/OutingWeatherCard";
+import MarineMiniMap from "@/components/locations/MarineMiniMap";
+import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
+import { Anchor, Satellite } from "lucide-react";
+import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
+
+/** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
+const extractDepth = (prerogatives: string | null): string | null => {
+  if (!prerogatives) return null;
+  const match = prerogatives.match(/^(-\d+(?:\s*[àa/]\s*-?\d+)?m)/i);
+  if (match) return match[1];
+  // Try to find a depth pattern anywhere
+  const altMatch = prerogatives.match(/(-\d+m)/);
+  return altMatch ? altMatch[1] : null;
+};
 
 
 const OutingView = () => {
@@ -73,6 +91,7 @@ const OutingView = () => {
 
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
+  const { data: apneaLevels } = useApneaLevels();
 
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(1);
@@ -163,6 +182,27 @@ const OutingView = () => {
     cancelReservation.mutate(outing.id);
   };
 
+  // Build a map of apnea level code -> ApneaLevel for quick lookup
+  const apneaLevelMap = new Map<string, ApneaLevel>(
+    (apneaLevels || []).map(l => [l.code, l])
+  );
+
+  // Sort participants: organizer first, then instructors, then others
+  const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
+    const aIsOrganizer = a.user_id === organizerId;
+    const bIsOrganizer = b.user_id === organizerId;
+    if (aIsOrganizer && !bIsOrganizer) return -1;
+    if (!aIsOrganizer && bIsOrganizer) return 1;
+
+    const aLevel = apneaLevelMap.get(a.profile?.apnea_level ?? "");
+    const bLevel = apneaLevelMap.get(b.profile?.apnea_level ?? "");
+    const aIsInstructor = aLevel?.is_instructor ?? false;
+    const bIsInstructor = bLevel?.is_instructor ?? false;
+    if (aIsInstructor && !bIsInstructor) return -1;
+    if (!aIsInstructor && bIsInstructor) return 1;
+    return 0;
+  });
+
   return (
     <Layout>
       <section className="py-8">
@@ -210,7 +250,7 @@ const OutingView = () => {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
                   {outing.location_id ? (
-                    <Link 
+                    <Link
                       to={`/location/${outing.location_id}`}
                       className="hover:text-primary hover:underline transition-colors"
                     >
@@ -221,12 +261,6 @@ const OutingView = () => {
                   )}
                 </div>
               </div>
-              
-              {outing.organizer && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Encadrant : {outing.organizer.first_name} {outing.organizer.last_name}
-                </p>
-              )}
 
               {/* Navigation button */}
               <div className="mt-4 flex gap-2">
@@ -255,21 +289,18 @@ const OutingView = () => {
             </Card>
           )}
 
-          {/* Widget Météo Windy - Carte + Prévisions */}
-          {locationCoords.latitude && locationCoords.longitude && (
-            <div className="w-full rounded-xl overflow-hidden shadow-lg border border-border mb-6 bg-muted">
-              <iframe 
-                width="100%" 
-                height="500"
-                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&metricWave=m&zoom=11&overlay=wind&product=ecmwf&level=surface&lat=${locationCoords.latitude}&lon=${locationCoords.longitude}&detailLat=${locationCoords.latitude}&detailLon=${locationCoords.longitude}&detail=true&message=true`}
-                frameBorder="0"
-                title="Météo Windy"
-                className="w-full"
-              ></iframe>
+          {/* 1. Weather summary banner at top */}
+          {!isPast && locationCoords.latitude && locationCoords.longitude && (
+            <div className="mb-6">
+              <WeatherSummaryBanner
+                latitude={locationCoords.latitude}
+                longitude={locationCoords.longitude}
+                outingDate={outing.date_time}
+              />
             </div>
           )}
 
-          {/* Registration Card */}
+          {/* 2. Registration Card */}
           {!isPast && (
             <Card className="shadow-card mb-6">
               <CardHeader>
@@ -284,8 +315,8 @@ const OutingView = () => {
                     <div className="flex items-center gap-2 text-emerald-600">
                       <UserPlus className="h-5 w-5" />
                       <span className="font-medium">
-                        {userReservation?.status === "en_attente" 
-                          ? "Vous êtes sur liste d'attente" 
+                        {userReservation?.status === "en_attente"
+                          ? "Vous êtes sur liste d'attente"
                           : "Vous êtes inscrit(e) à cette sortie"}
                       </span>
                     </div>
@@ -320,8 +351,8 @@ const OutingView = () => {
                         <Car className="h-4 w-4" />
                         Covoiturage
                       </Label>
-                      <RadioGroup 
-                        value={carpoolOption} 
+                      <RadioGroup
+                        value={carpoolOption}
                         onValueChange={handleCarpoolOptionChange}
                         className="space-y-2"
                       >
@@ -338,7 +369,7 @@ const OutingView = () => {
                           <Label htmlFor="passenger" className="font-normal">Je cherche une place</Label>
                         </div>
                       </RadioGroup>
-                      
+
                       {carpoolOption === "driver" && (
                         <div className="space-y-2 mt-3">
                           <Label>Places disponibles</Label>
@@ -374,17 +405,17 @@ const OutingView = () => {
                       )}
                     </div>
 
-                    <Button 
-                      variant="ocean" 
+                    <Button
+                      variant="ocean"
                       className="w-full gap-2"
                       onClick={handleRegister}
                       disabled={createReservation.isPending}
                     >
                       <UserPlus className="h-4 w-4" />
-                      {createReservation.isPending 
-                        ? "Inscription..." 
-                        : isFull 
-                          ? "S'inscrire en liste d'attente" 
+                      {createReservation.isPending
+                        ? "Inscription..."
+                        : isFull
+                          ? "S'inscrire en liste d'attente"
                           : "S'inscrire"}
                     </Button>
                   </div>
@@ -393,49 +424,79 @@ const OutingView = () => {
             </Card>
           )}
 
-          {/* Carpool Section */}
-          <CarpoolSection
-            outingId={outing.id}
-            userReservation={userReservation}
-            isPast={isPast}
-            destinationLat={locationCoords.latitude}
-            destinationLng={locationCoords.longitude}
-            destinationName={outing.location_details?.name}
-            outingDateTime={outing.date_time}
-          />
-
-          {/* Participants list */}
-          <Card className="shadow-card">
+          {/* 3. Participants list - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
+          <Card className="shadow-card mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                Participants inscrits
+                Participants confirmés ({confirmedReservations.length}/{outing.max_participants})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {confirmedReservations.length === 0 ? (
+              {sortedConfirmed.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">Aucun inscrit pour le moment</p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {confirmedReservations.map((reservation) => {
+                <div className="space-y-2">
+                  {sortedConfirmed.map((reservation) => {
                     const profile = reservation.profile;
                     const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
-                    
+                    const isOrg = reservation.user_id === organizerId;
+                    const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
+                    const isInstructor = levelInfo?.is_instructor ?? false;
+                    const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
+
                     return (
-                      <div key={reservation.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={profile?.avatar_url ?? undefined} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {profile?.first_name}
-                          </p>
-                          {reservation.carpool_option === "driver" && (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              <Car className="h-3 w-3" /> {reservation.carpool_seats}
-                            </Badge>
+                      <div
+                        key={reservation.id}
+                        className={`flex items-center gap-3 rounded-lg border p-3 ${
+                          isOrg
+                            ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
+                            : "border-border bg-muted/30"
+                        }`}
+                      >
+                        <div className="relative">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={profile?.avatar_url ?? undefined} />
+                            <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          {isInstructor && (
+                            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
+                              <Shield className="h-3 w-3 text-white" />
+                            </div>
                           )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground truncate">
+                              {profile?.first_name} {profile?.last_name}
+                            </p>
+                            {isOrg && (
+                              <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {profile?.apnea_level && (
+                              <Badge variant={isInstructor ? "default" : "outline"} className={`text-xs ${isInstructor ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300" : ""}`}>
+                                {profile.apnea_level}
+                              </Badge>
+                            )}
+                            {depth && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                <ArrowDown className="h-3 w-3" />
+                                {depth}
+                              </span>
+                            )}
+                            {reservation.carpool_option === "driver" && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                <Car className="h-3 w-3" /> {reservation.carpool_seats}
+                              </Badge>
+                            )}
+                            {reservation.carpool_option === "passenger" && (
+                              <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -459,6 +520,73 @@ const OutingView = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* 4. Carpool Section */}
+          <CarpoolSection
+            outingId={outing.id}
+            userReservation={userReservation}
+            isPast={isPast}
+            destinationLat={locationCoords.latitude}
+            destinationLng={locationCoords.longitude}
+            destinationName={outing.location_details?.name}
+            outingDateTime={outing.date_time}
+          />
+
+          {/* 5. Detailed weather card */}
+          {!isPast && locationCoords.latitude && locationCoords.longitude && (
+            <div className="mb-6">
+              <OutingWeatherCard
+                latitude={locationCoords.latitude}
+                longitude={locationCoords.longitude}
+                outingDate={outing.date_time}
+              />
+            </div>
+          )}
+
+          {/* 6. Maps: Bathymetry + Satellite */}
+          {locationCoords.latitude && locationCoords.longitude && (
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Anchor className="h-5 w-5 text-primary" />
+                    Carte Marine (Bathymétrie)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <MarineMiniMap
+                    latitude={locationCoords.latitude}
+                    longitude={locationCoords.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Carte SHOM/IGN – Lignes de profondeur et sondes marines
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Satellite className="h-5 w-5 text-primary" />
+                    Vue Satellite
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <SatelliteMiniMap
+                    latitude={locationCoords.latitude}
+                    longitude={locationCoords.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Vue satellite – Points d'intérêt du site
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </section>
     </Layout>
