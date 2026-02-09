@@ -13,6 +13,8 @@ import {
   Waves,
   Minus,
   Plus,
+  Shield,
+  ArrowDown,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -44,12 +46,24 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
+import WeatherSummaryBanner from "@/components/weather/WeatherSummaryBanner";
 import OutingWeatherCard from "@/components/weather/OutingWeatherCard";
 import MarineMiniMap from "@/components/locations/MarineMiniMap";
 import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { Anchor, Satellite } from "lucide-react";
+import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
+
+/** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
+const extractDepth = (prerogatives: string | null): string | null => {
+  if (!prerogatives) return null;
+  const match = prerogatives.match(/^(-\d+(?:\s*[àa/]\s*-?\d+)?m)/i);
+  if (match) return match[1];
+  // Try to find a depth pattern anywhere
+  const altMatch = prerogatives.match(/(-\d+m)/);
+  return altMatch ? altMatch[1] : null;
+};
 
 
 const OutingView = () => {
@@ -77,6 +91,7 @@ const OutingView = () => {
 
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
+  const { data: apneaLevels } = useApneaLevels();
 
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(1);
@@ -167,6 +182,27 @@ const OutingView = () => {
     cancelReservation.mutate(outing.id);
   };
 
+  // Build a map of apnea level code -> ApneaLevel for quick lookup
+  const apneaLevelMap = new Map<string, ApneaLevel>(
+    (apneaLevels || []).map(l => [l.code, l])
+  );
+
+  // Sort participants: organizer first, then instructors, then others
+  const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
+    const aIsOrganizer = a.user_id === organizerId;
+    const bIsOrganizer = b.user_id === organizerId;
+    if (aIsOrganizer && !bIsOrganizer) return -1;
+    if (!aIsOrganizer && bIsOrganizer) return 1;
+
+    const aLevel = apneaLevelMap.get(a.profile?.apnea_level ?? "");
+    const bLevel = apneaLevelMap.get(b.profile?.apnea_level ?? "");
+    const aIsInstructor = aLevel?.is_instructor ?? false;
+    const bIsInstructor = bLevel?.is_instructor ?? false;
+    if (aIsInstructor && !bIsInstructor) return -1;
+    if (!aIsInstructor && bIsInstructor) return 1;
+    return 0;
+  });
+
   return (
     <Layout>
       <section className="py-8">
@@ -214,7 +250,7 @@ const OutingView = () => {
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
                   {outing.location_id ? (
-                    <Link 
+                    <Link
                       to={`/location/${outing.location_id}`}
                       className="hover:text-primary hover:underline transition-colors"
                     >
@@ -225,12 +261,6 @@ const OutingView = () => {
                   )}
                 </div>
               </div>
-              
-              {outing.organizer && (
-                <p className="mt-3 text-sm text-muted-foreground">
-                  Encadrant : {outing.organizer.first_name} {outing.organizer.last_name}
-                </p>
-              )}
 
               {/* Navigation button */}
               <div className="mt-4 flex gap-2">
@@ -259,8 +289,251 @@ const OutingView = () => {
             </Card>
           )}
 
-          {/* Carte météo Open-Meteo pour le jour de la sortie */}
-          {locationCoords.latitude && locationCoords.longitude && (
+          {/* 1. Weather summary banner at top */}
+          {!isPast && locationCoords.latitude && locationCoords.longitude && (
+            <div className="mb-6">
+              <WeatherSummaryBanner
+                latitude={locationCoords.latitude}
+                longitude={locationCoords.longitude}
+                outingDate={outing.date_time}
+              />
+            </div>
+          )}
+
+          {/* 2. Registration Card */}
+          {!isPast && (
+            <Card className="shadow-card mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Inscription ({confirmedReservations.length}/{outing.max_participants})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isRegistered ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-emerald-600">
+                      <UserPlus className="h-5 w-5" />
+                      <span className="font-medium">
+                        {userReservation?.status === "en_attente"
+                          ? "Vous êtes sur liste d'attente"
+                          : "Vous êtes inscrit(e) à cette sortie"}
+                      </span>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" className="w-full gap-2">
+                          <UserMinus className="h-4 w-4" />
+                          Annuler mon inscription
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Annuler votre inscription ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Vous pouvez vous réinscrire plus tard si des places sont disponibles.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Retour</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleCancel}>
+                            Confirmer l'annulation
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Carpool options */}
+                    <div className="space-y-3">
+                      <Label className="flex items-center gap-2">
+                        <Car className="h-4 w-4" />
+                        Covoiturage
+                      </Label>
+                      <RadioGroup
+                        value={carpoolOption}
+                        onValueChange={handleCarpoolOptionChange}
+                        className="space-y-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="none" id="none" />
+                          <Label htmlFor="none" className="font-normal">Pas de covoiturage</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="driver" id="driver" />
+                          <Label htmlFor="driver" className="font-normal">Je propose des places</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="passenger" id="passenger" />
+                          <Label htmlFor="passenger" className="font-normal">Je cherche une place</Label>
+                        </div>
+                      </RadioGroup>
+
+                      {carpoolOption === "driver" && (
+                        <div className="space-y-2 mt-3">
+                          <Label>Places disponibles</Label>
+                          <div className="flex items-center justify-center gap-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-12 w-12 rounded-full text-lg"
+                              onClick={() => setCarpoolSeats(Math.max(1, carpoolSeats - 1))}
+                              disabled={carpoolSeats <= 1}
+                            >
+                              <Minus className="h-5 w-5" />
+                            </Button>
+                            <span className="text-3xl font-bold w-12 text-center">
+                              {carpoolSeats}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-12 w-12 rounded-full text-lg"
+                              onClick={() => setCarpoolSeats(Math.min(8, carpoolSeats + 1))}
+                              disabled={carpoolSeats >= 8}
+                            >
+                              <Plus className="h-5 w-5" />
+                            </Button>
+                          </div>
+                          <p className="text-xs text-center text-muted-foreground">
+                            Maximum 8 places
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="ocean"
+                      className="w-full gap-2"
+                      onClick={handleRegister}
+                      disabled={createReservation.isPending}
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      {createReservation.isPending
+                        ? "Inscription..."
+                        : isFull
+                          ? "S'inscrire en liste d'attente"
+                          : "S'inscrire"}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 3. Participants list - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
+          <Card className="shadow-card mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Participants confirmés ({confirmedReservations.length}/{outing.max_participants})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sortedConfirmed.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">Aucun inscrit pour le moment</p>
+              ) : (
+                <div className="space-y-2">
+                  {sortedConfirmed.map((reservation) => {
+                    const profile = reservation.profile;
+                    const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
+                    const isOrg = reservation.user_id === organizerId;
+                    const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
+                    const isInstructor = levelInfo?.is_instructor ?? false;
+                    const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
+
+                    return (
+                      <div
+                        key={reservation.id}
+                        className={`flex items-center gap-3 rounded-lg border p-3 ${
+                          isOrg
+                            ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
+                            : "border-border bg-muted/30"
+                        }`}
+                      >
+                        <div className="relative">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={profile?.avatar_url ?? undefined} />
+                            <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          {isInstructor && (
+                            <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
+                              <Shield className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground truncate">
+                              {profile?.first_name} {profile?.last_name}
+                            </p>
+                            {isOrg && (
+                              <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {profile?.apnea_level && (
+                              <Badge variant={isInstructor ? "default" : "outline"} className={`text-xs ${isInstructor ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300" : ""}`}>
+                                {profile.apnea_level}
+                              </Badge>
+                            )}
+                            {depth && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                <ArrowDown className="h-3 w-3" />
+                                {depth}
+                              </span>
+                            )}
+                            {reservation.carpool_option === "driver" && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                <Car className="h-3 w-3" /> {reservation.carpool_seats}
+                              </Badge>
+                            )}
+                            {reservation.carpool_option === "passenger" && (
+                              <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {waitlistedReservations.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Liste d'attente ({waitlistedReservations.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {waitlistedReservations.map((reservation) => (
+                      <Badge key={reservation.id} variant="outline">
+                        {reservation.profile?.first_name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 4. Carpool Section */}
+          <CarpoolSection
+            outingId={outing.id}
+            userReservation={userReservation}
+            isPast={isPast}
+            destinationLat={locationCoords.latitude}
+            destinationLng={locationCoords.longitude}
+            destinationName={outing.location_details?.name}
+            outingDateTime={outing.date_time}
+          />
+
+          {/* 5. Detailed weather card */}
+          {!isPast && locationCoords.latitude && locationCoords.longitude && (
             <div className="mb-6">
               <OutingWeatherCard
                 latitude={locationCoords.latitude}
@@ -270,7 +543,7 @@ const OutingView = () => {
             </div>
           )}
 
-          {/* Cartes du site : Bathymétrie + Satellite avec points d'intérêt */}
+          {/* 6. Maps: Bathymetry + Satellite */}
           {locationCoords.latitude && locationCoords.longitude && (
             <div className="grid gap-6 md:grid-cols-2 mb-6">
               <Card className="shadow-card">
@@ -314,197 +587,6 @@ const OutingView = () => {
               </Card>
             </div>
           )}
-
-          {/* Registration Card */}
-          {!isPast && (
-            <Card className="shadow-card mb-6">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  Inscription ({confirmedReservations.length}/{outing.max_participants})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isRegistered ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-emerald-600">
-                      <UserPlus className="h-5 w-5" />
-                      <span className="font-medium">
-                        {userReservation?.status === "en_attente" 
-                          ? "Vous êtes sur liste d'attente" 
-                          : "Vous êtes inscrit(e) à cette sortie"}
-                      </span>
-                    </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" className="w-full gap-2">
-                          <UserMinus className="h-4 w-4" />
-                          Annuler mon inscription
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Annuler votre inscription ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Vous pouvez vous réinscrire plus tard si des places sont disponibles.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Retour</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleCancel}>
-                            Confirmer l'annulation
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Carpool options */}
-                    <div className="space-y-3">
-                      <Label className="flex items-center gap-2">
-                        <Car className="h-4 w-4" />
-                        Covoiturage
-                      </Label>
-                      <RadioGroup 
-                        value={carpoolOption} 
-                        onValueChange={handleCarpoolOptionChange}
-                        className="space-y-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="none" id="none" />
-                          <Label htmlFor="none" className="font-normal">Pas de covoiturage</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="driver" id="driver" />
-                          <Label htmlFor="driver" className="font-normal">Je propose des places</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="passenger" id="passenger" />
-                          <Label htmlFor="passenger" className="font-normal">Je cherche une place</Label>
-                        </div>
-                      </RadioGroup>
-                      
-                      {carpoolOption === "driver" && (
-                        <div className="space-y-2 mt-3">
-                          <Label>Places disponibles</Label>
-                          <div className="flex items-center justify-center gap-4">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-12 w-12 rounded-full text-lg"
-                              onClick={() => setCarpoolSeats(Math.max(1, carpoolSeats - 1))}
-                              disabled={carpoolSeats <= 1}
-                            >
-                              <Minus className="h-5 w-5" />
-                            </Button>
-                            <span className="text-3xl font-bold w-12 text-center">
-                              {carpoolSeats}
-                            </span>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-12 w-12 rounded-full text-lg"
-                              onClick={() => setCarpoolSeats(Math.min(8, carpoolSeats + 1))}
-                              disabled={carpoolSeats >= 8}
-                            >
-                              <Plus className="h-5 w-5" />
-                            </Button>
-                          </div>
-                          <p className="text-xs text-center text-muted-foreground">
-                            Maximum 8 places
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <Button 
-                      variant="ocean" 
-                      className="w-full gap-2"
-                      onClick={handleRegister}
-                      disabled={createReservation.isPending}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      {createReservation.isPending 
-                        ? "Inscription..." 
-                        : isFull 
-                          ? "S'inscrire en liste d'attente" 
-                          : "S'inscrire"}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Carpool Section */}
-          <CarpoolSection
-            outingId={outing.id}
-            userReservation={userReservation}
-            isPast={isPast}
-            destinationLat={locationCoords.latitude}
-            destinationLng={locationCoords.longitude}
-            destinationName={outing.location_details?.name}
-            outingDateTime={outing.date_time}
-          />
-
-          {/* Participants list */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Participants inscrits
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {confirmedReservations.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">Aucun inscrit pour le moment</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {confirmedReservations.map((reservation) => {
-                    const profile = reservation.profile;
-                    const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
-                    
-                    return (
-                      <div key={reservation.id} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={profile?.avatar_url ?? undefined} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">{initials}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {profile?.first_name}
-                          </p>
-                          {reservation.carpool_option === "driver" && (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              <Car className="h-3 w-3" /> {reservation.carpool_seats}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {waitlistedReservations.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Liste d'attente ({waitlistedReservations.length})
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {waitlistedReservations.map((reservation) => (
-                      <Badge key={reservation.id} variant="outline">
-                        {reservation.profile?.first_name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </section>
     </Layout>

@@ -18,7 +18,7 @@ interface SatelliteWaypointEditorProps {
 }
 
 // All waypoint types for the main satellite map
-const SATELLITE_POINT_TYPES: WaypointType[] = ["parking", "water_entry", "water_exit", "meeting_point", "dive_zone"];
+const SATELLITE_POINT_TYPES: WaypointType[] = ["parking", "water_entry", "water_exit", "meeting_point", "dive_zone", "toilet"];
 
 const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: SatelliteWaypointEditorProps) => {
   const { data: waypoints, isLoading } = useWaypoints(siteId);
