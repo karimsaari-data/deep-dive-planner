@@ -44,6 +44,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
+import WindyWeatherExplorer from "@/components/weather/WindyWeatherExplorer";
+import MarineMiniMap from "@/components/locations/MarineMiniMap";
+import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
+import { Anchor, Satellite } from "lucide-react";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
 
@@ -255,17 +259,60 @@ const OutingView = () => {
             </Card>
           )}
 
-          {/* Widget Météo Windy - Carte + Prévisions */}
+          {/* Widget Météo Windy - Carte interactive + Prévisions */}
           {locationCoords.latitude && locationCoords.longitude && (
-            <div className="w-full rounded-xl overflow-hidden shadow-lg border border-border mb-6 bg-muted">
-              <iframe 
-                width="100%" 
-                height="500"
-                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&metricWave=m&zoom=11&overlay=wind&product=ecmwf&level=surface&lat=${locationCoords.latitude}&lon=${locationCoords.longitude}&detailLat=${locationCoords.latitude}&detailLon=${locationCoords.longitude}&detail=true&message=true`}
-                frameBorder="0"
-                title="Météo Windy"
-                className="w-full"
-              ></iframe>
+            <div className="mb-6">
+              <WindyWeatherExplorer
+                latitude={locationCoords.latitude}
+                longitude={locationCoords.longitude}
+                locationName={outing.location_details?.name || outing.location}
+                outingDate={outing.date_time}
+              />
+            </div>
+          )}
+
+          {/* Cartes du site : Bathymétrie + Satellite avec points d'intérêt */}
+          {locationCoords.latitude && locationCoords.longitude && (
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Anchor className="h-5 w-5 text-primary" />
+                    Carte Marine (Bathymétrie)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <MarineMiniMap
+                    latitude={locationCoords.latitude}
+                    longitude={locationCoords.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Carte SHOM/IGN – Lignes de profondeur et sondes marines
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Satellite className="h-5 w-5 text-primary" />
+                    Vue Satellite
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <SatelliteMiniMap
+                    latitude={locationCoords.latitude}
+                    longitude={locationCoords.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Vue satellite – Points d'intérêt du site
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           )}
 
