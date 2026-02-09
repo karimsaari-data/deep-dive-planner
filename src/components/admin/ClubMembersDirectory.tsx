@@ -262,19 +262,29 @@ const ClubMembersDirectory = () => {
 
     try {
       let memberId: string;
-      
+
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...formData,
+        email: formData.email.toLowerCase(),
+        phone: formData.phone || null,
+        birth_date: formData.birth_date || null,
+        address: formData.address || null,
+        joined_at: formData.joined_at || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        gender: formData.gender || null,
+        notes: formData.notes || null,
+      };
+
       if (editingMember) {
         await updateMember.mutateAsync({
           id: editingMember.id,
-          ...formData,
-          email: formData.email.toLowerCase(),
+          ...cleanedData,
         });
         memberId = editingMember.id;
       } else {
-        const result = await createMember.mutateAsync({
-          ...formData,
-          email: formData.email.toLowerCase(),
-        });
+        const result = await createMember.mutateAsync(cleanedData);
         memberId = result.id;
       }
 
@@ -683,14 +693,17 @@ const ClubMembersDirectory = () => {
     }
   };
 
-  // Count stats (based on full list, not filtered)
-  const totalCount = members?.length || 0;
-  const encadrantCount = useMemo(() => {
-    return members?.filter((m) => getStatusForMember(m.id)?.is_encadrant).length || 0;
+  // Count stats (based on members with a status for the selected season)
+  const membersWithStatus = useMemo(() => {
+    return members?.filter((m) => getStatusForMember(m.id)) || [];
   }, [members, statuses]);
+  const totalCount = membersWithStatus.length;
+  const encadrantCount = useMemo(() => {
+    return membersWithStatus.filter((m) => getStatusForMember(m.id)?.is_encadrant).length;
+  }, [membersWithStatus, statuses]);
   const completeRecordsCount = useMemo(() => {
-    return members?.filter((m) => isMemberDossierComplete(m.id)).length || 0;
-  }, [members, statuses, apneaLevelCodes]);
+    return membersWithStatus.filter((m) => isMemberDossierComplete(m.id)).length;
+  }, [membersWithStatus, statuses, apneaLevelCodes]);
   const incompleteRecordsCount = totalCount - completeRecordsCount;
   const filteredCount = filteredAndSortedMembers?.length || 0;
 
@@ -795,7 +808,7 @@ const ClubMembersDirectory = () => {
         />
 
         {/* Dynamic stats bar */}
-        {members && members.length > 0 && (
+        {membersWithStatus.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 text-sm">
             <Badge variant="secondary" className="text-xs">
               {(filterEncadrant || filterIncomplete) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
@@ -812,7 +825,7 @@ const ClubMembersDirectory = () => {
               {incompleteRecordsCount} incomplets
             </Badge>
             <Badge variant="secondary" className="text-xs text-green-600">
-              {members.filter((m) => isEmailRegistered(m.email)).length} inscrits app
+              {membersWithStatus.filter((m) => isEmailRegistered(m.email)).length} inscrits app
             </Badge>
           </div>
         )}
