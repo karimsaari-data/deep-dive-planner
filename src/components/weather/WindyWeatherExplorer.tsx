@@ -1,12 +1,64 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { format, addDays } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Anchor, Map, TableProperties, Wind, Waves, Clock } from "lucide-react";
+import { Anchor, Map, TableProperties, Wind, Waves, Clock, Loader2, Thermometer, Sun, Cloud, CloudRain } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import MarineChartMap from "./MarineChartMap";
+
+interface ForecastDaySummary {
+  date: Date;
+  dayLabel: string;
+  avgWindSpeed: number;
+  avgWaveHeight: number;
+  avgTemp: number;
+  avgWaterTemp: number;
+  weatherCode: number;
+  overallColor: "green" | "orange" | "red";
+  windLabel: string;
+  waveLabel: string;
+}
+
+const getOverallCondition = (avgWind: number, avgWave: number): { color: "green" | "orange" | "red"; } => {
+  // Red: strong wind (>=30) OR rough sea (>=1.5m)
+  if (avgWind >= 30 || avgWave >= 1.5) return { color: "red" };
+  // Orange: moderate wind (>=20) OR moderate sea (>=1.0m)
+  if (avgWind >= 20 || avgWave >= 1.0) return { color: "orange" };
+  // Green: calm
+  return { color: "green" };
+};
+
+const getWindLabel = (speed: number): string => {
+  if (speed < 10) return "Calme";
+  if (speed < 20) return "Léger";
+  if (speed < 30) return "Modéré";
+  if (speed < 40) return "Fort";
+  return "Très fort";
+};
+
+const getWaveLabel = (height: number): string => {
+  if (height < 0.5) return "Plate";
+  if (height < 1) return "Peu agitée";
+  if (height < 1.5) return "Agitée";
+  if (height < 2.5) return "Forte";
+  return "Très forte";
+};
+
+const getSmallWeatherIcon = (code: number) => {
+  if (code === 0) return <Sun className="h-4 w-4 text-yellow-500" />;
+  if (code <= 3) return <Cloud className="h-4 w-4 text-gray-400" />;
+  if (code <= 67) return <CloudRain className="h-4 w-4 text-blue-400" />;
+  return <Cloud className="h-4 w-4 text-gray-400" />;
+};
+
+const conditionDotClass: Record<string, string> = {
+  green: "bg-green-500",
+  orange: "bg-orange-500",
+  red: "bg-red-500",
+};
 
 interface WindyWeatherExplorerProps {
   latitude: number;
@@ -19,6 +71,58 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName, outingDate }:
   const [selectedDayOffset, setSelectedDayOffset] = useState(0);
   const [selectedHour, setSelectedHour] = useState(10);
   const [mapLayer, setMapLayer] = useState<"wind" | "waves">("wind");
+
+  // Fetch weather + marine data for 7-day summary
+  const { data: forecastSummary, isLoading: forecastLoading } = useQuery({
+    queryKey: ["forecast-summary", latitude, longitude],
+    queryFn: async (): Promise<ForecastDaySummary[]> => {
+      const [weatherRes, marineRes] = await Promise.all([
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=temperature_2m,wind_speed_10m,weather_code&timezone=Europe/Paris&forecast_days=7`),
+        fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${latitude}&longitude=${longitude}&hourly=wave_height,sea_surface_temperature&timezone=Europe/Paris&forecast_days=7`),
+      ]);
+      if (!weatherRes.ok || !marineRes.ok) throw new Error("Failed to fetch forecast");
+      const weather = await weatherRes.json();
+      const marine = await marineRes.json();
+
+      const summaries: ForecastDaySummary[] = [];
+      for (let i = 0; i < 7; i++) {
+        const date = addDays(new Date(), i);
+        const dateStr = format(date, "yyyy-MM-dd");
+        const indices = (weather.hourly.time as string[])
+          .map((t: string, idx: number) => ({ t, idx }))
+          .filter(({ t }: { t: string }) => t.startsWith(dateStr))
+          .map(({ idx }: { idx: number }) => idx);
+        if (indices.length === 0) continue;
+
+        const winds = indices.map((j: number) => weather.hourly.wind_speed_10m[j] || 0);
+        const temps = indices.map((j: number) => weather.hourly.temperature_2m[j] || 0);
+        const waves = indices.map((j: number) => marine.hourly.wave_height[j] || 0);
+        const waterTemps = indices.map((j: number) => marine.hourly.sea_surface_temperature?.[j] || 0).filter((t: number) => t > 0);
+
+        const avgWind = winds.reduce((a: number, b: number) => a + b, 0) / winds.length;
+        const avgWave = waves.reduce((a: number, b: number) => a + b, 0) / waves.length;
+        const avgTemp = temps.reduce((a: number, b: number) => a + b, 0) / temps.length;
+        const avgWaterTemp = waterTemps.length > 0 ? waterTemps.reduce((a: number, b: number) => a + b, 0) / waterTemps.length : 0;
+        const weatherCode = weather.hourly.weather_code[indices[12]] || weather.hourly.weather_code[indices[0]] || 0;
+
+        const { color } = getOverallCondition(avgWind, avgWave);
+        summaries.push({
+          date,
+          dayLabel: i === 0 ? "Aujourd'hui" : format(date, "EEE d", { locale: fr }),
+          avgWindSpeed: avgWind,
+          avgWaveHeight: avgWave,
+          avgTemp,
+          avgWaterTemp,
+          weatherCode,
+          overallColor: color,
+          windLabel: getWindLabel(avgWind),
+          waveLabel: getWaveLabel(avgWave),
+        });
+      }
+      return summaries;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
 
   // If outingDate is provided, compute the offset from today
   const outingDayOffset = useMemo(() => {
@@ -109,14 +213,86 @@ const WindyWeatherExplorer = ({ latitude, longitude, locationName, outingDate }:
             </TabsList>
           </div>
 
-          {/* Onglet 1: Données Open-Meteo - scrollable vers le bas */}
+          {/* Onglet 1: Tableau synthétique 7 jours */}
           <TabsContent value="openmeteo" className="mt-0 px-4 pb-4">
-            <p className="text-xs text-muted-foreground mb-3">
-              Données Open-Meteo détaillées • Vent en km/h • Vagues en mètres
-            </p>
-            <p className="text-sm text-muted-foreground text-center py-8 border rounded-lg bg-muted/30">
-              ⬇️ Les données détaillées Open-Meteo sont affichées ci-dessous
-            </p>
+            {forecastLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : forecastSummary && forecastSummary.length > 0 ? (
+              <div className="space-y-3">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="text-left py-2 pr-2 font-medium"></th>
+                        <th className="text-left py-2 px-1 font-medium">Jour</th>
+                        <th className="text-center py-2 px-1 font-medium">
+                          <Wind className="h-3 w-3 inline" />
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium">
+                          <Waves className="h-3 w-3 inline" />
+                        </th>
+                        <th className="text-center py-2 px-1 font-medium">
+                          <Thermometer className="h-3 w-3 inline" />
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {forecastSummary.map((day, i) => (
+                        <tr key={i} className={cn(
+                          "border-b last:border-0",
+                          i === 0 && "font-medium"
+                        )}>
+                          <td className="py-2 pr-2">
+                            <span className={cn(
+                              "inline-block w-3 h-3 rounded-full",
+                              conditionDotClass[day.overallColor]
+                            )} />
+                          </td>
+                          <td className="py-2 px-1">
+                            <div className="flex items-center gap-1.5">
+                              {getSmallWeatherIcon(day.weatherCode)}
+                              <span className="capitalize whitespace-nowrap">{day.dayLabel}</span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-1 text-center whitespace-nowrap">
+                            <span className="font-medium">{day.avgWindSpeed.toFixed(0)}</span>
+                            <span className="text-muted-foreground ml-0.5">km/h</span>
+                          </td>
+                          <td className="py-2 px-1 text-center whitespace-nowrap">
+                            <span className="font-medium">{day.avgWaveHeight.toFixed(1)}</span>
+                            <span className="text-muted-foreground ml-0.5">m</span>
+                          </td>
+                          <td className="py-2 px-1 text-center whitespace-nowrap">
+                            <span>{day.avgTemp.toFixed(0)}°</span>
+                            {day.avgWaterTemp > 0 && (
+                              <span className="text-cyan-600 ml-1">{day.avgWaterTemp.toFixed(0)}°</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {/* Légende compacte */}
+                <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1">
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-500" /> Favorable
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-orange-500" /> Modéré
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-red-500" /> Défavorable
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Données indisponibles
+              </p>
+            )}
           </TabsContent>
 
           {/* Onglet 2: Carte Windy Interactive */}
