@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
@@ -36,6 +36,21 @@ import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import CarpoolSection from "@/components/carpool/CarpoolSection";
+import WeatherSummaryBanner from "@/components/weather/WeatherSummaryBanner";
+import OutingWeatherCard from "@/components/weather/OutingWeatherCard";
+import MarineMiniMap from "@/components/locations/MarineMiniMap";
+import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
+import { Anchor, Satellite } from "lucide-react";
+import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
+
+/** Extract max depth from prerogatives string */
+const extractDepth = (prerogatives: string | null): string | null => {
+  if (!prerogatives) return null;
+  const match = prerogatives.match(/^(-\d+(?:\s*[àa/]\s*-?\d+)?m)/i);
+  if (match) return match[1];
+  const altMatch = prerogatives.match(/(-\d+m)/);
+  return altMatch ? altMatch[1] : null;
+};
 
 const OutingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +65,7 @@ const OutingDetail = () => {
   const lockPOSS = useLockPOSS();
   const unlockPOSS = useUnlockPOSS();
   const possGenerator = usePOSSGenerator();
+  const { data: apneaLevels } = useApneaLevels();
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
   const [linkCopied, setLinkCopied] = useState(false);
@@ -205,6 +221,27 @@ const OutingDetail = () => {
       toast.error("Impossible de copier le lien");
     }
   };
+
+  // Build a map of apnea level code -> ApneaLevel for quick lookup
+  const apneaLevelMap = new Map<string, ApneaLevel>(
+    (apneaLevels || []).map(l => [l.code, l])
+  );
+
+  // Sort participants: organizer first, then instructors, then others
+  const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
+    const aIsOrganizer = a.user_id === outing.organizer_id;
+    const bIsOrganizer = b.user_id === outing.organizer_id;
+    if (aIsOrganizer && !bIsOrganizer) return -1;
+    if (!aIsOrganizer && bIsOrganizer) return 1;
+
+    const aLevel = apneaLevelMap.get(a.profile?.apnea_level ?? "");
+    const bLevel = apneaLevelMap.get(b.profile?.apnea_level ?? "");
+    const aIsInstructor = aLevel?.is_instructor ?? false;
+    const bIsInstructor = bLevel?.is_instructor ?? false;
+    if (aIsInstructor && !bIsInstructor) return -1;
+    if (!aIsInstructor && bIsInstructor) return 1;
+    return 0;
+  });
 
   return (
     <Layout>
@@ -411,21 +448,163 @@ const OutingDetail = () => {
             </div>
           </div>
 
-          {/* Widget Météo Windy - Carte + Prévisions */}
+          {/* 1. Weather summary banner at top */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
-            <div className="w-full rounded-xl overflow-hidden shadow-lg border border-border my-6 bg-muted">
-              <iframe 
-                width="100%" 
-                height="500"
-                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&metricWave=m&zoom=11&overlay=wind&product=ecmwf&level=surface&lat=${outing.location_details.latitude}&lon=${outing.location_details.longitude}&detailLat=${outing.location_details.latitude}&detailLon=${outing.location_details.longitude}&detail=true&message=true`}
-                frameBorder="0"
-                title="Météo Windy"
-                className="w-full"
-              ></iframe>
+            <div className="my-6">
+              <WeatherSummaryBanner
+                latitude={outing.location_details.latitude}
+                longitude={outing.location_details.longitude}
+                outingDate={outing.date_time}
+              />
             </div>
           )}
 
-          {/* Carpool Section - full width */}
+          {/* 2. Participants - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
+          <Card className="shadow-card my-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Participants confirmés ({confirmedReservations.length}/{outing.max_participants})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {sortedConfirmed.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">Aucun inscrit</p>
+              ) : (
+                <div className="space-y-2">
+                  {sortedConfirmed.map((reservation) => {
+                    const profile = reservation.profile;
+                    const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
+                    const isOrg = reservation.user_id === outing.organizer_id;
+                    const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
+                    const isInstructor = levelInfo?.is_instructor ?? false;
+                    const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
+
+                    return (
+                      <div
+                        key={reservation.id}
+                        className={`flex items-center justify-between rounded-lg border p-3 ${
+                          isOrg
+                            ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
+                            : "border-border bg-muted/30"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={profile?.avatar_url ?? undefined} />
+                              <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            {isInstructor && (
+                              <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
+                                <Shield className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-foreground">
+                                {profile?.first_name} {profile?.last_name}
+                              </p>
+                              {isOrg && (
+                                <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {profile?.apnea_level && (
+                                <Badge variant={isInstructor ? "default" : "outline"} className={`text-xs ${isInstructor ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300" : ""}`}>
+                                  {profile.apnea_level}
+                                </Badge>
+                              )}
+                              {depth && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                                  <ArrowDown className="h-3 w-3" />
+                                  {depth}
+                                </span>
+                              )}
+                              {reservation.carpool_option === "driver" && (
+                                <Badge variant="secondary" className="text-xs gap-1">
+                                  <Car className="h-3 w-3" /> {reservation.carpool_seats} places
+                                </Badge>
+                              )}
+                              {reservation.carpool_option === "passenger" && (
+                                <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {canMarkAttendance && canEditPresenceAndReport && (
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={reservation.is_present}
+                              onCheckedChange={(checked) =>
+                                updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
+                              }
+                            />
+                            <span className="text-sm text-muted-foreground">Présent</span>
+                          </div>
+                        )}
+                        {canMarkAttendance && !canEditPresenceAndReport && (
+                          <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
+                            {reservation.is_present ? "Présent" : "Absent"}
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {waitlistedReservations.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="mb-3 text-sm font-medium text-muted-foreground">Liste d'attente ({waitlistedReservations.length})</h4>
+                  <div className="space-y-2">
+                    {waitlistedReservations.map((reservation) => {
+                      const profile = reservation.profile;
+                      return (
+                        <div key={reservation.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          {profile?.first_name} {profile?.last_name}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {cancelledReservations.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="mb-3 text-sm font-medium text-muted-foreground">Annulations ({cancelledReservations.length})</h4>
+                  <div className="space-y-2">
+                    {cancelledReservations.map((reservation) => {
+                      const profile = reservation.profile;
+                      const isLastMinute = reservation.cancelled_at &&
+                        differenceInHours(new Date(outing.date_time), new Date(reservation.cancelled_at)) < 24;
+
+                      return (
+                        <div
+                          key={reservation.id}
+                          className={cn(
+                            "flex items-center gap-2 text-sm",
+                            isLastMinute ? "text-destructive" : "text-muted-foreground"
+                          )}
+                        >
+                          <XCircle className="h-4 w-4" />
+                          {profile?.first_name} {profile?.last_name}
+                          {isLastMinute && <Badge variant="destructive" className="text-xs">-24h</Badge>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* 3. Carpool Section - full width */}
           <CarpoolSection
             outingId={outing.id}
             userReservation={confirmedReservations.find((r) => r.user_id === user?.id)}
@@ -436,185 +615,127 @@ const OutingDetail = () => {
             outingDateTime={outing.date_time}
           />
 
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* Trombinoscope */}
-            <Card className="shadow-card">
+          {/* 4. Detailed weather card */}
+          {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
+            <div className="my-6">
+              <OutingWeatherCard
+                latitude={outing.location_details.latitude}
+                longitude={outing.location_details.longitude}
+                outingDate={outing.date_time}
+              />
+            </div>
+          )}
+
+          {/* 5. Maps: Bathymetry + Satellite */}
+          {outing.location_details?.latitude && outing.location_details?.longitude && (
+            <div className="grid gap-6 md:grid-cols-2 my-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Anchor className="h-5 w-5 text-primary" />
+                    Carte Marine (Bathymétrie)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <MarineMiniMap
+                    latitude={outing.location_details.latitude}
+                    longitude={outing.location_details.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Carte SHOM/IGN – Lignes de profondeur et sondes marines
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Satellite className="h-5 w-5 text-primary" />
+                    Vue Satellite
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <SatelliteMiniMap
+                    latitude={outing.location_details.latitude}
+                    longitude={outing.location_details.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Vue satellite – Points d'intérêt du site
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* 6. Session Report */}
+          {isPast && canEditPresenceAndReport && (
+            <Card className="shadow-card my-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  Participants confirmés ({confirmedReservations.length}/{outing.max_participants})
+                  <UserCheck className="h-5 w-5 text-primary" />
+                  Compte-rendu de séance
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {confirmedReservations.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4">Aucun inscrit</p>
-                ) : (
-                  <div className="space-y-3">
-                    {confirmedReservations.map((reservation) => {
-                      const profile = reservation.profile;
-                      const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
-                      
-                      return (
-                        <div key={reservation.id} className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={profile?.avatar_url ?? undefined} />
-                              <AvatarFallback className="bg-primary/10 text-primary text-sm">{initials}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {profile?.first_name} {profile?.last_name}
-                              </p>
-                              <div className="flex items-center gap-2">
-                                {profile?.apnea_level && (
-                                  <Badge variant="outline" className="text-xs">{profile.apnea_level}</Badge>
-                                )}
-                                {reservation.carpool_option === "driver" && (
-                                  <Badge variant="secondary" className="text-xs gap-1">
-                                    <Car className="h-3 w-3" /> {reservation.carpool_seats} places
-                                  </Badge>
-                                )}
-                                {reservation.carpool_option === "passenger" && (
-                                  <Badge variant="outline" className="text-xs">Cherche covoiturage</Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {canMarkAttendance && canEditPresenceAndReport && (
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                checked={reservation.is_present}
-                                onCheckedChange={(checked) => 
-                                  updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
-                                }
-                              />
-                              <span className="text-sm text-muted-foreground">Présent</span>
-                            </div>
-                          )}
-                          {canMarkAttendance && !canEditPresenceAndReport && (
-                            <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
-                              {reservation.is_present ? "Présent" : "Absent"}
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {waitlistedReservations.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">Liste d'attente ({waitlistedReservations.length})</h4>
-                    <div className="space-y-2">
-                      {waitlistedReservations.map((reservation) => {
-                        const profile = reservation.profile;
-                        return (
-                          <div key={reservation.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            {profile?.first_name} {profile?.last_name}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {cancelledReservations.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="mb-3 text-sm font-medium text-muted-foreground">Annulations ({cancelledReservations.length})</h4>
-                    <div className="space-y-2">
-                      {cancelledReservations.map((reservation) => {
-                        const profile = reservation.profile;
-                        const isLastMinute = reservation.cancelled_at && 
-                          differenceInHours(new Date(outing.date_time), new Date(reservation.cancelled_at)) < 24;
-                        
-                        return (
-                          <div 
-                            key={reservation.id} 
-                            className={cn(
-                              "flex items-center gap-2 text-sm",
-                              isLastMinute ? "text-destructive" : "text-muted-foreground"
-                            )}
+                <Textarea
+                  placeholder="Température de l'eau, exercices réalisés, observations..."
+                  value={sessionReport}
+                  onChange={(e) => setSessionReport(e.target.value)}
+                  className="min-h-[200px]"
+                />
+                <div className="flex gap-3 mt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleSaveReport}
+                    disabled={updateSessionReport.isPending}
+                  >
+                    {updateSessionReport.isPending ? "Enregistrement..." : "Enregistrer le compte-rendu"}
+                  </Button>
+                  {canArchiveOuting && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ocean" className="flex-1 gap-2">
+                          <CheckCircle2 className="h-4 w-4" />
+                          Valider la sortie
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-primary" />
+                            Valider et archiver cette sortie ?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            La sortie sera archivée et n'apparaîtra plus dans les sorties à venir. L'appel et le compte-rendu seront conservés.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleArchiveOuting}
+                            disabled={archiveOuting.isPending}
                           >
-                            <XCircle className="h-4 w-4" />
-                            {profile?.first_name} {profile?.last_name}
-                            {isLastMinute && <Badge variant="destructive" className="text-xs">-24h</Badge>}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                            {archiveOuting.isPending ? "Archivage..." : "Confirmer"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  {outing.is_archived && (
+                    <Badge variant="secondary" className="gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Archivée
+                    </Badge>
+                  )}
+                </div>
               </CardContent>
             </Card>
-
-            {/* Session Report */}
-            {isPast && canEditPresenceAndReport && (
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserCheck className="h-5 w-5 text-primary" />
-                    Compte-rendu de séance
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    placeholder="Température de l'eau, exercices réalisés, observations..."
-                    value={sessionReport}
-                    onChange={(e) => setSessionReport(e.target.value)}
-                    className="min-h-[200px]"
-                  />
-                  <div className="flex gap-3 mt-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={handleSaveReport}
-                      disabled={updateSessionReport.isPending}
-                    >
-                      {updateSessionReport.isPending ? "Enregistrement..." : "Enregistrer le compte-rendu"}
-                    </Button>
-                    {canArchiveOuting && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ocean" className="flex-1 gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Valider la sortie
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle className="flex items-center gap-2">
-                              <CheckCircle2 className="h-5 w-5 text-primary" />
-                              Valider et archiver cette sortie ?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              La sortie sera archivée et n'apparaîtra plus dans les sorties à venir. L'appel et le compte-rendu seront conservés.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleArchiveOuting}
-                              disabled={archiveOuting.isPending}
-                            >
-                              {archiveOuting.isPending ? "Archivage..." : "Confirmer"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                    {outing.is_archived && (
-                      <Badge variant="secondary" className="gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Archivée
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          )}
         </div>
       </section>
 

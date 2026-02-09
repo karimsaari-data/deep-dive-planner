@@ -14,6 +14,7 @@ import { Outing, OutingType, useCreateReservation, useCancelReservation, Carpool
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import NavigationButton from "@/components/locations/NavigationButton";
+import WeatherBadge from "@/components/weather/WeatherBadge";
 
 interface CarpoolInfo {
   carpool_count: number;
@@ -145,6 +146,16 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
         <div className="mb-4">
           <h3 className="font-semibold text-foreground text-lg">{outing.title}</h3>
         </div>
+
+        {outing.outing_type === "Mer" && locationCoords.latitude && locationCoords.longitude && (
+          <div className="mb-3 -mx-1">
+            <WeatherBadge
+              latitude={locationCoords.latitude}
+              longitude={locationCoords.longitude}
+              outingDate={outing.date_time}
+            />
+          </div>
+        )}
 
         {outing.description && (
           <p className="mb-4 text-sm text-muted-foreground line-clamp-2">

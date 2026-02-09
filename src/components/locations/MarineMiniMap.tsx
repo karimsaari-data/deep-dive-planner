@@ -14,7 +14,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const waypointMarkersRef = useRef<L.Marker[]>([]);
-  
+
   const { data: waypoints } = useWaypoints(siteId);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
     }
   }, [latitude, longitude]);
 
-  // Add waypoint markers
+  // Add waypoint markers and fit bounds to show all POIs
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -108,7 +108,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       const iconChar = getWaypointIcon(waypoint.point_type);
 
       const waypointIcon = L.divIcon({
-        html: isDiveZone 
+        html: isDiveZone
           ? `<div style="
               background: rgba(14, 165, 233, 0.4);
               width: 32px;
@@ -143,11 +143,19 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
 
       const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })
         .addTo(mapInstanceRef.current!);
-      
+
       marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}<br/><small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>`);
       waypointMarkersRef.current.push(marker);
     });
-  }, [waypoints]);
+
+    // Fit bounds to show all waypoints + site location
+    const allPoints: [number, number][] = [
+      [latitude, longitude],
+      ...waypoints.map((wp: Waypoint) => [wp.latitude, wp.longitude] as [number, number]),
+    ];
+    const bounds = L.latLngBounds(allPoints);
+    mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+  }, [waypoints, latitude, longitude]);
 
   return (
     <div

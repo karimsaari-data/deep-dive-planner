@@ -199,19 +199,30 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng, onMapReady }
     toast.info("Génération de l'image bathymétrique HD...");
     
     try {
-      // Hide Leaflet controls temporarily
+      // Hide Leaflet controls and tile borders temporarily
       const controls = mapContainerRef.current.querySelectorAll('.leaflet-control-container');
       controls.forEach(ctrl => (ctrl as HTMLElement).style.display = 'none');
-      
+      const tiles = mapContainerRef.current.querySelectorAll('.leaflet-tile');
+      tiles.forEach(tile => {
+        (tile as HTMLElement).style.outline = 'none';
+        (tile as HTMLElement).style.border = 'none';
+      });
+      // Force a small delay for style application
+      await new Promise(r => setTimeout(r, 100));
+
       const canvas = await html2canvas(mapContainerRef.current, {
         useCORS: true,
         allowTaint: true,
         scale: 2, // HD quality
         backgroundColor: null,
       });
-      
-      // Restore controls
+
+      // Restore controls and tile styles
       controls.forEach(ctrl => (ctrl as HTMLElement).style.display = '');
+      tiles.forEach(tile => {
+        (tile as HTMLElement).style.outline = '';
+        (tile as HTMLElement).style.border = '';
+      });
       
       // Download the image
       const link = document.createElement('a');
@@ -242,9 +253,9 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng, onMapReady }
       <div ref={mapContainerRef}>
         <div
           ref={mapRef}
-          className="w-full h-80 rounded-lg shadow-sm border border-ocean/30"
+          className="w-full h-[50vh] rounded-lg shadow-sm border border-ocean/30"
         />
-        
+
         {/* Legend for PDF capture - shows numbered zones */}
         {diveZoneWaypoints.length > 0 && (
           <div className="mt-2 p-3 bg-white rounded-lg border border-ocean/20 space-y-1">

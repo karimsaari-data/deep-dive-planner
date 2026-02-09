@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      apnea_levels: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          prerogatives: string | null
+          is_instructor: boolean
+          federation: string | null
+          federation_full_name: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          prerogatives?: string | null
+          is_instructor?: boolean
+          federation?: string | null
+          federation_full_name?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          prerogatives?: string | null
+          is_instructor?: boolean
+          federation?: string | null
+          federation_full_name?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       boats: {
         Row: {
           capacity: number
@@ -795,6 +828,7 @@ export type Database = {
         | "water_exit"
         | "meeting_point"
         | "dive_zone"
+        | "toilet"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -934,6 +968,7 @@ export const Constants = {
         "water_exit",
         "meeting_point",
         "dive_zone",
+        "toilet",
       ],
     },
   },

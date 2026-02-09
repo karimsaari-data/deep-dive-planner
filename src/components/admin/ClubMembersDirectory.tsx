@@ -15,6 +15,9 @@ import {
   ArrowDown,
   AlertTriangle,
   Calendar,
+  ChevronsUpDown,
+  GraduationCap,
+  AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -56,6 +59,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { toast } from "sonner";
 import { useClubMembersDirectory, ClubMember, ClubMemberInsert } from "@/hooks/useClubMembersDirectory";
 import { 
@@ -66,6 +82,7 @@ import {
   StatusField,
   MembershipYearlyStatus
 } from "@/hooks/useMembershipYearlyStatus";
+import { useApneaLevels } from "@/hooks/useApneaLevels";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -80,7 +97,7 @@ import {
 const GENDER_OPTIONS = ["Homme", "Femme", "Autre"];
 const BOARD_ROLE_OPTIONS = ["Président", "Vice-Président", "Trésorier", "Secrétaire", "Trésorier Adjoint", "Secrétaire Adjoint", "Membre du bureau"];
 
-type SortField = "last_name" | "first_name" | "email" | "joined_at" | "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok";
+type SortField = "last_name" | "first_name" | "email" | "joined_at" | "apnea_level" | "payment_status" | "medical_certificate_ok" | "buddies_charter_signed" | "fsgt_insurance_ok";
 type SortDirection = "asc" | "desc";
 
 interface ImportError {
@@ -134,6 +151,18 @@ const ClubMembersDirectory = () => {
     upsertStatusBatch,
   } = useMembershipYearlyStatus(selectedSeason);
 
+  const { data: apneaLevels } = useApneaLevels();
+  const apneaLevelCodes = useMemo(() => new Set(apneaLevels?.map(l => l.code) || []), [apneaLevels]);
+  const apneaLevelsByFederation = useMemo(() => {
+    if (!apneaLevels) return {};
+    return apneaLevels.reduce((acc, level) => {
+      const fed = level.federation || "Autre";
+      if (!acc[fed]) acc[fed] = [];
+      acc[fed].push(level);
+      return acc;
+    }, {} as Record<string, typeof apneaLevels>);
+  }, [apneaLevels]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ClubMember | null>(null);
@@ -144,6 +173,9 @@ const ClubMembersDirectory = () => {
   const [importReportOpen, setImportReportOpen] = useState(false);
   const [importReport, setImportReport] = useState<{ created: number; updated: number; errors: ImportError[] }>({ created: 0, updated: 0, errors: [] });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [apneaLevelOpen, setApneaLevelOpen] = useState(false);
+  const [filterEncadrant, setFilterEncadrant] = useState(false);
+  const [filterIncomplete, setFilterIncomplete] = useState(false);
 
   // Identity form data (stored in club_members_directory)
   const [formData, setFormData] = useState<ClubMemberInsert>({
@@ -540,16 +572,41 @@ const ClubMembersDirectory = () => {
     }
   };
 
+  // Check if a member's dossier is complete (4 checkboxes + valid apnea level)
+  const isMemberDossierComplete = (memberId: string): boolean => {
+    const payment = getMemberStatusValue(memberId, "payment_status");
+    const medical = getMemberStatusValue(memberId, "medical_certificate_ok");
+    const charter = getMemberStatusValue(memberId, "buddies_charter_signed");
+    const insurance = getMemberStatusValue(memberId, "fsgt_insurance_ok");
+    const level = getStatusForMember(memberId)?.apnea_level;
+    const hasValidLevel = !!level && apneaLevelCodes.has(level);
+    return payment && medical && charter && insurance && hasValidLevel;
+  };
+
   // Filter and sort members
   const filteredAndSortedMembers = useMemo(() => {
     let result = members?.filter((member) => {
       const searchLower = searchTerm.toLowerCase();
-      return (
+      const matchesSearch = (
         member.first_name.toLowerCase().includes(searchLower) ||
         member.last_name.toLowerCase().includes(searchLower) ||
         member.email.toLowerCase().includes(searchLower) ||
         member.member_id.toLowerCase().includes(searchLower)
       );
+      if (!matchesSearch) return false;
+
+      // Filter encadrants only
+      if (filterEncadrant) {
+        const status = getStatusForMember(member.id);
+        if (!status?.is_encadrant) return false;
+      }
+
+      // Filter incomplete dossiers only
+      if (filterIncomplete) {
+        if (isMemberDossierComplete(member.id)) return false;
+      }
+
+      return true;
     }) || [];
 
     result.sort((a, b) => {
@@ -568,6 +625,10 @@ const ClubMembersDirectory = () => {
           aValue = a.joined_at || "";
           bValue = b.joined_at || "";
           break;
+        case "apnea_level":
+          aValue = getStatusForMember(a.id)?.apnea_level?.toLowerCase() || "";
+          bValue = getStatusForMember(b.id)?.apnea_level?.toLowerCase() || "";
+          break;
         default:
           aValue = (a as any)[sortField]?.toLowerCase() || "";
           bValue = (b as any)[sortField]?.toLowerCase() || "";
@@ -585,16 +646,11 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, apneaLevelCodes]);
 
   const getRowClassName = (member: ClubMember) => {
+    if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";
     const payment = getMemberStatusValue(member.id, "payment_status");
-    const medical = getMemberStatusValue(member.id, "medical_certificate_ok");
-    const charter = getMemberStatusValue(member.id, "buddies_charter_signed");
-    const insurance = getMemberStatusValue(member.id, "fsgt_insurance_ok");
-    
-    const allComplete = payment && medical && charter && insurance;
-    if (allComplete) return "bg-green-50 dark:bg-green-950/20";
     if (!payment) return "bg-red-50 dark:bg-red-950/20";
     return "";
   };
@@ -616,16 +672,16 @@ const ClubMembersDirectory = () => {
     }
   };
 
-  // Count complete records for stats
-  const completeRecordsCount = useMemo(() => {
-    return members?.filter((m) => {
-      const payment = getMemberStatusValue(m.id, "payment_status");
-      const medical = getMemberStatusValue(m.id, "medical_certificate_ok");
-      const charter = getMemberStatusValue(m.id, "buddies_charter_signed");
-      const insurance = getMemberStatusValue(m.id, "fsgt_insurance_ok");
-      return payment && medical && charter && insurance;
-    }).length || 0;
+  // Count stats (based on full list, not filtered)
+  const totalCount = members?.length || 0;
+  const encadrantCount = useMemo(() => {
+    return members?.filter((m) => getStatusForMember(m.id)?.is_encadrant).length || 0;
   }, [members, statuses]);
+  const completeRecordsCount = useMemo(() => {
+    return members?.filter((m) => isMemberDossierComplete(m.id)).length || 0;
+  }, [members, statuses, apneaLevelCodes]);
+  const incompleteRecordsCount = totalCount - completeRecordsCount;
+  const filteredCount = filteredAndSortedMembers?.length || 0;
 
   return (
     <Card className="shadow-card">
@@ -672,6 +728,29 @@ const ClubMembersDirectory = () => {
               />
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => setFilterEncadrant(!filterEncadrant)}
+                variant={filterEncadrant ? "default" : "outline"}
+                size="sm"
+                title="Filtrer les encadrants"
+              >
+                <GraduationCap className="h-4 w-4 mr-1" />
+                Encadrants
+              </Button>
+              <Button
+                onClick={() => setFilterIncomplete(!filterIncomplete)}
+                variant={filterIncomplete ? "default" : "outline"}
+                size="sm"
+                title="Filtrer les dossiers incomplets"
+              >
+                <AlertCircle className="h-4 w-4 mr-1" />
+                Incomplets
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1" />
+            <div className="flex gap-2">
               <Button onClick={openNewForm} size="sm">
                 <Plus className="h-4 w-4 mr-1" />
                 Ajouter
@@ -699,6 +778,29 @@ const ClubMembersDirectory = () => {
           accept=".csv"
           className="hidden"
         />
+
+        {/* Dynamic stats bar */}
+        {members && members.length > 0 && (
+          <div className="flex flex-wrap gap-3 mb-4 text-sm">
+            <Badge variant="secondary" className="text-xs">
+              {(filterEncadrant || filterIncomplete) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
+            </Badge>
+            <Badge variant="secondary" className={cn("text-xs", filterEncadrant && "bg-primary text-primary-foreground")}>
+              <GraduationCap className="h-3 w-3 mr-1" />
+              {encadrantCount} encadrants
+            </Badge>
+            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+              {completeRecordsCount} dossiers complets
+            </Badge>
+            <Badge variant="secondary" className={cn("text-xs bg-orange-100 text-orange-700", filterIncomplete && "bg-primary text-primary-foreground")}>
+              <AlertCircle className="h-3 w-3 mr-1" />
+              {incompleteRecordsCount} incomplets
+            </Badge>
+            <Badge variant="secondary" className="text-xs text-green-600">
+              {members.filter((m) => isEmailRegistered(m.email)).length} inscrits app
+            </Badge>
+          </div>
+        )}
 
         {/* Table */}
         {isLoading || isLoadingStatuses ? (
@@ -742,7 +844,16 @@ const ClubMembersDirectory = () => {
                       {getSortIcon("joined_at")}
                     </div>
                   </TableHead>
-                  <TableHead 
+                  <TableHead
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort("apnea_level")}
+                  >
+                    <div className="flex items-center">
+                      Niveau
+                      {getSortIcon("apnea_level")}
+                    </div>
+                  </TableHead>
+                  <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleSort("payment_status")}
                   >
@@ -793,6 +904,37 @@ const ClubMembersDirectory = () => {
                       </TableCell>
                       <TableCell className="text-sm">{member.email}</TableCell>
                       <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
+                      <TableCell className="text-sm">
+                        {(() => {
+                          const status = getStatusForMember(member.id);
+                          const level = status?.apnea_level;
+                          const isEncadrant = status?.is_encadrant;
+                          if (!level && !isEncadrant) return <span className="text-muted-foreground">-</span>;
+                          const isOfficial = level ? apneaLevelCodes.has(level) : false;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              {level && (
+                                <Badge
+                                  variant={isOfficial ? "secondary" : "outline"}
+                                  className={cn(
+                                    "text-xs whitespace-nowrap",
+                                    !isOfficial && "border-orange-400 bg-orange-50 text-orange-700"
+                                  )}
+                                  title={!isOfficial ? `"${level}" n'est pas un niveau officiel reconnu` : level}
+                                >
+                                  {!isOfficial && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                  {level}
+                                </Badge>
+                              )}
+                              {isEncadrant && (
+                                <span title="Encadrant" className="text-primary">
+                                  <GraduationCap className="h-4 w-4" />
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell className="text-center">
                         <Checkbox
                           checked={getMemberStatusValue(member.id, "payment_status")}
@@ -869,20 +1011,6 @@ const ClubMembersDirectory = () => {
           </div>
         )}
 
-        {/* Stats footer */}
-        {members && members.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span>{members.length} adhérents au total</span>
-            <span>•</span>
-            <span className="text-green-600">
-              {members.filter((m) => isEmailRegistered(m.email)).length} inscrits à l'app
-            </span>
-            <span>•</span>
-            <span className="text-green-600">
-              {completeRecordsCount} dossiers complets ({getSeasonLabel(selectedSeason)})
-            </span>
-          </div>
-        )}
 
         {/* Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -962,12 +1090,85 @@ const ClubMembersDirectory = () => {
                 </div>
                 <div>
                   <Label htmlFor="apnea_level">Niveau Apnée ({getSeasonLabel(selectedSeason)})</Label>
-                  <Input
-                    id="apnea_level"
-                    value={seasonalFormData.apnea_level || ""}
-                    onChange={(e) => setSeasonalFormData({ ...seasonalFormData, apnea_level: e.target.value })}
-                    placeholder="ex: A2, A3..."
-                  />
+                  <Popover open={apneaLevelOpen} onOpenChange={setApneaLevelOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={apneaLevelOpen}
+                        className={cn(
+                          "w-full justify-between font-normal",
+                          !seasonalFormData.apnea_level && "text-muted-foreground",
+                          seasonalFormData.apnea_level && !apneaLevelCodes.has(seasonalFormData.apnea_level) && "border-orange-400 text-orange-700"
+                        )}
+                      >
+                        {seasonalFormData.apnea_level ? (
+                          <span className="flex items-center gap-1">
+                            {!apneaLevelCodes.has(seasonalFormData.apnea_level) && (
+                              <AlertTriangle className="h-3 w-3 text-orange-500" />
+                            )}
+                            {seasonalFormData.apnea_level}
+                          </span>
+                        ) : (
+                          "Rechercher un niveau..."
+                        )}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Rechercher un niveau..." />
+                        <CommandList>
+                          <CommandEmpty>Aucun niveau trouvé</CommandEmpty>
+                          {Object.entries(apneaLevelsByFederation).map(([federation, levels]) => (
+                            <CommandGroup key={federation} heading={federation}>
+                              {levels.map((level) => (
+                                <CommandItem
+                                  key={level.code}
+                                  value={`${level.code} ${level.name}`}
+                                  onSelect={() => {
+                                    setSeasonalFormData({ ...seasonalFormData, apnea_level: level.code });
+                                    setApneaLevelOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      seasonalFormData.apnea_level === level.code ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="font-medium">{level.code}</span>
+                                  {level.code !== level.name && (
+                                    <span className="ml-1 text-muted-foreground text-xs">- {level.name}</span>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          ))}
+                          {seasonalFormData.apnea_level && (
+                            <CommandGroup>
+                              <CommandItem
+                                value="__clear__"
+                                onSelect={() => {
+                                  setSeasonalFormData({ ...seasonalFormData, apnea_level: "" });
+                                  setApneaLevelOpen(false);
+                                }}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                                Effacer le niveau
+                              </CommandItem>
+                            </CommandGroup>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {seasonalFormData.apnea_level && !apneaLevelCodes.has(seasonalFormData.apnea_level) && (
+                    <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Niveau non reconnu dans la table officielle
+                    </p>
+                  )}
                 </div>
               </div>
               <div>

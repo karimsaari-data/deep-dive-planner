@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search, X, Maximize2, Minimize2 } from "lucide-react";
+import { MapPin, Navigation, Waves, Droplets, Loader2, Plus, Crosshair, Search, X } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,7 +79,6 @@ const Map = () => {
   const [mapReady, setMapReady] = useState(false);
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
@@ -182,32 +181,6 @@ const Map = () => {
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
-
-  // Fullscreen toggle
-  const toggleFullscreen = useCallback(() => {
-    if (!mapContainerRef.current) return;
-    if (!document.fullscreenElement) {
-      mapContainerRef.current.requestFullscreen().catch(() => {
-        toast.error("Le plein écran n'est pas supporté");
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  }, []);
-
-  // Sync fullscreen state
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const fs = !!document.fullscreenElement;
-      setIsFullscreen(fs);
-      // Let Leaflet recalculate dimensions with delay for DOM update
-      setTimeout(() => {
-        mapInstanceRef.current?.invalidateSize();
-      }, 200);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
 
   // Remove temporary marker
   const removeTempMarker = () => {
@@ -456,7 +429,7 @@ const Map = () => {
             ${possStatusHtml}
             ${location.address ? `<p style="margin: 8px 0 0 0; font-size: 14px; color: #64748b;">${location.address}</p>` : ""}
             <div style="margin-top: 8px; display: flex; gap: 8px;">
-              <a href="/location/${location.id}" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
+              <a id="detail-link-${location.id}" href="#" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">ℹ️ Détails</a>
               ${location.maps_url ? `<a href="${location.maps_url}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 4px; color: #0ea5e9; text-decoration: none; font-size: 14px;">📍 Itinéraire</a>` : ""}
             </div>
             ${createOutingBtn}
@@ -466,8 +439,15 @@ const Map = () => {
         const popup = L.popup().setContent(popupContent);
         marker.bindPopup(popup);
 
-        // Add event listener for the create outing button
+        // Add event listeners for popup buttons
         marker.on('popupopen', () => {
+          const detailLink = document.getElementById(`detail-link-${location.id}`);
+          if (detailLink) {
+            detailLink.onclick = (e) => {
+              e.preventDefault();
+              navigate(`/location/${location.id}`);
+            };
+          }
           const btn = document.getElementById(`create-outing-${location.id}`);
           if (btn) {
             btn.onclick = () => {
@@ -513,18 +493,18 @@ const Map = () => {
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Map */}
           <div className="lg:col-span-2">
-              <Card className={`overflow-hidden shadow-card relative ${isFullscreen ? "h-screen w-screen bg-background" : ""}`} ref={mapContainerRef}>
-                <CardContent className={`p-0 ${isFullscreen ? "h-full" : ""}`}>
-                  <div 
-                    ref={mapRef} 
-                    className={`${isFullscreen ? "h-full" : "h-[500px]"} w-full`}
+              <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
+                <CardContent className="p-0">
+                  <div
+                    ref={mapRef}
+                    className="h-[75vh] w-full"
                     style={{ zIndex: 0 }}
                   />
                   {/* Geolocation button */}
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute top-20 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                    className="absolute top-2.5 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
                     onClick={centerOnUser}
                     disabled={isLocating}
                     title="Ma position"
@@ -535,23 +515,9 @@ const Map = () => {
                       <Crosshair className="h-4 w-4 text-primary" />
                     )}
                   </Button>
-                  {/* Fullscreen button */}
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-32 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
-                    onClick={toggleFullscreen}
-                    title={isFullscreen ? "Quitter le plein écran" : "Plein écran"}
-                  >
-                    {isFullscreen ? (
-                      <Minimize2 className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Maximize2 className="h-4 w-4 text-primary" />
-                    )}
-                  </Button>
                 </CardContent>
                 {/* Legend */}
-                <div className={`flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground ${isFullscreen ? "absolute bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm z-[1000]" : "border-t border-border"}`}>
+                <div className="flex flex-wrap gap-4 px-4 py-2 text-xs text-muted-foreground border-t border-border">
                   <div className="flex items-center gap-1.5">
                     <span className="w-3 h-3 rounded-full bg-green-600 border border-white shadow-sm" />
                     <span>Lieu validé (POSS)</span>
@@ -688,7 +654,7 @@ const Map = () => {
         setShowCreateDialog(open);
         if (!open) removeTempMarker();
       }}>
-        <DialogContent className="sm:max-w-md" container={isFullscreen ? mapContainerRef.current : null}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
