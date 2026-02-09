@@ -262,19 +262,29 @@ const ClubMembersDirectory = () => {
 
     try {
       let memberId: string;
-      
+
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...formData,
+        email: formData.email.toLowerCase(),
+        phone: formData.phone || null,
+        birth_date: formData.birth_date || null,
+        address: formData.address || null,
+        joined_at: formData.joined_at || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        gender: formData.gender || null,
+        notes: formData.notes || null,
+      };
+
       if (editingMember) {
         await updateMember.mutateAsync({
           id: editingMember.id,
-          ...formData,
-          email: formData.email.toLowerCase(),
+          ...cleanedData,
         });
         memberId = editingMember.id;
       } else {
-        const result = await createMember.mutateAsync({
-          ...formData,
-          email: formData.email.toLowerCase(),
-        });
+        const result = await createMember.mutateAsync(cleanedData);
         memberId = result.id;
       }
 
