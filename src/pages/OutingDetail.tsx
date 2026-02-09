@@ -36,6 +36,10 @@ import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import CarpoolSection from "@/components/carpool/CarpoolSection";
+import OutingWeatherCard from "@/components/weather/OutingWeatherCard";
+import MarineMiniMap from "@/components/locations/MarineMiniMap";
+import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
+import { Anchor, Satellite } from "lucide-react";
 
 const OutingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -411,17 +415,59 @@ const OutingDetail = () => {
             </div>
           </div>
 
-          {/* Widget Météo Windy - Carte + Prévisions */}
+          {/* Carte météo Open-Meteo pour le jour de la sortie */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
-            <div className="w-full rounded-xl overflow-hidden shadow-lg border border-border my-6 bg-muted">
-              <iframe 
-                width="100%" 
-                height="500"
-                src={`https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&metricWave=m&zoom=11&overlay=wind&product=ecmwf&level=surface&lat=${outing.location_details.latitude}&lon=${outing.location_details.longitude}&detailLat=${outing.location_details.latitude}&detailLon=${outing.location_details.longitude}&detail=true&message=true`}
-                frameBorder="0"
-                title="Météo Windy"
-                className="w-full"
-              ></iframe>
+            <div className="my-6">
+              <OutingWeatherCard
+                latitude={outing.location_details.latitude}
+                longitude={outing.location_details.longitude}
+                outingDate={outing.date_time}
+              />
+            </div>
+          )}
+
+          {/* Cartes du site : Bathymétrie + Satellite avec points d'intérêt */}
+          {outing.location_details?.latitude && outing.location_details?.longitude && (
+            <div className="grid gap-6 md:grid-cols-2 my-6">
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Anchor className="h-5 w-5 text-primary" />
+                    Carte Marine (Bathymétrie)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <MarineMiniMap
+                    latitude={outing.location_details.latitude}
+                    longitude={outing.location_details.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Carte SHOM/IGN – Lignes de profondeur et sondes marines
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Satellite className="h-5 w-5 text-primary" />
+                    Vue Satellite
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <SatelliteMiniMap
+                    latitude={outing.location_details.latitude}
+                    longitude={outing.location_details.longitude}
+                    siteName={outing.location_details?.name || outing.location}
+                    siteId={outing.location_id ?? undefined}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Vue satellite – Points d'intérêt du site
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           )}
 
