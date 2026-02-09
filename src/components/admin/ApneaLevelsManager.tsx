@@ -72,6 +72,8 @@ const ApneaLevelsManager = () => {
   const deleteLevel = useDeleteApneaLevel();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterFederation, setFilterFederation] = useState<string | null>(null);
+  const [filterInstructor, setFilterInstructor] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingLevel, setEditingLevel] = useState<ApneaLevel | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -80,13 +82,19 @@ const ApneaLevelsManager = () => {
   const filteredLevels = useMemo(() => {
     if (!levels) return [];
     const search = searchTerm.toLowerCase();
-    return levels.filter(
-      (l) =>
+    return levels.filter((l) => {
+      const matchesSearch =
         l.code.toLowerCase().includes(search) ||
         l.name.toLowerCase().includes(search) ||
-        (l.federation || "").toLowerCase().includes(search)
-    );
-  }, [levels, searchTerm]);
+        (l.federation || "").toLowerCase().includes(search);
+      if (!matchesSearch) return false;
+
+      if (filterFederation && (l.federation || "Autre") !== filterFederation) return false;
+      if (filterInstructor && !l.is_instructor) return false;
+
+      return true;
+    });
+  }, [levels, searchTerm, filterFederation, filterInstructor]);
 
   const federationCounts = useMemo(() => {
     if (!levels) return {};
@@ -157,7 +165,7 @@ const ApneaLevelsManager = () => {
               Niveaux d'Apnée
             </CardTitle>
             <CardDescription>
-              Table de référence des certifications officielles ({levels?.length || 0} niveaux)
+              Table de référence des certifications officielles ({(filterFederation || filterInstructor) ? `${filteredLevels.length} / ${levels?.length || 0}` : levels?.length || 0} niveaux)
             </CardDescription>
           </div>
           <Button onClick={openCreateForm}>
@@ -167,13 +175,35 @@ const ApneaLevelsManager = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Stats badges */}
+        {/* Filter badges */}
         <div className="flex flex-wrap gap-2 mb-4">
           {Object.entries(federationCounts).map(([fed, count]) => (
-            <Badge key={fed} variant="secondary" className="text-xs">
+            <Badge
+              key={fed}
+              variant={filterFederation === fed ? "default" : "secondary"}
+              className="text-xs cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setFilterFederation(filterFederation === fed ? null : fed)}
+            >
               {fed}: {count}
             </Badge>
           ))}
+          <Badge
+            variant={filterInstructor ? "default" : "secondary"}
+            className="text-xs cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => setFilterInstructor(!filterInstructor)}
+          >
+            <ShieldCheck className="h-3 w-3 mr-1" />
+            Encadrant
+          </Badge>
+          {(filterFederation || filterInstructor) && (
+            <Badge
+              variant="outline"
+              className="text-xs cursor-pointer hover:bg-muted"
+              onClick={() => { setFilterFederation(null); setFilterInstructor(false); }}
+            >
+              Tout afficher ({levels?.length})
+            </Badge>
+          )}
         </div>
 
         {/* Search */}
