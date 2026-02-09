@@ -85,7 +85,7 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
     }
   }, [latitude, longitude]);
 
-  // Add waypoint markers
+  // Add waypoint markers and fit bounds to show all POIs
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -148,7 +148,15 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
       marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}`);
       waypointMarkersRef.current.push(marker);
     });
-  }, [waypoints]);
+
+    // Fit bounds to show all waypoints + site location
+    const allPoints: [number, number][] = [
+      [latitude, longitude],
+      ...waypoints.map((wp: Waypoint) => [wp.latitude, wp.longitude] as [number, number]),
+    ];
+    const bounds = L.latLngBounds(allPoints);
+    mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+  }, [waypoints, latitude, longitude]);
 
   return (
     <div
