@@ -109,7 +109,7 @@ export const getWaypointIcon = (type: WaypointType): string => {
   const icons: Record<WaypointType, string> = {
     parking: "P",
     water_entry: "↓",
-    water_exit: "✚",
+    water_exit: "⚠",
     meeting_point: "●",
     dive_zone: "🤿",
   };

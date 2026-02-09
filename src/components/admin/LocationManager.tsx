@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
+import L from "leaflet";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import SatelliteWaypointEditor from "./SatelliteWaypointEditor";
 import BathymetricMapEditor from "./BathymetricMapEditor";
+import WaypointTable from "./WaypointTable";
+import { useWaypoints, Waypoint } from "@/hooks/useWaypoints";
 
 const locationSchema = z.object({
   name: z.string().min(2, "Le nom doit faire au moins 2 caractères").max(100),
@@ -51,12 +54,59 @@ const LocationManager = () => {
   const satelliteInputRef = useRef<HTMLInputElement>(null);
   const bathymetricInputRef = useRef<HTMLInputElement>(null);
 
+  // Map refs for waypoint table click-to-focus
+  const satelliteMapRef = useRef<L.Map | null>(null);
+  const satelliteMarkersRef = useRef<React.MutableRefObject<L.Marker[]> | null>(null);
+  const bathyMapRef = useRef<L.Map | null>(null);
+  const bathyMarkersRef = useRef<React.MutableRefObject<L.Marker[]> | null>(null);
+
   // Filter locations based on search query
   const filteredLocations = locations?.filter((location) =>
     location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     location.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     location.type?.toLowerCase().includes(searchQuery.toLowerCase())
   ) ?? [];
+
+  // Waypoints for the editing location's unified table
+  const { data: editingWaypoints } = useWaypoints(editingLocation?.id);
+
+  const handleSatelliteMapReady = useCallback((map: L.Map, markers: React.MutableRefObject<L.Marker[]>) => {
+    satelliteMapRef.current = map;
+    satelliteMarkersRef.current = markers;
+  }, []);
+
+  const handleBathyMapReady = useCallback((map: L.Map, markers: React.MutableRefObject<L.Marker[]>) => {
+    bathyMapRef.current = map;
+    bathyMarkersRef.current = markers;
+  }, []);
+
+  const handleFocusWaypoint = useCallback((waypoint: Waypoint) => {
+    // Try satellite map first (has all waypoints)
+    if (satelliteMapRef.current && satelliteMarkersRef.current) {
+      satelliteMapRef.current.setView([waypoint.latitude, waypoint.longitude], 18, { animate: true });
+      // Find and open the matching marker popup
+      const markers = satelliteMarkersRef.current.current;
+      for (const marker of markers) {
+        const pos = marker.getLatLng();
+        if (Math.abs(pos.lat - waypoint.latitude) < 0.00001 && Math.abs(pos.lng - waypoint.longitude) < 0.00001) {
+          marker.openPopup();
+          break;
+        }
+      }
+    }
+    // Also focus bathymetric map if it's a dive zone
+    if (waypoint.point_type === "dive_zone" && bathyMapRef.current && bathyMarkersRef.current) {
+      bathyMapRef.current.setView([waypoint.latitude, waypoint.longitude], 17, { animate: true });
+      const markers = bathyMarkersRef.current.current;
+      for (const marker of markers) {
+        const pos = marker.getLatLng();
+        if (Math.abs(pos.lat - waypoint.latitude) < 0.00001 && Math.abs(pos.lng - waypoint.longitude) < 0.00001) {
+          marker.openPopup();
+          break;
+        }
+      }
+    }
+  }, []);
 
   const form = useForm<LocationFormData>({
     resolver: zodResolver(locationSchema),
@@ -260,6 +310,10 @@ const LocationManager = () => {
               setPreviewUrl(null);
               setSatelliteMapUrl(null);
               setBathymetricMapUrl(null);
+              satelliteMapRef.current = null;
+              satelliteMarkersRef.current = null;
+              bathyMapRef.current = null;
+              bathyMarkersRef.current = null;
             }
           }}>
             <DialogTrigger asChild>
@@ -272,228 +326,28 @@ const LocationManager = () => {
             <DialogHeader>
               <DialogTitle>{editingLocation ? "Modifier le lieu" : "Nouveau lieu"}</DialogTitle>
             </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom du lieu *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Calanque de Sormiou" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Adresse</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Route de Sormiou, 13009 Marseille" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Type</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Mer, Piscine, Fosse..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="maps_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Lien Google Maps</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="https://maps.google.com/..."
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Photo Section with Tabs */}
-                <div className="space-y-3">
-                  <FormLabel>Photo du lieu</FormLabel>
-                  <Tabs value={photoMode} onValueChange={(v) => setPhotoMode(v as "url" | "upload")}>
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="url" className="gap-2">
-                        <Link className="h-4 w-4" />
-                        URL
-                      </TabsTrigger>
-                      <TabsTrigger value="upload" className="gap-2">
-                        <Upload className="h-4 w-4" />
-                        Upload
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="url" className="mt-3">
-                      <FormField
-                        control={form.control}
-                        name="photo_url"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                placeholder="https://exemple.com/photo.jpg"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e);
-                                  setPreviewUrl(e.target.value || null);
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </TabsContent>
-                    
-                    <TabsContent value="upload" className="mt-3">
-                      <div className="space-y-3">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full gap-2"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isUploading}
-                        >
-                          {isUploading ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Upload en cours...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              Choisir une image
-                            </>
-                          )}
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          Formats acceptés : JPG, PNG, WebP. Max 5 Mo.
-                        </p>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-
-                  {previewUrl && (
-                    <div className="relative mt-3 rounded-lg overflow-hidden bg-muted aspect-video">
-                      <img
-                        src={previewUrl}
-                        alt="Aperçu"
-                        className="h-full w-full object-cover"
-                        onError={() => setPreviewUrl(null)}
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8"
-                        onClick={() => {
-                          setPreviewUrl(null);
-                          form.setValue("photo_url", "");
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="max_depth"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Profondeur max (mètres)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={200}
-                          placeholder="20"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="comments"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Commentaires</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Infos complémentaires, accès, particularités..."
-                          {...field}
-                          className="resize-none"
-                          rows={3}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  variant="ocean"
-                  className="w-full"
-                  disabled={createLocation.isPending || updateLocation.isPending || isUploading}
-                >
-                  {createLocation.isPending || updateLocation.isPending
-                    ? "Enregistrement..."
-                    : editingLocation
-                    ? "Mettre à jour"
-                    : "Créer le lieu"}
-                </Button>
-              </form>
-            </Form>
-
-            {/* Waypoint Editors - Only show when editing an existing location with coordinates */}
+            {/* ===== SECTION 1: GPS Points Table + Maps (top priority) ===== */}
             {editingLocation && editingLocation.latitude && editingLocation.longitude && (
               <>
+                {/* Unified Waypoint Table */}
+                {editingWaypoints && (
+                  <WaypointTable
+                    waypoints={editingWaypoints}
+                    siteId={editingLocation.id}
+                    onFocusWaypoint={handleFocusWaypoint}
+                  />
+                )}
+
                 <Separator className="my-6" />
-                
+
                 {/* Satellite Map Editor */}
                 <SatelliteWaypointEditor
                   siteId={editingLocation.id}
                   siteName={editingLocation.name}
                   siteLat={editingLocation.latitude}
                   siteLng={editingLocation.longitude}
+                  onMapReady={handleSatelliteMapReady}
                 />
 
                 <Separator className="my-6" />
@@ -504,133 +358,358 @@ const LocationManager = () => {
                   siteName={editingLocation.name}
                   siteLat={editingLocation.latitude}
                   siteLng={editingLocation.longitude}
+                  onMapReady={handleBathyMapReady}
                 />
 
                 <Separator className="my-6" />
-
-                {/* PDF Cartography Upload Section */}
-                <Collapsible defaultOpen>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start gap-2 text-base font-medium">
-                      <FileImage className="h-5 w-5 text-primary" />
-                      Cartographie PDF (POSS)
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-4 pt-4">
-                    <p className="text-sm text-muted-foreground">
-                      Uploadez les images HD générées pour les intégrer au Plan d'Organisation et de Surveillance des Secours.
-                    </p>
-
-                    {/* Satellite Map Upload */}
-                    <div className="space-y-2">
-                      <Label className="font-medium">Plan de Secours (Satellite/Points)</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Uploader l'image Satellite HD générée précédemment.
-                      </p>
-                      <input
-                        ref={satelliteInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleMapImageUpload(e, "satellite")}
-                        className="hidden"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1 gap-2"
-                          onClick={() => satelliteInputRef.current?.click()}
-                          disabled={isUploadingSatellite}
-                        >
-                          {isUploadingSatellite ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Upload...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              Uploader l'image Satellite
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      {satelliteMapUrl && (
-                        <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
-                          <img
-                            src={satelliteMapUrl}
-                            alt="Carte Satellite"
-                            className="h-full w-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-8 w-8"
-                            onClick={() => setSatelliteMapUrl(null)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bathymetric Map Upload */}
-                    <div className="space-y-2">
-                      <Label className="font-medium">Carte des Fonds (SHOM/Bathymétrique)</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Uploader l'image Bathymétrique HD générée précédemment.
-                      </p>
-                      <input
-                        ref={bathymetricInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleMapImageUpload(e, "bathymetric")}
-                        className="hidden"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1 gap-2 border-ocean/50 text-ocean hover:bg-ocean/10"
-                          onClick={() => bathymetricInputRef.current?.click()}
-                          disabled={isUploadingBathymetric}
-                        >
-                          {isUploadingBathymetric ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Upload...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="h-4 w-4" />
-                              Uploader l'image Bathymétrique
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      {bathymetricMapUrl && (
-                        <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
-                          <img
-                            src={bathymetricMapUrl}
-                            alt="Carte Bathymétrique"
-                            className="h-full w-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-8 w-8"
-                            onClick={() => setBathymetricMapUrl(null)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
               </>
+            )}
+
+            {/* ===== SECTION 2: Location Info (collapsible, rarely edited) ===== */}
+            <Collapsible defaultOpen={!editingLocation}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start gap-2 text-base font-medium">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Informations du lieu
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nom du lieu *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Calanque de Sormiou" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Adresse</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Route de Sormiou, 13009 Marseille" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Mer, Piscine, Fosse..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="maps_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Lien Google Maps</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="https://maps.google.com/..."
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Photo Section with Tabs */}
+                    <div className="space-y-3">
+                      <FormLabel>Photo du lieu</FormLabel>
+                      <Tabs value={photoMode} onValueChange={(v) => setPhotoMode(v as "url" | "upload")}>
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="url" className="gap-2">
+                            <Link className="h-4 w-4" />
+                            URL
+                          </TabsTrigger>
+                          <TabsTrigger value="upload" className="gap-2">
+                            <Upload className="h-4 w-4" />
+                            Upload
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="url" className="mt-3">
+                          <FormField
+                            control={form.control}
+                            name="photo_url"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    placeholder="https://exemple.com/photo.jpg"
+                                    {...field}
+                                    onChange={(e) => {
+                                      field.onChange(e);
+                                      setPreviewUrl(e.target.value || null);
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TabsContent>
+
+                        <TabsContent value="upload" className="mt-3">
+                          <div className="space-y-3">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full gap-2"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isUploading}
+                            >
+                              {isUploading ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Upload en cours...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4" />
+                                  Choisir une image
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              Formats acceptés : JPG, PNG, WebP. Max 5 Mo.
+                            </p>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+
+                      {previewUrl && (
+                        <div className="relative mt-3 rounded-lg overflow-hidden bg-muted aspect-video">
+                          <img
+                            src={previewUrl}
+                            alt="Aperçu"
+                            className="h-full w-full object-cover"
+                            onError={() => setPreviewUrl(null)}
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8"
+                            onClick={() => {
+                              setPreviewUrl(null);
+                              form.setValue("photo_url", "");
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="max_depth"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Profondeur max (mètres)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={200}
+                              placeholder="20"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="comments"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Commentaires</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Infos complémentaires, accès, particularités..."
+                              {...field}
+                              className="resize-none"
+                              rows={3}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      type="submit"
+                      variant="ocean"
+                      className="w-full"
+                      disabled={createLocation.isPending || updateLocation.isPending || isUploading}
+                    >
+                      {createLocation.isPending || updateLocation.isPending
+                        ? "Enregistrement..."
+                        : editingLocation
+                        ? "Mettre à jour"
+                        : "Créer le lieu"}
+                    </Button>
+                  </form>
+                </Form>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* ===== SECTION 3: PDF Cartography (collapsible) ===== */}
+            {editingLocation && editingLocation.latitude && editingLocation.longitude && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start gap-2 text-base font-medium">
+                    <FileImage className="h-5 w-5 text-primary" />
+                    Cartographie PDF (POSS)
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Uploadez les images HD générées pour les intégrer au Plan d'Organisation et de Surveillance des Secours.
+                  </p>
+
+                  {/* Satellite Map Upload */}
+                  <div className="space-y-2">
+                    <Label className="font-medium">Plan de Secours (Satellite/Points)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Uploader l'image Satellite HD générée précédemment.
+                    </p>
+                    <input
+                      ref={satelliteInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleMapImageUpload(e, "satellite")}
+                      className="hidden"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 gap-2"
+                        onClick={() => satelliteInputRef.current?.click()}
+                        disabled={isUploadingSatellite}
+                      >
+                        {isUploadingSatellite ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Upload...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            Uploader l'image Satellite
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {satelliteMapUrl && (
+                      <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                        <img
+                          src={satelliteMapUrl}
+                          alt="Carte Satellite"
+                          className="h-full w-full object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8"
+                          onClick={() => setSatelliteMapUrl(null)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bathymetric Map Upload */}
+                  <div className="space-y-2">
+                    <Label className="font-medium">Carte des Fonds (SHOM/Bathymétrique)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Uploader l'image Bathymétrique HD générée précédemment.
+                    </p>
+                    <input
+                      ref={bathymetricInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleMapImageUpload(e, "bathymetric")}
+                      className="hidden"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 gap-2 border-ocean/50 text-ocean hover:bg-ocean/10"
+                        onClick={() => bathymetricInputRef.current?.click()}
+                        disabled={isUploadingBathymetric}
+                      >
+                        {isUploadingBathymetric ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Upload...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4" />
+                            Uploader l'image Bathymétrique
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {bathymetricMapUrl && (
+                      <div className="relative rounded-lg overflow-hidden bg-muted aspect-video">
+                        <img
+                          src={bathymetricMapUrl}
+                          alt="Carte Bathymétrique"
+                          className="h-full w-full object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8"
+                          onClick={() => setBathymetricMapUrl(null)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </DialogContent>
         </Dialog>

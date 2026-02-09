@@ -3,31 +3,27 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useWaypoints, getWaypointLabel, getWaypointColor, getWaypointIcon, Waypoint } from "@/hooks/useWaypoints";
 
-interface MarineMiniMapProps {
+interface SatelliteMiniMapProps {
   latitude: number;
   longitude: number;
   siteName?: string;
   siteId?: string;
 }
 
-const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapProps) => {
+const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMiniMapProps) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const waypointMarkersRef = useRef<L.Marker[]>([]);
-  
+
   const { data: waypoints } = useWaypoints(siteId);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Offset center southward so marker appears at top, showing more coast/sea below
-    const offsetLatitude = latitude - 0.008;
-
-    // Initialize map with high zoom and scroll disabled
     const map = L.map(mapRef.current, {
-      center: [offsetLatitude, longitude],
-      zoom: 15,
-      minZoom: 10,
+      center: [latitude, longitude],
+      zoom: 17,
+      minZoom: 13,
       maxZoom: 19,
       scrollWheelZoom: false,
       dragging: true,
@@ -35,20 +31,17 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
 
     mapInstanceRef.current = map;
 
-    // ONLY use IGN/SHOM Marine Chart layer - no layer control
+    // Esri World Imagery (Satellite)
     L.tileLayer(
-      "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0" +
-        "&LAYER=GEOGRAPHICALGRIDSYSTEMS.COASTALMAPS" +
-        "&STYLE=normal&TILEMATRIXSET=PM" +
-        "&FORMAT=image/png&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
-        attribution: '© <a href="https://www.shom.fr/">IGN - SHOM</a>',
-        maxNativeZoom: 18,
+        attribution: "Esri, Maxar, Earthstar Geographics",
+        maxNativeZoom: 17,
         maxZoom: 19,
       }
     ).addTo(map);
 
-    // Custom red marker icon for dive site
+    // Main site marker
     const markerIcon = L.divIcon({
       html: `<div style="
         background: hsl(0, 84%, 60%);
@@ -64,7 +57,6 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       popupAnchor: [0, -10],
     });
 
-    // Add marker at dive site location
     const marker = L.marker([latitude, longitude], { icon: markerIcon }).addTo(map);
     marker.bindPopup(
       `<div style="text-align: center; font-weight: 500;">
@@ -83,12 +75,11 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      const offsetLatitude = latitude - 0.008;
-      mapInstanceRef.current.setView([offsetLatitude, longitude], 15);
+      mapInstanceRef.current.setView([latitude, longitude], 17);
     }
   }, [latitude, longitude]);
 
-  // Add waypoint markers
+  // Add waypoint markers (read-only)
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -100,7 +91,6 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
 
     if (!waypoints || waypoints.length === 0) return;
 
-    // Add markers for each waypoint
     waypoints.forEach((waypoint: Waypoint) => {
       const color = getWaypointColor(waypoint.point_type);
       const label = getWaypointLabel(waypoint.point_type);
@@ -108,7 +98,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       const iconChar = getWaypointIcon(waypoint.point_type);
 
       const waypointIcon = L.divIcon({
-        html: isDiveZone 
+        html: isDiveZone
           ? `<div style="
               background: rgba(14, 165, 233, 0.4);
               width: 32px;
@@ -143,7 +133,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
 
       const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })
         .addTo(mapInstanceRef.current!);
-      
+
       marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}<br/><small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>`);
       waypointMarkersRef.current.push(marker);
     });
@@ -158,4 +148,4 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   );
 };
 
-export default MarineMiniMap;
+export default SatelliteMiniMap;
