@@ -14,9 +14,10 @@ interface BathymetricMapEditorProps {
   siteName?: string;
   siteLat?: number | null;
   siteLng?: number | null;
+  onMapReady?: (map: L.Map, markers: React.MutableRefObject<L.Marker[]>) => void;
 }
 
-const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: BathymetricMapEditorProps) => {
+const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng, onMapReady }: BathymetricMapEditorProps) => {
   const { data: waypoints } = useWaypoints(siteId);
   const createWaypoint = useCreateWaypoint();
   const deleteWaypoint = useDeleteWaypoint();
@@ -65,6 +66,7 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
     ).addTo(map);
 
     mapInstanceRef.current = map;
+    onMapReady?.(map, markersRef);
 
     // Click handler for adding dive zone points only
     map.on("click", (e: L.LeafletMouseEvent) => {
@@ -314,40 +316,6 @@ const BathymetricMapEditor = ({ siteId, siteName, siteLat, siteLng }: Bathymetri
         </div>
       )}
 
-      {/* List of dive zone waypoints with numbers and delete */}
-      {diveZoneWaypoints.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm">Zones de plongée définies (gestion)</Label>
-          <div className="space-y-2">
-            {diveZoneWaypoints.map((waypoint, index) => (
-              <div
-                key={waypoint.id}
-                className="flex items-center justify-between rounded border border-ocean/20 bg-ocean/5 px-3 py-2"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white border-2 border-sky-500 text-sky-700 font-bold text-sm">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm font-medium">
-                    {waypoint.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    ({waypoint.latitude.toFixed(4)}, {waypoint.longitude.toFixed(4)})
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => deleteWaypoint.mutate({ id: waypoint.id, siteId })}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

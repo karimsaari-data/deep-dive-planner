@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LocationImage from "@/components/locations/LocationImage";
 import MarineMiniMap from "@/components/locations/MarineMiniMap";
+import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { supabase } from "@/integrations/supabase/client";
 import type { Location } from "@/hooks/useLocations";
 
@@ -127,71 +128,64 @@ const LocationDetail = () => {
             )}
           </div>
 
+          {/* Navigation - compact inline buttons */}
+          {hasCoordinates && (
+            <div className="flex items-center gap-3 mb-6">
+              <Button
+                variant="ocean"
+                size="sm"
+                className="gap-2"
+                onClick={() => openNavigation("google")}
+              >
+                <Compass className="h-4 w-4" />
+                Google Maps
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => openNavigation("waze")}
+              >
+                <Navigation className="h-4 w-4" />
+                Waze
+              </Button>
+              {location.maps_url && (
+                <a
+                  href={location.maps_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Lien original
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Navigation Card */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Navigation className="h-5 w-5 text-primary" />
-                  Navigation
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {hasCoordinates ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Coordonnées : {location.latitude?.toFixed(5)}, {location.longitude?.toFixed(5)}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      <Button 
-                        variant="ocean" 
-                        className="w-full gap-2"
-                        onClick={() => openNavigation("google")}
-                      >
-                        <Compass className="h-4 w-4" />
-                        Ouvrir dans Google Maps
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full gap-2"
-                        onClick={() => openNavigation("waze")}
-                      >
-                        <Navigation className="h-4 w-4" />
-                        Ouvrir dans Waze
-                      </Button>
-                    </div>
-                    {location.maps_url && (
-                      <a 
-                        href={location.maps_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm text-primary hover:underline mt-3"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Lien Google Maps original
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground text-sm">
-                      Coordonnées GPS non disponibles
-                    </p>
-                    {location.maps_url && (
-                      <a 
-                        href={location.maps_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        Voir sur Google Maps
-                      </a>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Satellite Map with waypoints */}
+            {hasCoordinates && (
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Carte Satellite
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-hidden rounded-b-lg">
+                  <SatelliteMiniMap
+                    latitude={location.latitude!}
+                    longitude={location.longitude!}
+                    siteName={location.name}
+                    siteId={location.id}
+                  />
+                  <p className="text-xs text-muted-foreground text-center py-2 px-3">
+                    Vue satellite – Points de sécurité et zones de plongée
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Marine Chart Mini Map */}
             {hasCoordinates && (
@@ -217,35 +211,33 @@ const LocationDetail = () => {
             )}
 
             {/* Info Card */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Info className="h-5 w-5 text-primary" />
-                  Informations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {location.max_depth && (
-                  <div className="mb-4 p-3 rounded-lg bg-ocean-light/10 border border-ocean-light/20">
-                    <p className="text-sm text-muted-foreground">Profondeur maximale</p>
-                    <p className="text-2xl font-bold text-ocean-deep">{location.max_depth}m</p>
-                  </div>
-                )}
-                
-                {location.comments ? (
-                  <div>
-                    <p className="text-sm font-medium text-foreground mb-2">Commentaires</p>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                      {location.comments}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Aucune information complémentaire
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            {(location.max_depth || location.comments) && (
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Info className="h-5 w-5 text-primary" />
+                    Informations
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {location.max_depth && (
+                    <div className="mb-4 p-3 rounded-lg bg-ocean-light/10 border border-ocean-light/20">
+                      <p className="text-sm text-muted-foreground">Profondeur maximale</p>
+                      <p className="text-2xl font-bold text-ocean-deep">{location.max_depth}m</p>
+                    </div>
+                  )}
+
+                  {location.comments && (
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-2">Commentaires</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {location.comments}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </section>
