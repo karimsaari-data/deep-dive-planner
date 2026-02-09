@@ -36,7 +36,7 @@ import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import CarpoolSection from "@/components/carpool/CarpoolSection";
-import WindyWeatherExplorer from "@/components/weather/WindyWeatherExplorer";
+import OutingWeatherCard from "@/components/weather/OutingWeatherCard";
 import MarineMiniMap from "@/components/locations/MarineMiniMap";
 import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { Anchor, Satellite } from "lucide-react";
@@ -415,13 +415,12 @@ const OutingDetail = () => {
             </div>
           </div>
 
-          {/* Widget Météo Windy - Carte interactive + Prévisions */}
+          {/* Carte météo Open-Meteo pour le jour de la sortie */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (
             <div className="my-6">
-              <WindyWeatherExplorer
+              <OutingWeatherCard
                 latitude={outing.location_details.latitude}
                 longitude={outing.location_details.longitude}
-                locationName={outing.location_details?.name || outing.location}
                 outingDate={outing.date_time}
               />
             </div>

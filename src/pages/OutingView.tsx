@@ -44,7 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import NavigationButton from "@/components/locations/NavigationButton";
-import WindyWeatherExplorer from "@/components/weather/WindyWeatherExplorer";
+import OutingWeatherCard from "@/components/weather/OutingWeatherCard";
 import MarineMiniMap from "@/components/locations/MarineMiniMap";
 import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { Anchor, Satellite } from "lucide-react";
@@ -259,13 +259,12 @@ const OutingView = () => {
             </Card>
           )}
 
-          {/* Widget Météo Windy - Carte interactive + Prévisions */}
+          {/* Carte météo Open-Meteo pour le jour de la sortie */}
           {locationCoords.latitude && locationCoords.longitude && (
             <div className="mb-6">
-              <WindyWeatherExplorer
+              <OutingWeatherCard
                 latitude={locationCoords.latitude}
                 longitude={locationCoords.longitude}
-                locationName={outing.location_details?.name || outing.location}
                 outingDate={outing.date_time}
               />
             </div>
