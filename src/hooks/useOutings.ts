@@ -39,6 +39,8 @@ export interface Outing {
   outing_type: OutingType;
   max_participants: number;
   session_report: string | null;
+  water_entry_time: string | null;
+  water_exit_time: string | null;
   created_at: string;
   is_deleted?: boolean;
   is_archived?: boolean;
@@ -408,6 +410,8 @@ export const useCreateOuting = () => {
       description?: string;
       date_time: string;
       end_date?: string;
+      water_entry_time?: string;
+      water_exit_time?: string;
       location: string;
       location_id?: string;
       outing_type: OutingType;
@@ -507,6 +511,8 @@ export const useUpdateOuting = () => {
       description?: string | null;
       date_time?: string;
       end_date?: string | null;
+      water_entry_time?: string | null;
+      water_exit_time?: string | null;
       location?: string;
       location_id?: string | null;
       outing_type?: OutingType;

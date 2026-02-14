@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Waypoint, getWaypointLabel } from "@/hooks/useWaypoints";
-import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
+import logoTeamOxygen from "@/assets/logo-team-oxygen-transparent.png";
 
 // Types for POSS generation
 export interface POSSParticipant {
@@ -43,6 +43,9 @@ export interface POSSData {
   waypoints: Waypoint[];
   participants: POSSParticipant[];
   organizerName: string;
+  organizerLevel: string | null;
+  waterEntryTime: string | null;
+  waterExitTime: string | null;
 }
 
 // Helper: Convert image URL to Base64 (CORS-safe)
@@ -89,18 +92,70 @@ const formatGPS = (lat: number | null, lon: number | null): string => {
   return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 };
 
+// Helper: Extract max depth from apnea level prerogatives
+const getMaxDepth = (apneaLevel: string | null): string => {
+  if (!apneaLevel) return "N/A";
+
+  // Extract depth from prerogatives (e.g., "-20m", "-30 à -40m", etc.)
+  const depthMatch = apneaLevel.match(/-(\d+)m/);
+  if (depthMatch) {
+    return depthMatch[1] + "m";
+  }
+
+  // Check for specific levels with known depths
+  const levelDepths: Record<string, string> = {
+    'E1': '20m',
+    'E2': '30m',
+    'E3': '40m',
+    'E4': '40m',
+    'BPJEPS': '30m',
+    'DEJEPS': '40m',
+    'AIDA Instructor': '30m',
+  };
+
+  for (const [key, depth] of Object.entries(levelDepths)) {
+    if (apneaLevel.includes(key)) {
+      return depth;
+    }
+  }
+
+  return "N/A";
+};
+
+// Helper: Calculate session duration
+const calculateDuration = (entryTime: string | null, exitTime: string | null): string => {
+  if (!entryTime || !exitTime) return "N/A";
+
+  const [entryHours, entryMinutes] = entryTime.split(':').map(Number);
+  const [exitHours, exitMinutes] = exitTime.split(':').map(Number);
+
+  let durationMinutes = (exitHours * 60 + exitMinutes) - (entryHours * 60 + entryMinutes);
+
+  if (durationMinutes < 0) {
+    durationMinutes += 24 * 60; // Handle crossing midnight
+  }
+
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+
+  if (hours > 0) {
+    return `${hours}h${minutes.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}min`;
+};
+
 // Main POSS Generator
 export const generatePOSS = async (data: POSSData): Promise<void> => {
-  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName } = data;
-  
+  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, waterEntryTime, waterExitTime } = data;
+
   const doc = new jsPDF({
-    orientation: "portrait",
+    orientation: "landscape",
     unit: "mm",
     format: "a4",
   });
 
-  const pageWidth = 210;
-  const pageHeight = 297;
+  const pageWidth = 297;
+  const pageHeight = 210;
   const margin = 15;
   const contentWidth = pageWidth - 2 * margin;
   let y = margin;
@@ -121,7 +176,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
 
   // Logo (left)
   if (logoBase64) {
-    doc.addImage(logoBase64, "WEBP", margin + 3, y + 3, 25, 25);
+    doc.addImage(logoBase64, "PNG", margin + 3, y + 3, 25, 25);
   }
 
   // Title (center)
@@ -165,9 +220,9 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     y += 16;
   }
 
-  // Maps side by side
-  const mapHeight = 55;
-  const mapWidth = (contentWidth - 5) / 2;
+  // Satellite map - full width (no bathymetric map)
+  const mapHeight = 70;
+  const mapWidth = contentWidth * 0.55; // Use 55% of width for map, leaving space for legend
 
   // Try to load satellite map
   let satelliteBase64: string | null = null;
@@ -175,71 +230,66 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     satelliteBase64 = await getDataUri(location.satellite_map_url);
   }
 
-  // Try to load bathymetric map
-  let bathyBase64: string | null = null;
-  if (location?.bathymetric_map_url) {
-    bathyBase64 = await getDataUri(location.bathymetric_map_url);
-  }
-
-  if (satelliteBase64 || bathyBase64) {
-    // Draw maps
-    if (satelliteBase64) {
-      doc.addImage(satelliteBase64, "PNG", margin, y, mapWidth, mapHeight);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.text("Plan logistique (Satellite)", margin + mapWidth / 2, y + mapHeight + 4, { align: "center" });
-    } else {
-      drawBox(doc, margin, y, mapWidth, mapHeight, { fill: "#e5e7eb" });
-      doc.setFontSize(10);
-      doc.text("Carte satellite non disponible", margin + mapWidth / 2, y + mapHeight / 2, { align: "center" });
-    }
-
-    if (bathyBase64) {
-      doc.addImage(bathyBase64, "PNG", margin + mapWidth + 5, y, mapWidth, mapHeight);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.text("Carte bathymétrique (SHOM)", margin + mapWidth + 5 + mapWidth / 2, y + mapHeight + 4, { align: "center" });
-    } else {
-      drawBox(doc, margin + mapWidth + 5, y, mapWidth, mapHeight, { fill: "#e5e7eb" });
-      doc.setFontSize(10);
-      doc.text("Carte marine non disponible", margin + mapWidth + 5 + mapWidth / 2, y + mapHeight / 2, { align: "center" });
-    }
-    y += mapHeight + 10;
+  if (satelliteBase64) {
+    doc.addImage(satelliteBase64, "PNG", margin, y, mapWidth, mapHeight);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Plan logistique (Satellite)", margin + mapWidth / 2, y + mapHeight + 4, { align: "center" });
   } else {
-    // No maps available
-    drawBox(doc, margin, y, contentWidth, 25, { fill: "#e5e7eb" });
+    drawBox(doc, margin, y, mapWidth, mapHeight, { fill: "#e5e7eb" });
     doc.setFontSize(10);
-    doc.text("Visuels cartographiques non disponibles", pageWidth / 2, y + 13, { align: "center" });
-    y += 30;
+    doc.text("Carte satellite non disponible", margin + mapWidth / 2, y + mapHeight / 2, { align: "center" });
   }
 
-  // Waypoints legend
+  // Waypoints legend table (to the right of the map)
+  const legendX = margin + mapWidth + 5;
+  const legendWidth = contentWidth - mapWidth - 5;
+  const legendY = y;
+
   const diveZones = waypoints.filter(w => w.point_type === "dive_zone");
   const otherWaypoints = waypoints.filter(w => w.point_type !== "dive_zone");
 
   if (diveZones.length > 0 || otherWaypoints.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("Légende des points :", margin, y);
-    y += 4;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    const legendData = [];
 
     if (diveZones.length > 0) {
       diveZones.forEach((zone, idx) => {
-        doc.text(`${idx + 1}. ${zone.name} (${formatGPS(zone.latitude, zone.longitude)})`, margin + 5, y);
-        y += 3.5;
+        legendData.push([
+          `Zone ${idx + 1}`,
+          zone.name,
+          formatGPS(zone.latitude, zone.longitude)
+        ]);
       });
     }
-    
+
     if (otherWaypoints.length > 0) {
       otherWaypoints.forEach((wp) => {
-        doc.text(`${getWaypointLabel(wp.point_type)} : ${wp.name} (${formatGPS(wp.latitude, wp.longitude)})`, margin + 5, y);
-        y += 3.5;
+        legendData.push([
+          getWaypointLabel(wp.point_type),
+          wp.name,
+          formatGPS(wp.latitude, wp.longitude)
+        ]);
       });
     }
-    y += 3;
+
+    autoTable(doc, {
+      startY: legendY,
+      head: [["Type", "Nom", "Coordonnées GPS"]],
+      body: legendData,
+      theme: "grid",
+      styles: { fontSize: 7, cellPadding: 1.5 },
+      headStyles: { fillColor: [14, 165, 233], textColor: 255, fontStyle: "bold", fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: legendWidth * 0.25 },
+        1: { cellWidth: legendWidth * 0.35 },
+        2: { cellWidth: legendWidth * 0.4 },
+      },
+      margin: { left: legendX, right: margin },
+      tableWidth: legendWidth,
+    });
   }
+
+  y += mapHeight + 10;
 
   // ====================
   // C. PROCÉDURE D'URGENCE
@@ -344,7 +394,36 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setTextColor("#000000");
 
   // ====================
-  // E. TABLEAU DES PLONGEURS
+  // E. PROFONDEUR MAX & HORAIRES SESSION
+  // ====================
+  const maxDepth = getMaxDepth(organizerLevel);
+  const duration = calculateDuration(waterEntryTime, waterExitTime);
+
+  // Big depth display
+  drawBox(doc, margin, y, contentWidth * 0.3, 25, { fill: "#dbeafe", stroke: "#0369a1", lineWidth: 2 });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor("#0369a1");
+  doc.text(`PROFONDEUR MAX : ${maxDepth}`, margin + contentWidth * 0.15, y + 10, { align: "center" });
+  doc.setFontSize(9);
+  doc.setTextColor("#64748b");
+  doc.text(`(Basée sur le niveau encadrant: ${organizerLevel || 'N/A'})`, margin + contentWidth * 0.15, y + 17, { align: "center" });
+
+  // Session times
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor("#000000");
+  const timeX = margin + contentWidth * 0.32;
+  doc.text(`Heure de mise à l'eau : ${waterEntryTime || 'N/A'}`, timeX, y + 10);
+  doc.text(`Heure de sortie prévue : ${waterExitTime || 'N/A'}`, timeX, y + 16);
+  doc.setFont("helvetica", "bold");
+  doc.text(`Durée théorique session : ${duration}`, timeX, y + 22);
+  doc.setFont("helvetica", "normal");
+
+  y += 30;
+
+  // ====================
+  // F. TABLEAU DES PLONGEURS
   // ====================
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -356,24 +435,20 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     p.first_name || "",
     p.apnea_level || "-",
     p.emergency_contact_phone ? `${p.emergency_contact_name || ""} ${p.emergency_contact_phone}` : "-",
-    "", // Heure mise à l'eau
-    "", // Heure sortie
   ]);
 
   autoTable(doc, {
     startY: y,
-    head: [["NOM", "Prénom", "Niveau", "Contact Urgence", "H. Mise à l'eau", "H. Sortie"]],
-    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", "", "", ""]],
+    head: [["NOM", "Prénom", "Niveau", "Contact Urgence"]],
+    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", ""]],
     theme: "striped",
     headStyles: { fillColor: [14, 165, 233], textColor: 255, fontStyle: "bold", fontSize: 9 },
     styles: { fontSize: 8, cellPadding: 2 },
     columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 25 },
-      2: { cellWidth: 20 },
-      3: { cellWidth: 50 },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 25 },
+      0: { cellWidth: 40 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 70 },
     },
     margin: { left: margin, right: margin },
   });
@@ -422,9 +497,11 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     const checkX = margin + 5 + col * colWidth;
     const itemY = checkY + row * 9;
 
-    // Draw checkbox
-    drawBox(doc, checkX, itemY - 3, 4, 4);
-    doc.text(item, checkX + 6, itemY);
+    // Draw checkbox (well-defined for manual checking)
+    const checkBoxSize = 5;
+    drawBox(doc, checkX, itemY - 3.5, checkBoxSize, checkBoxSize, { lineWidth: 0.8 });
+
+    doc.text(item, checkX + 7, itemY);
   });
 
   y += checklistHeight + 8;

@@ -30,6 +30,8 @@ const editOutingSchema = z.object({
   date: z.date({ required_error: "La date est requise" }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
+  waterEntryTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
+  waterExitTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
   location_id: z.string().optional(),
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères").max(200),
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
@@ -59,6 +61,8 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
       date: outingDate,
       startTime: format(outingDate, "HH:mm"),
       endTime: endDate ? format(endDate, "HH:mm") : "",
+      waterEntryTime: outing.water_entry_time || "",
+      waterExitTime: outing.water_exit_time || "",
       location: outing.location,
       location_id: outing.location_id || "",
       outing_type: outing.outing_type,
@@ -74,6 +78,8 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
         date: outingDate,
         startTime: format(outingDate, "HH:mm"),
         endTime: endDate ? format(endDate, "HH:mm") : "",
+        waterEntryTime: outing.water_entry_time || "",
+        waterExitTime: outing.water_exit_time || "",
         location: outing.location,
         location_id: outing.location_id || "",
         outing_type: outing.outing_type,
@@ -111,6 +117,8 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
         description: data.description || null,
         date_time: startDateTime.toISOString(),
         end_date: endDateTime?.toISOString() || null,
+        water_entry_time: data.waterEntryTime || null,
+        water_exit_time: data.waterExitTime || null,
         location: data.location,
         location_id: data.location_id || null,
         outing_type: data.outing_type as OutingType,
@@ -235,6 +243,36 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fin</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="waterEntryTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Heure mise à l'eau</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="waterExitTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Heure sortie eau</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
