@@ -33,16 +33,17 @@ export const usePOSSGenerator = () => {
       const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") || [];
       const participants: POSSParticipant[] = [];
 
-      // Get organizer's apnea level
-      let organizerLevel: string | null = null;
+      // Get organizer's profile to fetch their apnea level
+      let organizerApneaLevel: string | null = null;
       if (outing.organizer_id) {
         const { data: organizerProfile } = await supabase
           .from("profiles")
-          .select("email")
+          .select("email, apnea_level")
           .eq("id", outing.organizer_id)
           .single();
 
         if (organizerProfile) {
+          // Try to get the most current apnea level from membership_yearly_status
           const { data: organizerDirectory } = await supabase
             .from("club_members_directory")
             .select("id")
@@ -61,7 +62,9 @@ export const usePOSSGenerator = () => {
               .eq("season_year", currentSeasonYear)
               .single();
 
-            organizerLevel = organizerStatus?.apnea_level || null;
+            organizerApneaLevel = organizerStatus?.apnea_level || organizerProfile.apnea_level;
+          } else {
+            organizerApneaLevel = organizerProfile.apnea_level;
           }
         }
       }
@@ -123,6 +126,7 @@ export const usePOSSGenerator = () => {
           maps_url: outing.location_details.maps_url,
           satellite_map_url: outing.location_details.satellite_map_url || null,
           bathymetric_map_url: outing.location_details.bathymetric_map_url || null,
+          max_depth: outing.location_details.max_depth || null,
         };
       }
 
@@ -150,9 +154,9 @@ export const usePOSSGenerator = () => {
         waypoints,
         participants,
         organizerName,
-        organizerLevel,
-        waterEntryTime: outing.water_entry_time,
-        waterExitTime: outing.water_exit_time,
+        organizerLevel: organizerApneaLevel,
+        waterEntryTime: null, // TODO: add field in form
+        waterExitTime: null, // TODO: add field in form
       };
 
       // Generate the PDF
