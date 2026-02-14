@@ -446,7 +446,35 @@ const OutingDetail = () => {
                 )}
               </div>
             </div>
+            {outing.description && (
+              <p className="mt-2 text-muted-foreground">{outing.description}</p>
+            )}
           </div>
+
+          {/* Organizer Info & Max Depth */}
+          {outing.organizer && (() => {
+            const organizerLevel = apneaLevelMap.get(outing.organizer.apnea_level ?? "");
+            const organizerDepth = organizerLevel ? extractDepth(organizerLevel.prerogatives) : null;
+            const isInstructor = organizerLevel?.is_instructor ?? false;
+
+            return isInstructor && organizerDepth ? (
+              <Card className="shadow-card my-6 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-700">
+                <CardContent className="pt-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        Profondeur maximale de la session : <span className="text-amber-600 dark:text-amber-500">{organizerDepth}</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Cette profondeur est déterminée par le niveau d'encadrement ({outing.organizer.apnea_level}). Tous les participants doivent respecter cette limite, même si leur niveau personnel autorise une profondeur supérieure.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null;
+          })()}
 
           {/* 1. Weather summary banner at top */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (

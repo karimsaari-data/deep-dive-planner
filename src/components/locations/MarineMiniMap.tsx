@@ -20,13 +20,10 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Offset center southward so marker appears at top, showing more coast/sea below
-    const offsetLatitude = latitude - 0.008;
-
-    // Initialize map with high zoom and scroll disabled
+    // Initialize map centered on the actual dive site location
     const map = L.map(mapRef.current, {
-      center: [offsetLatitude, longitude],
-      zoom: 15,
+      center: [latitude, longitude],
+      zoom: 14,
       minZoom: 10,
       maxZoom: 19,
       scrollWheelZoom: false,
@@ -83,8 +80,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      const offsetLatitude = latitude - 0.008;
-      mapInstanceRef.current.setView([offsetLatitude, longitude], 15);
+      mapInstanceRef.current.setView([latitude, longitude], 14);
     }
   }, [latitude, longitude]);
 
