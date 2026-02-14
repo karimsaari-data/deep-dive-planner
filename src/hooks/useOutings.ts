@@ -54,6 +54,7 @@ export interface Outing {
   } | null;
   organizer_max_depth_eaa?: number | null;
   organizer_max_depth_eao?: number | null;
+  organizer_max_participants?: number | null;
   location_details?: {
     id: string;
     name: string;
@@ -113,20 +114,22 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           const { data: countData } = await supabase
             .rpc('get_outing_confirmed_count', { outing_uuid: outing.id });
 
-          // Fetch organizer max depths if organizer has apnea_level
+          // Fetch organizer max depths and max participants if organizer has apnea_level
           let maxDepthEaa = null;
           let maxDepthEao = null;
+          let maxParticipants = null;
 
           if (outing.organizer?.apnea_level) {
             const { data: levelData } = await supabase
               .from('apnea_levels')
-              .select('profondeur_max_eaa, profondeur_max_eao')
+              .select('profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement')
               .eq('code', outing.organizer.apnea_level)
               .maybeSingle();
 
             if (levelData) {
               maxDepthEaa = levelData.profondeur_max_eaa;
               maxDepthEao = levelData.profondeur_max_eao;
+              maxParticipants = levelData.max_participants_encadrement;
             }
           }
 
@@ -135,6 +138,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
             confirmed_count: countData ?? 0,
             organizer_max_depth_eaa: maxDepthEaa,
             organizer_max_depth_eao: maxDepthEao,
+            organizer_max_participants: maxParticipants,
           };
         })
       );
@@ -175,17 +179,18 @@ export const useOuting = (outingId: string) => {
 
       if (error) throw error;
 
-      // Fetch organizer max depths if organizer has apnea_level
+      // Fetch organizer max depths and max participants if organizer has apnea_level
       if (data && data.organizer?.apnea_level) {
         const { data: levelData } = await supabase
           .from('apnea_levels')
-          .select('profondeur_max_eaa, profondeur_max_eao')
+          .select('profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement')
           .eq('code', data.organizer.apnea_level)
           .maybeSingle();
 
         if (levelData) {
           (data as any).organizer_max_depth_eaa = levelData.profondeur_max_eaa;
           (data as any).organizer_max_depth_eao = levelData.profondeur_max_eao;
+          (data as any).organizer_max_participants = levelData.max_participants_encadrement;
         }
       }
 
