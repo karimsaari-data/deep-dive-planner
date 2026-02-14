@@ -160,68 +160,71 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   }
 
   // ====================
-  // A. EN-TÊTE INSTITUTIONNEL (COMPACT)
+  // A. EN-TÊTE OPTIMISÉ
   // ====================
-  const headerHeight = 28;
+  const headerHeight = 22;
   drawBox(doc, margin, y, contentWidth, headerHeight, { fill: "#f3f4f6" });
 
   // Logo (left - smaller)
   if (logoBase64) {
-    doc.addImage(logoBase64, "PNG", margin + 2, y + 2, 18, 18);
+    doc.addImage(logoBase64, "PNG", margin + 2, y + 2, 16, 16);
   }
 
   // Title (center - one line)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor("#000000");
-  doc.text("PLAN D'ORGANISATION DES SECOURS (P.O.S.S.)", pageWidth / 2, y + 7, { align: "center" });
+  doc.text("PLAN D'ORGANISATION DES SECOURS (P.O.S.S.)", pageWidth / 2, y + 6, { align: "center" });
 
   // Session info
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   const dateStr = format(new Date(outingDateTime), "EEEE d MMMM yyyy", { locale: fr });
-  doc.text(`Date : ${dateStr}`, margin + 25, y + 13);
-  doc.text(`Lieu : ${location?.name || outingLocation}`, margin + 25, y + 17);
+  doc.text(`Date : ${dateStr}  |  Lieu : ${location?.name || outingLocation}`, margin + 22, y + 12);
 
-  // Horaires et profondeur basée sur le niveau de l'encadrant
-  const maxDepth = getMaxDepthForLevel(organizerLevel);
-  const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
-  doc.text(`Profondeur max (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, margin + 25, y + 21);
-
-  // Horaires de plongée
-  if (waterEntryTime && waterExitTime) {
-    const duration = calculateDuration(waterEntryTime, waterExitTime);
-    doc.text(`Mise à l'eau : ${waterEntryTime}  |  Sortie : ${waterExitTime}  |  Durée : ${duration}`, margin + 25, y + 25);
-  } else if (waterEntryTime) {
-    doc.text(`Heure mise à l'eau : ${waterEntryTime}`, margin + 25, y + 25);
-  }
-
-  // Organizer in red (top right)
-  doc.setTextColor("#dc2626");
+  // Numéros d'urgence dans le bandeau
   doc.setFont("helvetica", "bold");
-  doc.text(`Responsable : ${organizerName}`, pageWidth - margin - 55, y + 15);
+  doc.setFontSize(8);
+  doc.setTextColor("#dc2626");
+  doc.text("URGENCE : VHF 16 | CROSS 196 | SAMU 15", margin + 22, y + 16);
   doc.setTextColor("#000000");
 
-  y += headerHeight + 5;
+  // Responsable et date de génération (top right)
+  doc.setTextColor("#dc2626");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(`Responsable : ${organizerName}`, pageWidth - margin - 55, y + 12);
+
+  doc.setTextColor("#666666");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(`Généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, pageWidth - margin - 55, y + 16);
+  doc.setTextColor("#000000");
+
+  y += headerHeight + 3;
+
+  // ====================
+  // PROFONDEUR MAX - MISE EN ÉVIDENCE
+  // ====================
+  const maxDepth = getMaxDepthForLevel(organizerLevel);
+  const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
+
+  drawBox(doc, margin, y, contentWidth, 10, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.5 });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#dc2626");
+  doc.text(`PROFONDEUR MAX (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, pageWidth / 2, y + 6.5, { align: "center" });
+  doc.setTextColor("#000000");
+
+  y += 13;
 
   // ====================
   // B. CARTOGRAPHIE OPÉRATIONNELLE
   // ====================
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("ZONES D'ÉVOLUTION & LOCALISATION", margin, y);
-  y += 6;
-
-  // GPS CRITICAL BOX (High visibility)
-  if (location?.latitude && location?.longitude) {
-    drawBox(doc, margin, y, contentWidth, 12, { fill: "#fef3c7", stroke: "#f59e0b", lineWidth: 1 });
-    doc.setFont("courier", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor("#b45309");
-    doc.text(`GPS SITE (URGENCE) : ${formatGPS(location.latitude, location.longitude)}`, margin + 5, y + 8);
-    doc.setTextColor("#000000");
-    y += 16;
-  }
+  doc.setFontSize(11);
+  doc.text("CARTE SATELLITE & POINTS DE REPÈRE", margin, y);
+  y += 5;
 
   // Satellite map only (bathymetric removed for better readability)
   const mapHeight = 65;
@@ -305,24 +308,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   }
 
   // ====================
-  // C. NUMÉROS D'URGENCE
-  // ====================
-  const emergencyHeight = 12;
-  drawBox(doc, margin, y, contentWidth, emergencyHeight, { fill: "#fef2f2", stroke: "#dc2626", lineWidth: 1.5 });
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor("#dc2626");
-  doc.text("NUMÉROS D'URGENCE", margin + 5, y + 5);
-
-  doc.setFontSize(10);
-  doc.setTextColor("#000000");
-  doc.text("VHF : Canal 16  |  CROSS : 196  |  SAMU : 15", margin + 5, y + 9);
-
-  y += emergencyHeight + 5;
-
-  // ====================
-  // D. MOYENS LOGISTIQUES
+  // C. MOYENS LOGISTIQUES
   // ====================
   const isBoatMode = diveMode === "boat" && boat;
   
@@ -472,22 +458,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     doc.text(item, checkX + 6, itemY);
   });
 
-  y += checklistHeight + 8;
-
-  // Signature line
-  if (y + 15 > pageHeight - margin) {
-    doc.addPage();
-    y = margin;
-  }
-
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.text("Signature du Responsable :", margin, y);
-  doc.line(margin + 45, y, margin + 100, y);
-
-  doc.text(`Généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, pageWidth - margin - 50, y);
-
-  y += 10;
+  y += checklistHeight + 5;
 
   // ====================
   // SCRIPT D'ALERTE (FIN DU DOCUMENT)
