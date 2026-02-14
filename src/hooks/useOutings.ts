@@ -50,7 +50,10 @@ export interface Outing {
   organizer?: {
     first_name: string;
     last_name: string;
+    apnea_level: string | null;
   } | null;
+  organizer_max_depth_eaa?: number | null;
+  organizer_max_depth_eao?: number | null;
   location_details?: {
     id: string;
     name: string;
@@ -83,7 +86,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
         .from("outings")
         .select(`
           *,
-          organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
+          organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
           location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth),
           reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
@@ -104,18 +107,38 @@ export const useOutings = (typeFilter?: OutingType | null) => {
         return endDate > now;
       }) ?? [];
       
-      // Fetch real confirmed counts using SECURITY DEFINER function (bypasses RLS)
+      // Fetch real confirmed counts and organizer max depths
       const outingsWithCounts = await Promise.all(
         upcomingOutings.map(async (outing) => {
           const { data: countData } = await supabase
             .rpc('get_outing_confirmed_count', { outing_uuid: outing.id });
+
+          // Fetch organizer max depths if organizer has apnea_level
+          let maxDepthEaa = null;
+          let maxDepthEao = null;
+
+          if (outing.organizer?.apnea_level) {
+            const { data: levelData } = await supabase
+              .from('apnea_levels')
+              .select('profondeur_max_eaa, profondeur_max_eao')
+              .eq('code', outing.organizer.apnea_level)
+              .maybeSingle();
+
+            if (levelData) {
+              maxDepthEaa = levelData.profondeur_max_eaa;
+              maxDepthEao = levelData.profondeur_max_eao;
+            }
+          }
+
           return {
             ...outing,
             confirmed_count: countData ?? 0,
+            organizer_max_depth_eaa: maxDepthEaa,
+            organizer_max_depth_eao: maxDepthEao,
           };
         })
       );
-      
+
       return outingsWithCounts as Outing[];
     },
   });
@@ -131,17 +154,17 @@ export const useOuting = (outingId: string) => {
         .from("outings")
         .select(`
           *,
-          organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
+          organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
           location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth, satellite_map_url, bathymetric_map_url),
           boat:boats(id, name, registration_number, pilot_name, pilot_phone, oxygen_location, home_port),
           reservations(
             id,
-            user_id, 
-            status, 
-            carpool_option, 
-            carpool_seats, 
-            cancelled_at, 
-            is_present, 
+            user_id,
+            status,
+            carpool_option,
+            carpool_seats,
+            cancelled_at,
+            is_present,
             created_at,
             profile:profiles(first_name, last_name, email, apnea_level, avatar_url, member_status)
           )
@@ -151,6 +174,21 @@ export const useOuting = (outingId: string) => {
         .maybeSingle();
 
       if (error) throw error;
+
+      // Fetch organizer max depths if organizer has apnea_level
+      if (data && data.organizer?.apnea_level) {
+        const { data: levelData } = await supabase
+          .from('apnea_levels')
+          .select('profondeur_max_eaa, profondeur_max_eao')
+          .eq('code', data.organizer.apnea_level)
+          .maybeSingle();
+
+        if (levelData) {
+          (data as any).organizer_max_depth_eaa = levelData.profondeur_max_eaa;
+          (data as any).organizer_max_depth_eao = levelData.profondeur_max_eao;
+        }
+      }
+
       return data as Outing | null;
     },
     enabled: !!outingId && !!user,
