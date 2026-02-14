@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge } from "lucide-react";
 import Layout from "@/components/layout/Layout";
+import { formatFullName } from "@/lib/formatName";
 
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,8 +310,8 @@ const OutingDetail = () => {
                       onClick={async () => {
                         setIsGeneratingPOSS(true);
                         try {
-                          const organizerName = outing.organizer 
-                            ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                          const organizerName = outing.organizer
+                            ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
                             : "Encadrant";
                           await possGenerator.generate({ outing, organizerName });
                         } finally {
@@ -364,8 +365,8 @@ const OutingDetail = () => {
                               // Lock the POSS first
                               await lockPOSS.mutateAsync(outing.id);
                               // Generate the PDF
-                              const organizerName = outing.organizer 
-                                ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                              const organizerName = outing.organizer
+                                ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
                                 : "Encadrant";
                               await possGenerator.generate({ outing, organizerName });
                             } finally {
@@ -446,6 +447,25 @@ const OutingDetail = () => {
                 )}
               </div>
             </div>
+            {/* Organizer info with max depth */}
+            {outing.organizer && (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Encadrant : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
+                </p>
+                {(outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
+                  <div className="flex items-center gap-2">
+                    <Gauge className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">
+                      Profondeur max encadrement :{" "}
+                      {outing.outing_type === "Mer" || outing.outing_type === "Étang"
+                        ? `${outing.organizer_max_depth_eao}m (eau ouverte)`
+                        : `${outing.organizer_max_depth_eaa}m (eau artificielle)`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 1. Weather summary banner at top */}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car, Lock } from "lucide-react";
+import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car, Lock, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import NavigationButton from "@/components/locations/NavigationButton";
 import WeatherBadge from "@/components/weather/WeatherBadge";
+import { formatFullName } from "@/lib/formatName";
 
 interface CarpoolInfo {
   carpool_count: number;
@@ -202,11 +203,25 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
           </div>
 
           {outing.organizer && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <User className="h-4 w-4 text-primary" />
-              <span>
-                {outing.organizer.first_name} {outing.organizer.last_name}
-              </span>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <User className="h-4 w-4 text-primary" />
+                <span>
+                  {formatFullName(outing.organizer.first_name, outing.organizer.last_name)}
+                </span>
+              </div>
+              {/* Display max depth for instructor based on environment */}
+              {(outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
+                <div className="flex items-center gap-2 ml-6">
+                  <Gauge className="h-4 w-4 text-amber-600" />
+                  <span className="text-xs font-medium text-amber-700">
+                    Profondeur max :{" "}
+                    {outing.outing_type === "Mer" || outing.outing_type === "Étang"
+                      ? `${outing.organizer_max_depth_eao}m (eau ouverte)`
+                      : `${outing.organizer_max_depth_eaa}m (eau artificielle)`}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
