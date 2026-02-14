@@ -667,13 +667,15 @@ const OutingDetail = () => {
                     Carte Marine (Bathymétrie)
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 overflow-hidden rounded-b-lg">
-                  <MarineMiniMap
-                    latitude={outing.location_details.latitude}
-                    longitude={outing.location_details.longitude}
-                    siteName={outing.location_details?.name || outing.location}
-                    siteId={outing.location_id ?? undefined}
-                  />
+                <CardContent className="p-0">
+                  <div className="overflow-hidden rounded-b-lg">
+                    <MarineMiniMap
+                      latitude={outing.location_details.latitude}
+                      longitude={outing.location_details.longitude}
+                      siteName={outing.location_details?.name || outing.location}
+                      siteId={outing.location_id ?? undefined}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground text-center py-2 px-3">
                     Carte SHOM/IGN – Lignes de profondeur et sondes marines
                   </p>
@@ -687,13 +689,15 @@ const OutingDetail = () => {
                     Vue Satellite
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 overflow-hidden rounded-b-lg">
-                  <SatelliteMiniMap
-                    latitude={outing.location_details.latitude}
-                    longitude={outing.location_details.longitude}
-                    siteName={outing.location_details?.name || outing.location}
-                    siteId={outing.location_id ?? undefined}
-                  />
+                <CardContent className="p-0">
+                  <div className="overflow-hidden rounded-b-lg">
+                    <SatelliteMiniMap
+                      latitude={outing.location_details.latitude}
+                      longitude={outing.location_details.longitude}
+                      siteName={outing.location_details?.name || outing.location}
+                      siteId={outing.location_id ?? undefined}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground text-center py-2 px-3">
                     Vue satellite – Points d'intérêt du site
                   </p>

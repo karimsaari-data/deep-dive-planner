@@ -196,13 +196,15 @@ const LocationDetail = () => {
                     Carte Marine (Bathymétrie)
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 overflow-hidden rounded-b-lg">
-                  <MarineMiniMap
-                    latitude={location.latitude!}
-                    longitude={location.longitude!}
-                    siteName={location.name}
-                    siteId={location.id}
-                  />
+                <CardContent className="p-0">
+                  <div className="overflow-hidden rounded-b-lg">
+                    <MarineMiniMap
+                      latitude={location.latitude!}
+                      longitude={location.longitude!}
+                      siteName={location.name}
+                      siteId={location.id}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground text-center py-2 px-3">
                     Carte SHOM/IGN – Lignes de profondeur et sondes marines
                   </p>
