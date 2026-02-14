@@ -99,9 +99,9 @@ const getMaxDepthForLevel = (apneaLevel: string | null): number | null => {
 
   const level = apneaLevel.toUpperCase().trim();
 
-  // FSGT levels
+  // FSGT levels - profondeur max autorisée pour l'encadrement
   if (level.includes("EA1")) return 6;
-  if (level.includes("EA2")) return 20;
+  if (level.includes("EA2")) return 15;  // ⚠️ EA2 = 15m (pas 20m)
   if (level.includes("EA3")) return 40;
   if (level.includes("EA4")) return 60;
 
@@ -188,7 +188,11 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
   doc.text(`Profondeur max (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, margin + 25, y + 21);
 
-  if (waterEntryTime) {
+  // Horaires de plongée
+  if (waterEntryTime && waterExitTime) {
+    const duration = calculateDuration(waterEntryTime, waterExitTime);
+    doc.text(`Mise à l'eau : ${waterEntryTime}  |  Sortie : ${waterExitTime}  |  Durée : ${duration}`, margin + 25, y + 25);
+  } else if (waterEntryTime) {
     doc.text(`Heure mise à l'eau : ${waterEntryTime}`, margin + 25, y + 25);
   }
 
@@ -219,9 +223,9 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     y += 16;
   }
 
-  // Maps side by side
-  const mapHeight = 55;
-  const mapWidth = (contentWidth - 5) / 2;
+  // Satellite map only (bathymetric removed for better readability)
+  const mapHeight = 65;
+  const mapWidth = contentWidth;
 
   // Try to load satellite map
   let satelliteBase64: string | null = null;
@@ -229,70 +233,75 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     satelliteBase64 = await getDataUri(location.satellite_map_url);
   }
 
-  // Try to load bathymetric map
-  let bathyBase64: string | null = null;
-  if (location?.bathymetric_map_url) {
-    bathyBase64 = await getDataUri(location.bathymetric_map_url);
-  }
-
-  if (satelliteBase64 || bathyBase64) {
-    // Draw maps
-    if (satelliteBase64) {
-      doc.addImage(satelliteBase64, "PNG", margin, y, mapWidth, mapHeight);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.text("Plan logistique (Satellite)", margin + mapWidth / 2, y + mapHeight + 4, { align: "center" });
-    } else {
-      drawBox(doc, margin, y, mapWidth, mapHeight, { fill: "#e5e7eb" });
-      doc.setFontSize(10);
-      doc.text("Carte satellite non disponible", margin + mapWidth / 2, y + mapHeight / 2, { align: "center" });
-    }
-
-    if (bathyBase64) {
-      doc.addImage(bathyBase64, "PNG", margin + mapWidth + 5, y, mapWidth, mapHeight);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "italic");
-      doc.text("Carte bathymétrique (SHOM)", margin + mapWidth + 5 + mapWidth / 2, y + mapHeight + 4, { align: "center" });
-    } else {
-      drawBox(doc, margin + mapWidth + 5, y, mapWidth, mapHeight, { fill: "#e5e7eb" });
-      doc.setFontSize(10);
-      doc.text("Carte marine non disponible", margin + mapWidth + 5 + mapWidth / 2, y + mapHeight / 2, { align: "center" });
-    }
+  if (satelliteBase64) {
+    doc.addImage(satelliteBase64, "PNG", margin, y, mapWidth, mapHeight);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Plan logistique (Satellite)", pageWidth / 2, y + mapHeight + 4, { align: "center" });
     y += mapHeight + 10;
   } else {
-    // No maps available
+    // No map available
     drawBox(doc, margin, y, contentWidth, 25, { fill: "#e5e7eb" });
     doc.setFontSize(10);
-    doc.text("Visuels cartographiques non disponibles", pageWidth / 2, y + 13, { align: "center" });
+    doc.text("Carte satellite non disponible", pageWidth / 2, y + 13, { align: "center" });
     y += 30;
   }
 
-  // Waypoints legend
+  // Waypoints legend as table
   const diveZones = waypoints.filter(w => w.point_type === "dive_zone");
   const otherWaypoints = waypoints.filter(w => w.point_type !== "dive_zone");
 
   if (diveZones.length > 0 || otherWaypoints.length > 0) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("Légende des points :", margin, y);
-    y += 4;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(10);
+    doc.text("LÉGENDE DES POINTS", margin, y);
+    y += 5;
 
-    if (diveZones.length > 0) {
-      diveZones.forEach((zone, idx) => {
-        doc.text(`${idx + 1}. ${zone.name} (${formatGPS(zone.latitude, zone.longitude)})`, margin + 5, y);
-        y += 3.5;
-      });
-    }
-    
-    if (otherWaypoints.length > 0) {
-      otherWaypoints.forEach((wp) => {
-        doc.text(`${getWaypointLabel(wp.point_type)} : ${wp.name} (${formatGPS(wp.latitude, wp.longitude)})`, margin + 5, y);
-        y += 3.5;
-      });
-    }
-    y += 3;
+    const waypointRows: string[][] = [];
+
+    // Add dive zones
+    diveZones.forEach((zone, idx) => {
+      waypointRows.push([
+        `Zone ${idx + 1}`,
+        zone.name,
+        formatGPS(zone.latitude, zone.longitude)
+      ]);
+    });
+
+    // Add other waypoints
+    otherWaypoints.forEach((wp) => {
+      waypointRows.push([
+        getWaypointLabel(wp.point_type),
+        wp.name,
+        formatGPS(wp.latitude, wp.longitude)
+      ]);
+    });
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Type", "Nom", "Coordonnées GPS"]],
+      body: waypointRows,
+      theme: "grid",
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        font: "courier" // Courier for GPS coordinates
+      },
+      headStyles: {
+        fillColor: "#0369a1",
+        textColor: "#ffffff",
+        fontStyle: "bold",
+        font: "helvetica"
+      },
+      columnStyles: {
+        0: { cellWidth: 35, font: "helvetica", fontStyle: "bold" },
+        1: { cellWidth: 50, font: "helvetica" },
+        2: { cellWidth: contentWidth - 85, font: "courier" }
+      },
+      margin: { left: margin, right: margin }
+    });
+
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
   }
 
   // ====================
