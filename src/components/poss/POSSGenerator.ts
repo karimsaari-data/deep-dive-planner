@@ -461,6 +461,128 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   y += checklistHeight + 5;
 
   // ====================
+  // G. INVENTAIRE DU MATÉRIEL DE SECOURS (Art. A.322-13 Code du sport)
+  // ====================
+
+  // Check if we need a new page
+  if (y + 70 > pageHeight - margin) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#0369a1");
+  doc.text("INVENTAIRE DU MATÉRIEL DE SECOURS (Conformité Code du sport)", margin, y);
+  y += 5;
+
+  const equipmentData = [
+    ["OXYGÉNOTHÉRAPIE", "", ""],
+    ["Bouteille O2 médical", "5L / 200 bars", "☐"],
+    ["Détendeur-débitmètre", "15 L/min", "☐"],
+    ["Masque haute concentration", "Adulte + Enfant", "☐"],
+    ["BAVU (insufflateur manuel)", "Adulte", "☐"],
+    ["SECOURISME", "", ""],
+    ["DAE (Défibrillateur)", "Automatisé Externe", "☐"],
+    ["Trousse de secours complète", "Couverture survie, désinfectant, pansements, compresses", "☐"],
+    ["Aspirine 500mg", "Sachet de 10", "☐"],
+    ["Eau douce (rinçage)", "5L minimum", "☐"],
+    ["Fiche d'évacuation POSS", "Pré-remplie", "☐"],
+    ["COMMUNICATION & SÉCURITÉ", "", ""],
+    ["Radio VHF portable", "Testée + Batterie OK", "☐"],
+    ["Téléphone portable", "Chargé + Crédit", "☐"],
+    ["Pavillon Alpha / Bouée signalisation", "Visible (bateau/côte)", "☐"],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Matériel", "Spécifications", "✓"]],
+    body: equipmentData,
+    theme: "grid",
+    headStyles: {
+      fillColor: "#0369a1",
+      textColor: "#ffffff",
+      fontStyle: "bold",
+      fontSize: 9
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.5,
+      lineColor: "#cbd5e1",
+      lineWidth: 0.1
+    },
+    columnStyles: {
+      0: { cellWidth: 70, fontStyle: "bold" },
+      1: { cellWidth: contentWidth - 90, halign: "left" },
+      2: { cellWidth: 15, halign: "center", fontSize: 10 }
+    },
+    didParseCell: (data) => {
+      // Bold section headers (oxygénothérapie, secourisme, communication)
+      if (data.row.index === 0 || data.row.index === 5 || data.row.index === 11) {
+        if (data.column.index === 0) {
+          data.cell.styles.fillColor = "#e0f2fe";
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fontSize = 9;
+        }
+      }
+    },
+    margin: { left: margin, right: margin }
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+  // ====================
+  // H. PROCÉDURE D'ALERTE INTERNE (Annexe III-10)
+  // ====================
+
+  // Check if we need a new page
+  if (y + 65 > pageHeight - margin) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#dc2626");
+  doc.text("PROCÉDURE D'ALERTE INTERNE - QUI FAIT QUOI ? (Annexe III-10 Code du sport)", margin, y);
+  y += 5;
+
+  const procedureData = [
+    ["PHASE 1", "RÉCUPÉRATION & MISE EN SÉCURITÉ", "• Binôme sécurité : Récupération immédiate de la victime\n• Sortie de l'eau en urgence\n• Allonger la victime sur surface plane et stable"],
+    ["PHASE 2", "OXYGÉNATION & BILAN VITAL", "• Membre formé PSE1/PSE2 : Mise sous O2 (15 L/min, masque haute concentration)\n• Contrôle conscience : Victime répond ? Respire normalement ?\n• Si inconscient : PLS + Alerte immédiate\n• Si arrêt respiratoire : RCP + DAE"],
+    ["PHASE 3", "DÉCLENCHEMENT DE L'ALERTE", "• Responsable POSS ou personne désignée :\n  - CROSS via VHF Canal 16 ou Tél 196\n  - ou SAMU 15\n• Utiliser le script d'appel (voir ci-dessous)\n• Communiquer GPS SITE (URGENCE)"],
+    ["PHASE 4", "GUIDAGE & ACCUEIL SECOURS", "• Membre au point d'accès : Guider les secours vers le site\n• GPS communiqué : " + formatGPS(location?.latitude ?? null, location?.longitude ?? null) + "\n• Préparer fiche d'évacuation + Matériel médical\n• Maintenir l'oxygénation jusqu'à relève par secours"],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Phase", "Action", "Détails opérationnels"]],
+    body: procedureData,
+    theme: "grid",
+    headStyles: {
+      fillColor: "#dc2626",
+      textColor: "#ffffff",
+      fontStyle: "bold",
+      fontSize: 9
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      lineColor: "#fca5a5",
+      lineWidth: 0.3,
+      valign: "top"
+    },
+    columnStyles: {
+      0: { cellWidth: 22, fontStyle: "bold", halign: "center", fillColor: "#fee2e2" },
+      1: { cellWidth: 60, fontStyle: "bold" },
+      2: { cellWidth: contentWidth - 82, halign: "left" }
+    },
+    margin: { left: margin, right: margin }
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+  // ====================
   // SCRIPT D'ALERTE (FIN DU DOCUMENT)
   // ====================
   const scriptHeight = 35;
