@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useWaypoints, getWaypointLabel, getWaypointColor, Waypoint } from "@/hooks/useWaypoints";
+import { useWaypoints, getWaypointLabel, getWaypointColor, getWaypointIcon, Waypoint } from "@/hooks/useWaypoints";
 
 interface MarineMiniMapProps {
   latitude: number;
@@ -14,7 +14,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const waypointMarkersRef = useRef<L.Marker[]>([]);
-  
+
   const { data: waypoints } = useWaypoints(siteId);
 
   useEffect(() => {
@@ -105,11 +105,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       const color = getWaypointColor(waypoint.point_type);
       const label = getWaypointLabel(waypoint.point_type);
       const isDiveZone = waypoint.point_type === 'dive_zone';
-      const iconChar = waypoint.point_type === 'parking' ? 'P'
-        : waypoint.point_type === 'water_entry' ? '↓'
-        : waypoint.point_type === 'water_exit' ? '✚'
-        : waypoint.point_type === 'dive_zone' ? '🤿'
-        : '●';
+      const iconChar = getWaypointIcon(waypoint.point_type);
 
       const waypointIcon = L.divIcon({
         html: isDiveZone
@@ -148,7 +144,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })
         .addTo(mapInstanceRef.current!);
 
-      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}`);
+      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}<br/><small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>`);
       waypointMarkersRef.current.push(marker);
     });
 

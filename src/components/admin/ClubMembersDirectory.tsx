@@ -135,7 +135,6 @@ const ClubMembersDirectory = () => {
     isLoading,
     createMember,
     updateMember,
-    deleteMember,
     upsertMember,
     isEmailRegistered,
   } = useClubMembersDirectory();
@@ -149,6 +148,8 @@ const ClubMembersDirectory = () => {
     getStatusForMember,
     upsertStatus,
     upsertStatusBatch,
+    deleteMemberStatus,
+    deleteAllStatusForSeason,
   } = useMembershipYearlyStatus(selectedSeason);
 
   const { data: apneaLevels } = useApneaLevels();
@@ -176,6 +177,7 @@ const ClubMembersDirectory = () => {
   const [apneaLevelOpen, setApneaLevelOpen] = useState(false);
   const [filterEncadrant, setFilterEncadrant] = useState(false);
   const [filterIncomplete, setFilterIncomplete] = useState(false);
+  const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
 
   // Identity form data (stored in club_members_directory)
   const [formData, setFormData] = useState<ClubMemberInsert>({
@@ -260,19 +262,29 @@ const ClubMembersDirectory = () => {
 
     try {
       let memberId: string;
-      
+
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...formData,
+        email: formData.email.toLowerCase(),
+        phone: formData.phone || null,
+        birth_date: formData.birth_date || null,
+        address: formData.address || null,
+        joined_at: formData.joined_at || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        gender: formData.gender || null,
+        notes: formData.notes || null,
+      };
+
       if (editingMember) {
         await updateMember.mutateAsync({
           id: editingMember.id,
-          ...formData,
-          email: formData.email.toLowerCase(),
+          ...cleanedData,
         });
         memberId = editingMember.id;
       } else {
-        const result = await createMember.mutateAsync({
-          ...formData,
-          email: formData.email.toLowerCase(),
-        });
+        const result = await createMember.mutateAsync(cleanedData);
         memberId = result.id;
       }
 
@@ -294,7 +306,12 @@ const ClubMembersDirectory = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await deleteMember.mutateAsync(id);
+    try {
+      await deleteMemberStatus.mutateAsync(id);
+      toast.success("Données saisonnières supprimées");
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
     setDeleteConfirm(null);
   };
 
@@ -586,6 +603,10 @@ const ClubMembersDirectory = () => {
   // Filter and sort members
   const filteredAndSortedMembers = useMemo(() => {
     let result = members?.filter((member) => {
+      // Only show members that have a status for the selected season
+      const status = getStatusForMember(member.id);
+      if (!status) return false;
+
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = (
         member.first_name.toLowerCase().includes(searchLower) ||
@@ -672,14 +693,17 @@ const ClubMembersDirectory = () => {
     }
   };
 
-  // Count stats (based on full list, not filtered)
-  const totalCount = members?.length || 0;
-  const encadrantCount = useMemo(() => {
-    return members?.filter((m) => getStatusForMember(m.id)?.is_encadrant).length || 0;
+  // Count stats (based on members with a status for the selected season)
+  const membersWithStatus = useMemo(() => {
+    return members?.filter((m) => getStatusForMember(m.id)) || [];
   }, [members, statuses]);
+  const totalCount = membersWithStatus.length;
+  const encadrantCount = useMemo(() => {
+    return membersWithStatus.filter((m) => getStatusForMember(m.id)?.is_encadrant).length;
+  }, [membersWithStatus, statuses]);
   const completeRecordsCount = useMemo(() => {
-    return members?.filter((m) => isMemberDossierComplete(m.id)).length || 0;
-  }, [members, statuses, apneaLevelCodes]);
+    return membersWithStatus.filter((m) => isMemberDossierComplete(m.id)).length;
+  }, [membersWithStatus, statuses, apneaLevelCodes]);
   const incompleteRecordsCount = totalCount - completeRecordsCount;
   const filteredCount = filteredAndSortedMembers?.length || 0;
 
@@ -767,6 +791,10 @@ const ClubMembersDirectory = () => {
                 <Download className="h-4 w-4 mr-1" />
                 Export CSV
               </Button>
+              <Button onClick={() => setPurgeConfirmOpen(true)} variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive/10">
+                <Trash2 className="h-4 w-4 mr-1" />
+                Purger la saison
+              </Button>
             </div>
           </div>
         </div>
@@ -780,7 +808,7 @@ const ClubMembersDirectory = () => {
         />
 
         {/* Dynamic stats bar */}
-        {members && members.length > 0 && (
+        {membersWithStatus.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 text-sm">
             <Badge variant="secondary" className="text-xs">
               {(filterEncadrant || filterIncomplete) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
@@ -797,7 +825,7 @@ const ClubMembersDirectory = () => {
               {incompleteRecordsCount} incomplets
             </Badge>
             <Badge variant="secondary" className="text-xs text-green-600">
-              {members.filter((m) => isEmailRegistered(m.email)).length} inscrits app
+              {membersWithStatus.filter((m) => isEmailRegistered(m.email)).length} inscrits app
             </Badge>
           </div>
         )}
@@ -1273,9 +1301,9 @@ const ClubMembersDirectory = () => {
         <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Supprimer cet adhérent ?</AlertDialogTitle>
+              <AlertDialogTitle>Supprimer les données de la saison {getSeasonLabel(selectedSeason)} ?</AlertDialogTitle>
               <AlertDialogDescription>
-                Cette action est irréversible. L'adhérent sera définitivement supprimé du fichier.
+                Les données saisonnières de cet adhérent pour la saison {getSeasonLabel(selectedSeason)} seront supprimées (paiement, certificat médical, etc.). L'adhérent restera dans le fichier.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1284,8 +1312,41 @@ const ClubMembersDirectory = () => {
                 onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                {deleteMember.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {deleteMemberStatus.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Purge season confirmation */}
+        <AlertDialog open={purgeConfirmOpen} onOpenChange={setPurgeConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Purger la saison {getSeasonLabel(selectedSeason)} ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tous les statuts des adhérents pour la saison {getSeasonLabel(selectedSeason)} seront supprimés
+                (paiement, certificat médical, charte, assurance, niveau, etc.).
+                Les données d'identité des adhérents et les autres saisons seront conservées.
+                Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  try {
+                    await deleteAllStatusForSeason.mutateAsync();
+                    toast.success(`Saison ${getSeasonLabel(selectedSeason)} purgée avec succès`);
+                    setPurgeConfirmOpen(false);
+                  } catch {
+                    toast.error("Erreur lors de la purge de la saison");
+                  }
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteAllStatusForSeason.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Purger
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

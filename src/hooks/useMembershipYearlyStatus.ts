@@ -175,11 +175,44 @@ export const useMembershipYearlyStatus = (seasonYear: number) => {
     },
   });
 
+  // Delete status for a single member for the current season
+  const deleteMemberStatus = useMutation({
+    mutationFn: async (memberId: string) => {
+      const { error } = await supabase
+        .from("membership_yearly_status")
+        .delete()
+        .eq("member_id", memberId)
+        .eq("season_year", seasonYear);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["membership-yearly-status", seasonYear] });
+    },
+  });
+
+  // Delete all statuses for the current season
+  const deleteAllStatusForSeason = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("membership_yearly_status")
+        .delete()
+        .eq("season_year", seasonYear);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["membership-yearly-status", seasonYear] });
+    },
+  });
+
   return {
     statuses,
     isLoading,
     getStatusForMember,
     upsertStatus,
     upsertStatusBatch,
+    deleteMemberStatus,
+    deleteAllStatusForSeason,
   };
 };
