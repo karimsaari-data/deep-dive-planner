@@ -210,13 +210,13 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
                   {formatFullName(outing.organizer.first_name, outing.organizer.last_name)}
                 </span>
               </div>
-              {/* Display max depth for instructor based on environment */}
-              {(outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
+              {/* Display max depth for instructor based on environment (not for pool < 6m) */}
+              {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
                 <div className="flex items-center gap-2 ml-6">
                   <Gauge className="h-4 w-4 text-amber-600" />
                   <span className="text-xs font-medium text-amber-700">
                     Profondeur max :{" "}
-                    {outing.outing_type === "Mer" || outing.outing_type === "Étang"
+                    {outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution"
                       ? `${outing.organizer_max_depth_eao}m (eau ouverte)`
                       : `${outing.organizer_max_depth_eaa}m (eau artificielle)`}
                   </span>
