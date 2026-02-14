@@ -33,6 +33,42 @@ export const usePOSSGenerator = () => {
       const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") || [];
       const participants: POSSParticipant[] = [];
 
+      // Get organizer's profile to fetch their apnea level
+      let organizerApneaLevel: string | null = null;
+      if (outing.organizer_id) {
+        const { data: organizerProfile } = await supabase
+          .from("profiles")
+          .select("email, apnea_level")
+          .eq("id", outing.organizer_id)
+          .single();
+
+        if (organizerProfile) {
+          // Try to get the most current apnea level from membership_yearly_status
+          const { data: organizerDirectory } = await supabase
+            .from("club_members_directory")
+            .select("id")
+            .eq("email", organizerProfile.email.toLowerCase())
+            .single();
+
+          if (organizerDirectory) {
+            const currentSeasonYear = new Date().getMonth() >= 8
+              ? new Date().getFullYear() + 1
+              : new Date().getFullYear();
+
+            const { data: organizerStatus } = await supabase
+              .from("membership_yearly_status")
+              .select("apnea_level")
+              .eq("member_id", organizerDirectory.id)
+              .eq("season_year", currentSeasonYear)
+              .single();
+
+            organizerApneaLevel = organizerStatus?.apnea_level || organizerProfile.apnea_level;
+          } else {
+            organizerApneaLevel = organizerProfile.apnea_level;
+          }
+        }
+      }
+
       if (confirmedReservations.length > 0) {
         // Get emails from profiles
         const profileEmails = confirmedReservations
@@ -47,10 +83,10 @@ export const usePOSSGenerator = () => {
             .in("email", profileEmails.map(e => e.toLowerCase()));
 
           // Get apnea_level from membership_yearly_status (current season)
-          const currentSeasonYear = new Date().getMonth() >= 8 
-            ? new Date().getFullYear() + 1 
+          const currentSeasonYear = new Date().getMonth() >= 8
+            ? new Date().getFullYear() + 1
             : new Date().getFullYear();
-          
+
           const memberIds = directory?.map(d => d.id) || [];
           const { data: membershipStatuses } = await supabase
             .from("membership_yearly_status")
@@ -90,6 +126,7 @@ export const usePOSSGenerator = () => {
           maps_url: outing.location_details.maps_url,
           satellite_map_url: outing.location_details.satellite_map_url || null,
           bathymetric_map_url: outing.location_details.bathymetric_map_url || null,
+          max_depth: outing.location_details.max_depth || null,
         };
       }
 
@@ -117,6 +154,7 @@ export const usePOSSGenerator = () => {
         waypoints,
         participants,
         organizerName,
+        organizerApneaLevel,
       };
 
       // Generate the PDF
