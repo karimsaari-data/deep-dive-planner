@@ -50,9 +50,8 @@ const WaypointTable = ({ waypoints, siteId, onFocusWaypoint }: WaypointTableProp
                         border: type === "dive_zone" ? "1.5px solid #0ea5e9" : "none",
                         color: type === "dive_zone" ? "#0ea5e9" : "white",
                       }}
-                    >
-                      {getWaypointIcon(type)}
-                    </span>
+                      dangerouslySetInnerHTML={{ __html: getWaypointIcon(type) }}
+                    />
                     {getWaypointLabel(type)}
                   </span>
                 </SelectItem>
@@ -96,9 +95,8 @@ const WaypointTable = ({ waypoints, siteId, onFocusWaypoint }: WaypointTableProp
                       color: waypoint.point_type === "dive_zone" ? "#0ea5e9" : "white",
                       fontWeight: "bold",
                     }}
-                  >
-                    {getWaypointIcon(waypoint.point_type)}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: getWaypointIcon(waypoint.point_type) }}
+                  />
                 </TableCell>
                 <TableCell className="text-sm font-medium">
                   {getWaypointLabel(waypoint.point_type)}
