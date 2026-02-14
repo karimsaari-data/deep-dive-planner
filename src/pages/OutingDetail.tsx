@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge } from "lucide-react";
 import Layout from "@/components/layout/Layout";
+import { formatFullName } from "@/lib/formatName";
 
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,8 +310,8 @@ const OutingDetail = () => {
                       onClick={async () => {
                         setIsGeneratingPOSS(true);
                         try {
-                          const organizerName = outing.organizer 
-                            ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                          const organizerName = outing.organizer
+                            ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
                             : "Encadrant";
                           await possGenerator.generate({ outing, organizerName });
                         } finally {
@@ -364,8 +365,8 @@ const OutingDetail = () => {
                               // Lock the POSS first
                               await lockPOSS.mutateAsync(outing.id);
                               // Generate the PDF
-                              const organizerName = outing.organizer 
-                                ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                              const organizerName = outing.organizer
+                                ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
                                 : "Encadrant";
                               await possGenerator.generate({ outing, organizerName });
                             } finally {
@@ -449,32 +450,34 @@ const OutingDetail = () => {
             {outing.description && (
               <p className="mt-2 text-muted-foreground">{outing.description}</p>
             )}
-          </div>
+            {/* Organizer info with max depth */}
+            {outing.organizer && (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Encadrant : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
+                </p>
+                {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (() => {
+                  const isOpenWater = outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution";
+                  const organizerMaxDepth = isOpenWater ? outing.organizer_max_depth_eao : outing.organizer_max_depth_eaa;
+                  const locationMaxDepth = outing.location_details?.max_depth;
 
-          {/* Organizer Info & Max Depth */}
-          {outing.organizer && (() => {
-            const organizerLevel = apneaLevelMap.get(outing.organizer.apnea_level ?? "");
-            const organizerDepth = organizerLevel ? extractDepth(organizerLevel.prerogatives) : null;
-            const isInstructor = organizerLevel?.is_instructor ?? false;
+                  // If both organizer and location have max depth, show the minimum (most restrictive)
+                  const effectiveMaxDepth = organizerMaxDepth && locationMaxDepth
+                    ? Math.min(organizerMaxDepth, locationMaxDepth)
+                    : organizerMaxDepth || locationMaxDepth;
 
-            return isInstructor && organizerDepth ? (
-              <Card className="shadow-card my-6 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-700">
-                <CardContent className="pt-4">
-                  <div className="flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-foreground">
-                        Profondeur maximale de la session : <span className="text-amber-600 dark:text-amber-500">{organizerDepth}</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Cette profondeur est déterminée par le niveau d'encadrement ({outing.organizer.apnea_level}). Tous les participants doivent respecter cette limite, même si leur niveau personnel autorise une profondeur supérieure.
-                      </p>
+                  return effectiveMaxDepth ? (
+                    <div className="flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700">
+                        Profondeur max encadrement : {effectiveMaxDepth}m {isOpenWater ? "(eau ouverte)" : "(eau artificielle)"}
+                      </span>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null;
-          })()}
+                  ) : null;
+                })()}
+              </div>
+            )}
+          </div>
 
           {/* 1. Weather summary banner at top */}
           {!isPast && outing.location_details?.latitude && outing.location_details?.longitude && (

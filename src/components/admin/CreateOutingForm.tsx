@@ -48,34 +48,6 @@ type OutingFormData = z.infer<typeof outingSchema>;
 // Types de sorties en milieu naturel (où le choix bateau/bord est pertinent)
 const NATURAL_ENVIRONMENT_TYPES: OutingType[] = ["Mer", "Étang", "Dépollution"];
 
-/**
- * Get max participants allowed based on instructor level
- * Based on typical French federation rules for apnea instruction
- */
-const getMaxParticipantsForLevel = (levelCode: string | null): number => {
-  if (!levelCode) return 100; // Default for non-instructor or unknown
-
-  const code = levelCode.toUpperCase();
-
-  // EA1/E1 levels - max 4 students
-  if (code.includes('EA1') || code.includes('E1')) {
-    return 4;
-  }
-
-  // EA2/E2 levels - max 8 students
-  if (code.includes('EA2') || code.includes('E2')) {
-    return 8;
-  }
-
-  // EA3/E3 and above - max 12 students
-  if (code.includes('EA3') || code.includes('E3') || code.includes('EA4') || code.includes('E4')) {
-    return 12;
-  }
-
-  // Other instructor certifications - reasonable default
-  return 10;
-};
-
 interface CreateOutingFormProps {
   prefilledLocationId?: string;
   prefilledLocationName?: string;
@@ -133,7 +105,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   // Fetch user's apnea level and determine max participants limit
   useEffect(() => {
     const fetchUserLevel = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !apneaLevels) return;
 
       // Get current season year
       const currentSeasonYear = new Date().getMonth() >= 8
@@ -168,7 +140,10 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
 
       if (membershipStatus?.apnea_level) {
         setUserApneaLevel(membershipStatus.apnea_level);
-        const limit = getMaxParticipantsForLevel(membershipStatus.apnea_level);
+
+        // Find the level in apnea_levels to get max_participants_encadrement
+        const levelInfo = apneaLevels.find(l => l.code === membershipStatus.apnea_level);
+        const limit = levelInfo?.max_participants_encadrement || 100;
         setMaxParticipantsLimit(limit);
 
         // Update max_participants if current value exceeds limit
@@ -180,7 +155,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
     };
 
     fetchUserLevel();
-  }, [user, form]);
+  }, [user, form, apneaLevels]);
 
   // Pre-fill location when props change
   useEffect(() => {

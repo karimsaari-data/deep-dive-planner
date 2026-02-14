@@ -12,7 +12,7 @@ AS $function$
       ELSE EXTRACT(YEAR FROM CURRENT_DATE)::integer
     END as year
   )
-  SELECT 
+  SELECT
     cmd.id,
     cmd.first_name,
     cmd.last_name,
@@ -23,7 +23,7 @@ AS $function$
     p.avatar_url
   FROM public.club_members_directory cmd
   LEFT JOIN public.profiles p ON lower(cmd.email) = lower(p.email)
-  LEFT JOIN public.membership_yearly_status mys ON mys.member_id = cmd.id 
+  INNER JOIN public.membership_yearly_status mys ON mys.member_id = cmd.id
     AND mys.season_year = (SELECT year FROM current_season)
   ORDER BY cmd.last_name ASC;
 $function$;
