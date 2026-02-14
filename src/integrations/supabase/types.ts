@@ -535,6 +535,8 @@ export type Database = {
           session_report: string | null
           title: string
           updated_at: string | null
+          water_entry_time: string | null
+          water_exit_time: string | null
         }
         Insert: {
           boat_id?: string | null
@@ -559,6 +561,8 @@ export type Database = {
           session_report?: string | null
           title: string
           updated_at?: string | null
+          water_entry_time?: string | null
+          water_exit_time?: string | null
         }
         Update: {
           boat_id?: string | null
@@ -583,6 +587,8 @@ export type Database = {
           session_report?: string | null
           title?: string
           updated_at?: string | null
+          water_entry_time?: string | null
+          water_exit_time?: string | null
         }
         Relationships: [
           {

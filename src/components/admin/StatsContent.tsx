@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { formatFullName } from "@/lib/formatName";
 
 const COLORS = ["#0c4a6e", "#0284c7", "#14b8a6", "#22c55e", "#eab308"];
 const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
@@ -147,12 +148,12 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       const encadrantMap = new Map(membershipStatuses?.map(s => [s.member_id, s.is_encadrant]) || []);
 
       const profileMap = new Map(profiles?.map(p => [
-        p.id, 
-        { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '', email: p.email, isEncadrant: p.member_status === 'Encadrant' }
+        p.id,
+        { name: formatFullName(p.first_name, p.last_name), code: p.member_code || '', email: p.email, isEncadrant: p.member_status === 'Encadrant' }
       ]));
       const clubMemberMap = new Map(clubMembers?.map(m => [
-        m.id, 
-        { name: `${m.first_name} ${m.last_name}`, code: m.member_id || '', email: m.email, isEncadrant: encadrantMap.get(m.id) ?? false }
+        m.id,
+        { name: formatFullName(m.first_name, m.last_name), code: m.member_id || '', email: m.email, isEncadrant: encadrantMap.get(m.id) ?? false }
       ]));
       // Map email to club member ID for matching organizers
       const emailToClubMemberMap = new Map(clubMembers?.map(m => [m.email.toLowerCase(), m]) || []);
@@ -232,7 +233,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
           if (!memberMap.has(organizerKey)) {
             memberMap.set(organizerKey, {
               id: organizerKey,
-              name: organizerClubMember.first_name + ' ' + organizerClubMember.last_name,
+              name: formatFullName(organizerClubMember.first_name, organizerClubMember.last_name),
               memberCode: organizerClubMember.member_id || "",
               outings: [],
               totalPresences: 0,
@@ -367,7 +368,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
 
       // Create maps for matching
       const profileMap = new Map(
-        profiles?.map((p) => [p.id, { name: `${p.first_name} ${p.last_name}`, email: p.email }])
+        profiles?.map((p) => [p.id, { name: formatFullName(p.first_name, p.last_name), email: p.email }])
       );
       const emailToEncadrantMap = new Map(clubEncadrants?.map((e) => [e.email.toLowerCase(), e]) || []);
 
@@ -378,7 +379,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       clubEncadrants?.forEach((e) => {
         organizerMap.set(e.email.toLowerCase(), {
           id: e.id,
-          name: `${e.first_name} ${e.last_name}`,
+          name: formatFullName(e.first_name, e.last_name),
           months: Array(12).fill(0),
           total: 0,
         });
@@ -405,7 +406,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         if (!organizerMap.has(emailKey)) {
           organizerMap.set(emailKey, {
             id: encadrant.id,
-            name: `${encadrant.first_name} ${encadrant.last_name}`,
+            name: formatFullName(encadrant.first_name, encadrant.last_name),
             months: Array(12).fill(0),
             total: 0,
           });
@@ -422,13 +423,35 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
     enabled: isAdmin,
   });
 
-  // Fetch demographics data from club_members_directory
+  // Fetch demographics data from club_members_directory (active members only)
   const { data: demographicsData, isLoading: demographicsLoading } = useQuery({
-    queryKey: ["demographics"],
+    queryKey: ["demographics", selectedYear],
     queryFn: async () => {
+      // First get active member IDs from membership_yearly_status
+      const { data: activeMembers, error: activeMembersError } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id")
+        .eq("season_year", selectedYear);
+
+      if (activeMembersError) throw activeMembersError;
+
+      const activeMemberIds = activeMembers?.map(m => m.member_id) || [];
+
+      if (activeMemberIds.length === 0) {
+        return {
+          totalMembers: 0,
+          averageAge: 0,
+          averageSeniority: 0,
+          ageData: [],
+          genderData: [],
+        };
+      }
+
+      // Then fetch demographics only for active members
       const { data, error } = await supabase
         .from("club_members_directory")
-        .select("birth_date, gender, joined_at");
+        .select("birth_date, gender, joined_at")
+        .in("id", activeMemberIds);
 
       if (error) throw error;
 

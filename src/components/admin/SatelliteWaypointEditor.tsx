@@ -15,12 +15,13 @@ interface SatelliteWaypointEditorProps {
   siteName?: string;
   siteLat?: number | null;
   siteLng?: number | null;
+  onMapReady?: (map: L.Map, markers: React.MutableRefObject<L.Marker[]>) => void;
 }
 
 // All waypoint types for the main satellite map
 const SATELLITE_POINT_TYPES: WaypointType[] = ["parking", "water_entry", "water_exit", "meeting_point", "dive_zone", "toilet"];
 
-const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: SatelliteWaypointEditorProps) => {
+const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng, onMapReady }: SatelliteWaypointEditorProps) => {
   const { data: waypoints, isLoading } = useWaypoints(siteId);
   const createWaypoint = useCreateWaypoint();
   const deleteWaypoint = useDeleteWaypoint();
@@ -68,6 +69,7 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
     ).addTo(map);
 
     mapInstanceRef.current = map;
+    onMapReady?.(map, markersRef);
 
     // Click handler for adding points
     map.on("click", (e: L.LeafletMouseEvent) => {
@@ -149,7 +151,8 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
 
       marker.bindPopup(`
         <strong>${getWaypointLabel(waypoint.point_type)}</strong><br/>
-        ${waypoint.name}
+        ${waypoint.name}<br/>
+        <small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>
       `);
 
       markersRef.current.push(marker);
@@ -323,48 +326,6 @@ const SatelliteWaypointEditor = ({ siteId, siteName, siteLat, siteLng }: Satelli
         </div>
       )}
 
-      {/* List of existing waypoints */}
-      {waypoints && waypoints.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-sm">Points existants</Label>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {waypoints.map((waypoint) => (
-              <div
-                key={waypoint.id}
-                className="flex items-center justify-between rounded border border-border bg-muted/30 px-3 py-2"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor: waypoint.point_type === 'dive_zone'
-                        ? 'rgba(14, 165, 233, 0.4)'
-                        : getWaypointColor(waypoint.point_type),
-                      border: waypoint.point_type === 'dive_zone' ? '2px solid #0ea5e9' : 'none',
-                      color: waypoint.point_type === 'dive_zone' ? '#0ea5e9' : 'white'
-                    }}
-                    dangerouslySetInnerHTML={{ __html: getWaypointIcon(waypoint.point_type) }}
-                  />
-                  <span className="text-sm font-medium">
-                    {getWaypointLabel(waypoint.point_type)}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    – {waypoint.name}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => deleteWaypoint.mutate({ id: waypoint.id, siteId })}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {isLoading && (
         <p className="text-sm text-muted-foreground">Chargement des points...</p>

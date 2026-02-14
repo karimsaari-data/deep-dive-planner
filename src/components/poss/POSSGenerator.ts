@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Waypoint, getWaypointLabel } from "@/hooks/useWaypoints";
-import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
+import logoTeamOxygen from "@/assets/logo-team-oxygen-transparent.png";
 
 // Types for POSS generation
 export interface POSSParticipant {
@@ -44,9 +44,9 @@ export interface POSSData {
   waypoints: Waypoint[];
   participants: POSSParticipant[];
   organizerName: string;
-  organizerApneaLevel?: string | null;
-  waterEntryTime?: string;
-  expectedExitTime?: string;
+  organizerLevel: string | null;
+  waterEntryTime: string | null;
+  waterExitTime: string | null;
 }
 
 // Helper: Convert image URL to Base64 (CORS-safe)
@@ -113,18 +113,40 @@ const getMaxDepthForLevel = (apneaLevel: string | null): number | null => {
   return null;
 };
 
+// Helper: Calculate session duration
+const calculateDuration = (entryTime: string | null, exitTime: string | null): string => {
+  if (!entryTime || !exitTime) return "N/A";
+
+  const [entryHours, entryMinutes] = entryTime.split(':').map(Number);
+  const [exitHours, exitMinutes] = exitTime.split(':').map(Number);
+
+  let durationMinutes = (exitHours * 60 + exitMinutes) - (entryHours * 60 + entryMinutes);
+
+  if (durationMinutes < 0) {
+    durationMinutes += 24 * 60; // Handle crossing midnight
+  }
+
+  const hours = Math.floor(durationMinutes / 60);
+  const minutes = durationMinutes % 60;
+
+  if (hours > 0) {
+    return `${hours}h${minutes.toString().padStart(2, '0')}`;
+  }
+  return `${minutes}min`;
+};
+
 // Main POSS Generator
 export const generatePOSS = async (data: POSSData): Promise<void> => {
-  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerApneaLevel, waterEntryTime, expectedExitTime } = data;
+  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, waterEntryTime, waterExitTime } = data;
   
   const doc = new jsPDF({
-    orientation: "portrait",
+    orientation: "landscape",
     unit: "mm",
     format: "a4",
   });
 
-  const pageWidth = 210;
-  const pageHeight = 297;
+  const pageWidth = 297;
+  const pageHeight = 210;
   const margin = 15;
   const contentWidth = pageWidth - 2 * margin;
   let y = margin;
@@ -145,7 +167,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
 
   // Logo (left - smaller)
   if (logoBase64) {
-    doc.addImage(logoBase64, "WEBP", margin + 2, y + 2, 18, 18);
+    doc.addImage(logoBase64, "PNG", margin + 2, y + 2, 18, 18);
   }
 
   // Title (center - one line)
@@ -162,9 +184,9 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.text(`Lieu : ${location?.name || outingLocation}`, margin + 25, y + 17);
 
   // Horaires et profondeur basée sur le niveau de l'encadrant
-  const maxDepth = getMaxDepthForLevel(organizerApneaLevel);
+  const maxDepth = getMaxDepthForLevel(organizerLevel);
   const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
-  doc.text(`Profondeur max (basée sur ${organizerApneaLevel || "niveau encadrant"}) : ${maxDepthStr}`, margin + 25, y + 21);
+  doc.text(`Profondeur max (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, margin + 25, y + 21);
 
   if (waterEntryTime) {
     doc.text(`Heure mise à l'eau : ${waterEntryTime}`, margin + 25, y + 25);

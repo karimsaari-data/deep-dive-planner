@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge } from "lucide-react";
 import Layout from "@/components/layout/Layout";
+import { formatFullName } from "@/lib/formatName";
 
 import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -309,8 +310,8 @@ const OutingDetail = () => {
                       onClick={async () => {
                         setIsGeneratingPOSS(true);
                         try {
-                          const organizerName = outing.organizer 
-                            ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                          const organizerName = outing.organizer
+                            ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
                             : "Encadrant";
                           await possGenerator.generate({ outing, organizerName });
                         } finally {
@@ -364,8 +365,8 @@ const OutingDetail = () => {
                               // Lock the POSS first
                               await lockPOSS.mutateAsync(outing.id);
                               // Generate the PDF
-                              const organizerName = outing.organizer 
-                                ? `${outing.organizer.first_name} ${outing.organizer.last_name}`
+                              const organizerName = outing.organizer
+                                ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
                                 : "Encadrant";
                               await possGenerator.generate({ outing, organizerName });
                             } finally {
@@ -446,6 +447,36 @@ const OutingDetail = () => {
                 )}
               </div>
             </div>
+            {outing.description && (
+              <p className="mt-2 text-muted-foreground">{outing.description}</p>
+            )}
+            {/* Organizer info with max depth */}
+            {outing.organizer && (
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Encadrant : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
+                </p>
+                {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (() => {
+                  const isOpenWater = outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution";
+                  const organizerMaxDepth = isOpenWater ? outing.organizer_max_depth_eao : outing.organizer_max_depth_eaa;
+                  const locationMaxDepth = outing.location_details?.max_depth;
+
+                  // If both organizer and location have max depth, show the minimum (most restrictive)
+                  const effectiveMaxDepth = organizerMaxDepth && locationMaxDepth
+                    ? Math.min(organizerMaxDepth, locationMaxDepth)
+                    : organizerMaxDepth || locationMaxDepth;
+
+                  return effectiveMaxDepth ? (
+                    <div className="flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700">
+                        Profondeur max encadrement : {effectiveMaxDepth}m {isOpenWater ? "(eau ouverte)" : "(eau artificielle)"}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+              </div>
+            )}
           </div>
 
           {/* 1. Weather summary banner at top */}
@@ -636,13 +667,15 @@ const OutingDetail = () => {
                     Carte Marine (Bathymétrie)
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 overflow-hidden rounded-b-lg">
-                  <MarineMiniMap
-                    latitude={outing.location_details.latitude}
-                    longitude={outing.location_details.longitude}
-                    siteName={outing.location_details?.name || outing.location}
-                    siteId={outing.location_id ?? undefined}
-                  />
+                <CardContent className="p-0">
+                  <div className="overflow-hidden rounded-b-lg">
+                    <MarineMiniMap
+                      latitude={outing.location_details.latitude}
+                      longitude={outing.location_details.longitude}
+                      siteName={outing.location_details?.name || outing.location}
+                      siteId={outing.location_id ?? undefined}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground text-center py-2 px-3">
                     Carte SHOM/IGN – Lignes de profondeur et sondes marines
                   </p>
@@ -656,13 +689,15 @@ const OutingDetail = () => {
                     Vue Satellite
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 overflow-hidden rounded-b-lg">
-                  <SatelliteMiniMap
-                    latitude={outing.location_details.latitude}
-                    longitude={outing.location_details.longitude}
-                    siteName={outing.location_details?.name || outing.location}
-                    siteId={outing.location_id ?? undefined}
-                  />
+                <CardContent className="p-0">
+                  <div className="overflow-hidden rounded-b-lg">
+                    <SatelliteMiniMap
+                      latitude={outing.location_details.latitude}
+                      longitude={outing.location_details.longitude}
+                      siteName={outing.location_details?.name || outing.location}
+                      siteId={outing.location_id ?? undefined}
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground text-center py-2 px-3">
                     Vue satellite – Points d'intérêt du site
                   </p>

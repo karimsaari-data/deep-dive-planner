@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useWaypoints, getWaypointLabel, getWaypointColor, Waypoint } from "@/hooks/useWaypoints";
+import { useWaypoints, getWaypointLabel, getWaypointColor, getWaypointIcon, Waypoint } from "@/hooks/useWaypoints";
 
 interface SatelliteMiniMapProps {
   latitude: number;
@@ -20,12 +20,9 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Offset center southward so marker appears at top, showing more coast/sea below
-    const offsetLatitude = latitude - 0.008;
-
-    // Initialize map with high zoom and scroll disabled
+    // Initialize map centered on the actual dive site location
     const map = L.map(mapRef.current, {
-      center: [offsetLatitude, longitude],
+      center: [latitude, longitude],
       zoom: 15,
       minZoom: 10,
       maxZoom: 19,
@@ -35,17 +32,17 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
 
     mapInstanceRef.current = map;
 
-    // Esri World Imagery (satellite) layer
+    // Esri World Imagery (Satellite)
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
-        attribution: '© <a href="https://www.esri.com/">Esri</a> World Imagery',
+        attribution: "Esri, Maxar, Earthstar Geographics",
         maxNativeZoom: 17,
         maxZoom: 19,
       }
     ).addTo(map);
 
-    // Custom red marker icon for dive site
+    // Main site marker
     const markerIcon = L.divIcon({
       html: `<div style="
         background: hsl(0, 84%, 60%);
@@ -61,7 +58,6 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
       popupAnchor: [0, -10],
     });
 
-    // Add marker at dive site location
     const marker = L.marker([latitude, longitude], { icon: markerIcon }).addTo(map);
     marker.bindPopup(
       `<div style="text-align: center; font-weight: 500;">
@@ -80,8 +76,7 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      const offsetLatitude = latitude - 0.008;
-      mapInstanceRef.current.setView([offsetLatitude, longitude], 15);
+      mapInstanceRef.current.setView([latitude, longitude], 15);
     }
   }, [latitude, longitude]);
 
@@ -97,16 +92,11 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
 
     if (!waypoints || waypoints.length === 0) return;
 
-    // Add markers for each waypoint
     waypoints.forEach((waypoint: Waypoint) => {
       const color = getWaypointColor(waypoint.point_type);
       const label = getWaypointLabel(waypoint.point_type);
       const isDiveZone = waypoint.point_type === 'dive_zone';
-      const iconChar = waypoint.point_type === 'parking' ? 'P'
-        : waypoint.point_type === 'water_entry' ? '↓'
-        : waypoint.point_type === 'water_exit' ? '✚'
-        : waypoint.point_type === 'dive_zone' ? '🤿'
-        : '●';
+      const iconChar = getWaypointIcon(waypoint.point_type);
 
       const waypointIcon = L.divIcon({
         html: isDiveZone
@@ -145,7 +135,7 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
       const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })
         .addTo(mapInstanceRef.current!);
 
-      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}`);
+      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}<br/><small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>`);
       waypointMarkersRef.current.push(marker);
     });
 
@@ -155,7 +145,7 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
       ...waypoints.map((wp: Waypoint) => [wp.latitude, wp.longitude] as [number, number]),
     ];
     const bounds = L.latLngBounds(allPoints);
-    mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
   }, [waypoints, latitude, longitude]);
 
   return (

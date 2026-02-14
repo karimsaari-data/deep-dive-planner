@@ -154,7 +154,9 @@ export const usePOSSGenerator = () => {
         waypoints,
         participants,
         organizerName,
-        organizerApneaLevel,
+        organizerLevel: organizerApneaLevel,
+        waterEntryTime: null, // TODO: add field in form
+        waterExitTime: null, // TODO: add field in form
       };
 
       // Generate the PDF

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useWaypoints, getWaypointLabel, getWaypointColor, Waypoint } from "@/hooks/useWaypoints";
+import { useWaypoints, getWaypointLabel, getWaypointColor, getWaypointIcon, Waypoint } from "@/hooks/useWaypoints";
 
 interface MarineMiniMapProps {
   latitude: number;
@@ -14,19 +14,16 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const waypointMarkersRef = useRef<L.Marker[]>([]);
-  
+
   const { data: waypoints } = useWaypoints(siteId);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Offset center southward so marker appears at top, showing more coast/sea below
-    const offsetLatitude = latitude - 0.008;
-
-    // Initialize map with high zoom and scroll disabled
+    // Initialize map centered on the actual dive site location
     const map = L.map(mapRef.current, {
-      center: [offsetLatitude, longitude],
-      zoom: 15,
+      center: [latitude, longitude],
+      zoom: 14,
       minZoom: 10,
       maxZoom: 19,
       scrollWheelZoom: false,
@@ -83,8 +80,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      const offsetLatitude = latitude - 0.008;
-      mapInstanceRef.current.setView([offsetLatitude, longitude], 15);
+      mapInstanceRef.current.setView([latitude, longitude], 14);
     }
   }, [latitude, longitude]);
 
@@ -105,11 +101,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       const color = getWaypointColor(waypoint.point_type);
       const label = getWaypointLabel(waypoint.point_type);
       const isDiveZone = waypoint.point_type === 'dive_zone';
-      const iconChar = waypoint.point_type === 'parking' ? 'P'
-        : waypoint.point_type === 'water_entry' ? '↓'
-        : waypoint.point_type === 'water_exit' ? '✚'
-        : waypoint.point_type === 'dive_zone' ? '🤿'
-        : '●';
+      const iconChar = getWaypointIcon(waypoint.point_type);
 
       const waypointIcon = L.divIcon({
         html: isDiveZone
@@ -148,7 +140,7 @@ const MarineMiniMap = ({ latitude, longitude, siteName, siteId }: MarineMiniMapP
       const marker = L.marker([waypoint.latitude, waypoint.longitude], { icon: waypointIcon })
         .addTo(mapInstanceRef.current!);
 
-      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}`);
+      marker.bindPopup(`<strong>${label}</strong><br/>${waypoint.name}<br/><small>${waypoint.latitude.toFixed(5)}, ${waypoint.longitude.toFixed(5)}</small>`);
       waypointMarkersRef.current.push(marker);
     });
 
