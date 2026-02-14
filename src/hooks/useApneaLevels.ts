@@ -10,6 +10,8 @@ export interface ApneaLevel {
   is_instructor: boolean;
   federation: string | null;
   federation_full_name: string | null;
+  profondeur_max_eaa: number | null;
+  profondeur_max_eao: number | null;
   created_at: string;
 }
 
@@ -40,6 +42,8 @@ export const useCreateApneaLevel = () => {
       is_instructor?: boolean;
       federation?: string;
       federation_full_name?: string;
+      profondeur_max_eaa?: number | null;
+      profondeur_max_eao?: number | null;
     }) => {
       const { error } = await supabase.from("apnea_levels").insert(level);
       if (error) throw error;
@@ -69,6 +73,8 @@ export const useUpdateApneaLevel = () => {
       is_instructor?: boolean;
       federation?: string | null;
       federation_full_name?: string | null;
+      profondeur_max_eaa?: number | null;
+      profondeur_max_eao?: number | null;
     }) => {
       const { error } = await supabase
         .from("apnea_levels")

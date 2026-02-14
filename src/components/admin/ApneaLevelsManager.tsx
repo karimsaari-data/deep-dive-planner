@@ -54,6 +54,8 @@ interface FormData {
   is_instructor: boolean;
   federation: string;
   federation_full_name: string;
+  profondeur_max_eaa: string;
+  profondeur_max_eao: string;
 }
 
 const emptyForm: FormData = {
@@ -63,6 +65,8 @@ const emptyForm: FormData = {
   is_instructor: false,
   federation: "",
   federation_full_name: "",
+  profondeur_max_eaa: "",
+  profondeur_max_eao: "",
 };
 
 const ApneaLevelsManager = () => {
@@ -120,12 +124,17 @@ const ApneaLevelsManager = () => {
       is_instructor: level.is_instructor,
       federation: level.federation || "",
       federation_full_name: level.federation_full_name || "",
+      profondeur_max_eaa: level.profondeur_max_eaa?.toString() || "",
+      profondeur_max_eao: level.profondeur_max_eao?.toString() || "",
     });
     setIsFormOpen(true);
   };
 
   const handleSubmit = async () => {
     if (!formData.code || !formData.name) return;
+
+    const profondeurEaa = formData.profondeur_max_eaa ? parseInt(formData.profondeur_max_eaa) : null;
+    const profondeurEao = formData.profondeur_max_eao ? parseInt(formData.profondeur_max_eao) : null;
 
     if (editingLevel) {
       await updateLevel.mutateAsync({
@@ -136,6 +145,8 @@ const ApneaLevelsManager = () => {
         is_instructor: formData.is_instructor,
         federation: formData.federation || null,
         federation_full_name: formData.federation_full_name || null,
+        profondeur_max_eaa: profondeurEaa,
+        profondeur_max_eao: profondeurEao,
       });
     } else {
       await createLevel.mutateAsync({
@@ -145,6 +156,8 @@ const ApneaLevelsManager = () => {
         is_instructor: formData.is_instructor,
         federation: formData.federation || undefined,
         federation_full_name: formData.federation_full_name || undefined,
+        profondeur_max_eaa: profondeurEaa || undefined,
+        profondeur_max_eao: profondeurEao || undefined,
       });
     }
     setIsFormOpen(false);
@@ -231,6 +244,8 @@ const ApneaLevelsManager = () => {
                   <TableHead>Fédération</TableHead>
                   <TableHead>Prérogatives</TableHead>
                   <TableHead className="text-center">Encadrant</TableHead>
+                  <TableHead className="text-center">Max EAA</TableHead>
+                  <TableHead className="text-center">Max EAO</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -255,6 +270,12 @@ const ApneaLevelsManager = () => {
                       {level.is_instructor && (
                         <ShieldCheck className="h-4 w-4 text-green-600 mx-auto" />
                       )}
+                    </TableCell>
+                    <TableCell className="text-center text-sm">
+                      {level.profondeur_max_eaa ? `${level.profondeur_max_eaa}m` : "-"}
+                    </TableCell>
+                    <TableCell className="text-center text-sm">
+                      {level.profondeur_max_eao ? `${level.profondeur_max_eao}m` : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -339,6 +360,30 @@ const ApneaLevelsManager = () => {
                   onChange={(e) => setFormData({ ...formData, prerogatives: e.target.value })}
                   placeholder="ex: -16m / 40m dynamique"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="profondeur_max_eaa">Prof. max EAA (m)</Label>
+                  <Input
+                    id="profondeur_max_eaa"
+                    type="number"
+                    value={formData.profondeur_max_eaa}
+                    onChange={(e) => setFormData({ ...formData, profondeur_max_eaa: e.target.value })}
+                    placeholder="ex: 20"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Eau artificielle (piscine/fosse)</p>
+                </div>
+                <div>
+                  <Label htmlFor="profondeur_max_eao">Prof. max EAO (m)</Label>
+                  <Input
+                    id="profondeur_max_eao"
+                    type="number"
+                    value={formData.profondeur_max_eao}
+                    onChange={(e) => setFormData({ ...formData, profondeur_max_eao: e.target.value })}
+                    placeholder="ex: 15"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Eau ouverte (mer/étang/dépollution)</p>
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox

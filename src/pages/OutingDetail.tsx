@@ -453,12 +453,12 @@ const OutingDetail = () => {
                 <p className="text-sm text-muted-foreground">
                   Encadrant : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
                 </p>
-                {(outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
+                {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
                   <div className="flex items-center gap-2">
                     <Gauge className="h-4 w-4 text-amber-600" />
                     <span className="text-sm font-medium text-amber-700">
                       Profondeur max encadrement :{" "}
-                      {outing.outing_type === "Mer" || outing.outing_type === "Étang"
+                      {outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution"
                         ? `${outing.organizer_max_depth_eao}m (eau ouverte)`
                         : `${outing.organizer_max_depth_eaa}m (eau artificielle)`}
                     </span>
