@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { formatFullName } from "@/lib/formatName";
 
 const COLORS = ["#0c4a6e", "#0284c7", "#14b8a6", "#22c55e", "#eab308"];
 const MONTHS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
@@ -103,7 +104,7 @@ const Stats = () => {
 
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, { name: `${p.first_name} ${p.last_name}`, code: p.member_code || '' }]));
+      const profileMap = new Map(profiles?.map(p => [p.id, { name: formatFullName(p.first_name, p.last_name), code: p.member_code || '' }]));
 
       // Group by user
       const memberMap = new Map<string, MemberPresence>();
@@ -172,7 +173,7 @@ const Stats = () => {
 
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, `${p.first_name} ${p.last_name}`]));
+      const profileMap = new Map(profiles?.map(p => [p.id, formatFullName(p.first_name, p.last_name)]));
 
       // Group by organizer and month
       const organizerMap = new Map<string, OrganizerMonthly>();
@@ -181,7 +182,7 @@ const Stats = () => {
       profiles?.forEach(p => {
         organizerMap.set(p.id, {
           id: p.id,
-          name: `${p.first_name} ${p.last_name}`,
+          name: formatFullName(p.first_name, p.last_name),
           months: Array(12).fill(0),
           total: 0
         });

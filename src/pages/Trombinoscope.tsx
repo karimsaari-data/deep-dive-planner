@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Crown, GraduationCap, UserCircle } from "lucide-react";
+import { formatFirstName, formatLastName } from "@/lib/formatName";
 
 // Generate a pastel color from initials
 const getAvatarColor = (name: string): string => {
@@ -55,12 +56,12 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false 
       </div>
       
       <p className="mt-2 text-xs md:text-sm font-medium text-foreground truncate w-full">
-        {member.first_name}
+        {formatFirstName(member.first_name)}
       </p>
-      
+
       {/* Last name - hidden on mobile */}
       <p className="hidden md:block text-xs text-muted-foreground truncate w-full">
-        {member.last_name}
+        {formatLastName(member.last_name)}
       </p>
       
       {/* Board role for bureau members */}
