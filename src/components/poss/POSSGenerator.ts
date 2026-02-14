@@ -160,68 +160,71 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   }
 
   // ====================
-  // A. EN-TÊTE INSTITUTIONNEL (COMPACT)
+  // A. EN-TÊTE OPTIMISÉ
   // ====================
-  const headerHeight = 28;
+  const headerHeight = 22;
   drawBox(doc, margin, y, contentWidth, headerHeight, { fill: "#f3f4f6" });
 
   // Logo (left - smaller)
   if (logoBase64) {
-    doc.addImage(logoBase64, "PNG", margin + 2, y + 2, 18, 18);
+    doc.addImage(logoBase64, "PNG", margin + 2, y + 2, 16, 16);
   }
 
   // Title (center - one line)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor("#000000");
-  doc.text("PLAN D'ORGANISATION DES SECOURS (P.O.S.S.)", pageWidth / 2, y + 7, { align: "center" });
+  doc.text("PLAN D'ORGANISATION DES SECOURS (P.O.S.S.)", pageWidth / 2, y + 6, { align: "center" });
 
   // Session info
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   const dateStr = format(new Date(outingDateTime), "EEEE d MMMM yyyy", { locale: fr });
-  doc.text(`Date : ${dateStr}`, margin + 25, y + 13);
-  doc.text(`Lieu : ${location?.name || outingLocation}`, margin + 25, y + 17);
+  doc.text(`Date : ${dateStr}  |  Lieu : ${location?.name || outingLocation}`, margin + 22, y + 12);
 
-  // Horaires et profondeur basée sur le niveau de l'encadrant
-  const maxDepth = getMaxDepthForLevel(organizerLevel);
-  const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
-  doc.text(`Profondeur max (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, margin + 25, y + 21);
-
-  // Horaires de plongée
-  if (waterEntryTime && waterExitTime) {
-    const duration = calculateDuration(waterEntryTime, waterExitTime);
-    doc.text(`Mise à l'eau : ${waterEntryTime}  |  Sortie : ${waterExitTime}  |  Durée : ${duration}`, margin + 25, y + 25);
-  } else if (waterEntryTime) {
-    doc.text(`Heure mise à l'eau : ${waterEntryTime}`, margin + 25, y + 25);
-  }
-
-  // Organizer in red (top right)
-  doc.setTextColor("#dc2626");
+  // Numéros d'urgence dans le bandeau
   doc.setFont("helvetica", "bold");
-  doc.text(`Responsable : ${organizerName}`, pageWidth - margin - 55, y + 15);
+  doc.setFontSize(8);
+  doc.setTextColor("#dc2626");
+  doc.text("URGENCE : VHF 16 | CROSS 196 | SAMU 15", margin + 22, y + 16);
   doc.setTextColor("#000000");
 
-  y += headerHeight + 5;
+  // Responsable et date de génération (top right)
+  doc.setTextColor("#dc2626");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(`Responsable : ${organizerName}`, pageWidth - margin - 55, y + 12);
+
+  doc.setTextColor("#666666");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(`Généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, pageWidth - margin - 55, y + 16);
+  doc.setTextColor("#000000");
+
+  y += headerHeight + 3;
+
+  // ====================
+  // PROFONDEUR MAX - MISE EN ÉVIDENCE
+  // ====================
+  const maxDepth = getMaxDepthForLevel(organizerLevel);
+  const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
+
+  drawBox(doc, margin, y, contentWidth, 10, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.5 });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#dc2626");
+  doc.text(`PROFONDEUR MAX (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, pageWidth / 2, y + 6.5, { align: "center" });
+  doc.setTextColor("#000000");
+
+  y += 13;
 
   // ====================
   // B. CARTOGRAPHIE OPÉRATIONNELLE
   // ====================
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("ZONES D'ÉVOLUTION & LOCALISATION", margin, y);
-  y += 6;
-
-  // GPS CRITICAL BOX (High visibility)
-  if (location?.latitude && location?.longitude) {
-    drawBox(doc, margin, y, contentWidth, 12, { fill: "#fef3c7", stroke: "#f59e0b", lineWidth: 1 });
-    doc.setFont("courier", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor("#b45309");
-    doc.text(`GPS SITE (URGENCE) : ${formatGPS(location.latitude, location.longitude)}`, margin + 5, y + 8);
-    doc.setTextColor("#000000");
-    y += 16;
-  }
+  doc.setFontSize(11);
+  doc.text("CARTE SATELLITE & POINTS DE REPÈRE", margin, y);
+  y += 5;
 
   // Satellite map only (bathymetric removed for better readability)
   const mapHeight = 65;
@@ -305,24 +308,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   }
 
   // ====================
-  // C. NUMÉROS D'URGENCE
-  // ====================
-  const emergencyHeight = 12;
-  drawBox(doc, margin, y, contentWidth, emergencyHeight, { fill: "#fef2f2", stroke: "#dc2626", lineWidth: 1.5 });
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor("#dc2626");
-  doc.text("NUMÉROS D'URGENCE", margin + 5, y + 5);
-
-  doc.setFontSize(10);
-  doc.setTextColor("#000000");
-  doc.text("VHF : Canal 16  |  CROSS : 196  |  SAMU : 15", margin + 5, y + 9);
-
-  y += emergencyHeight + 5;
-
-  // ====================
-  // D. MOYENS LOGISTIQUES
+  // C. MOYENS LOGISTIQUES
   // ====================
   const isBoatMode = diveMode === "boat" && boat;
   
@@ -472,22 +458,129 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     doc.text(item, checkX + 6, itemY);
   });
 
-  y += checklistHeight + 8;
+  y += checklistHeight + 5;
 
-  // Signature line
-  if (y + 15 > pageHeight - margin) {
+  // ====================
+  // G. INVENTAIRE DU MATÉRIEL DE SECOURS (Art. A.322-13 Code du sport)
+  // ====================
+
+  // Check if we need a new page
+  if (y + 70 > pageHeight - margin) {
     doc.addPage();
     y = margin;
   }
 
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(9);
-  doc.text("Signature du Responsable :", margin, y);
-  doc.line(margin + 45, y, margin + 100, y);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#0369a1");
+  doc.text("INVENTAIRE DU MATÉRIEL DE SECOURS (Conformité Code du sport)", margin, y);
+  y += 5;
 
-  doc.text(`Généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, pageWidth - margin - 50, y);
+  const equipmentData = [
+    ["OXYGÉNOTHÉRAPIE", "", ""],
+    ["Bouteille O2 médical", "5L / 200 bars", "☐"],
+    ["Détendeur-débitmètre", "15 L/min", "☐"],
+    ["Masque haute concentration", "Adulte + Enfant", "☐"],
+    ["BAVU (insufflateur manuel)", "Adulte", "☐"],
+    ["SECOURISME", "", ""],
+    ["DAE (Défibrillateur)", "Automatisé Externe", "☐"],
+    ["Trousse de secours complète", "Couverture survie, désinfectant, pansements, compresses", "☐"],
+    ["Aspirine 500mg", "Sachet de 10", "☐"],
+    ["Eau douce (rinçage)", "5L minimum", "☐"],
+    ["Fiche d'évacuation POSS", "Pré-remplie", "☐"],
+    ["COMMUNICATION & SÉCURITÉ", "", ""],
+    ["Radio VHF portable", "Testée + Batterie OK", "☐"],
+    ["Téléphone portable", "Chargé + Crédit", "☐"],
+    ["Pavillon Alpha / Bouée signalisation", "Visible (bateau/côte)", "☐"],
+  ];
 
-  y += 10;
+  autoTable(doc, {
+    startY: y,
+    head: [["Matériel", "Spécifications", "✓"]],
+    body: equipmentData,
+    theme: "grid",
+    headStyles: {
+      fillColor: "#0369a1",
+      textColor: "#ffffff",
+      fontStyle: "bold",
+      fontSize: 9
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.5,
+      lineColor: "#cbd5e1",
+      lineWidth: 0.1
+    },
+    columnStyles: {
+      0: { cellWidth: 70, fontStyle: "bold" },
+      1: { cellWidth: contentWidth - 90, halign: "left" },
+      2: { cellWidth: 15, halign: "center", fontSize: 10 }
+    },
+    didParseCell: (data) => {
+      // Bold section headers (oxygénothérapie, secourisme, communication)
+      if (data.row.index === 0 || data.row.index === 5 || data.row.index === 11) {
+        if (data.column.index === 0) {
+          data.cell.styles.fillColor = "#e0f2fe";
+          data.cell.styles.fontStyle = "bold";
+          data.cell.styles.fontSize = 9;
+        }
+      }
+    },
+    margin: { left: margin, right: margin }
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+  // ====================
+  // H. PROCÉDURE D'ALERTE INTERNE (Annexe III-10)
+  // ====================
+
+  // Check if we need a new page
+  if (y + 65 > pageHeight - margin) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#dc2626");
+  doc.text("PROCÉDURE D'ALERTE INTERNE - QUI FAIT QUOI ? (Annexe III-10 Code du sport)", margin, y);
+  y += 5;
+
+  const procedureData = [
+    ["PHASE 1", "RÉCUPÉRATION & MISE EN SÉCURITÉ", "• Binôme sécurité : Récupération immédiate de la victime\n• Sortie de l'eau en urgence\n• Allonger la victime sur surface plane et stable"],
+    ["PHASE 2", "OXYGÉNATION & BILAN VITAL", "• Membre formé PSE1/PSE2 : Mise sous O2 (15 L/min, masque haute concentration)\n• Contrôle conscience : Victime répond ? Respire normalement ?\n• Si inconscient : PLS + Alerte immédiate\n• Si arrêt respiratoire : RCP + DAE"],
+    ["PHASE 3", "DÉCLENCHEMENT DE L'ALERTE", "• Responsable POSS ou personne désignée :\n  - CROSS via VHF Canal 16 ou Tél 196\n  - ou SAMU 15\n• Utiliser le script d'appel (voir ci-dessous)\n• Communiquer GPS SITE (URGENCE)"],
+    ["PHASE 4", "GUIDAGE & ACCUEIL SECOURS", "• Membre au point d'accès : Guider les secours vers le site\n• GPS communiqué : " + formatGPS(location?.latitude ?? null, location?.longitude ?? null) + "\n• Préparer fiche d'évacuation + Matériel médical\n• Maintenir l'oxygénation jusqu'à relève par secours"],
+  ];
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Phase", "Action", "Détails opérationnels"]],
+    body: procedureData,
+    theme: "grid",
+    headStyles: {
+      fillColor: "#dc2626",
+      textColor: "#ffffff",
+      fontStyle: "bold",
+      fontSize: 9
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      lineColor: "#fca5a5",
+      lineWidth: 0.3,
+      valign: "top"
+    },
+    columnStyles: {
+      0: { cellWidth: 22, fontStyle: "bold", halign: "center", fillColor: "#fee2e2" },
+      1: { cellWidth: 60, fontStyle: "bold" },
+      2: { cellWidth: contentWidth - 82, halign: "left" }
+    },
+    margin: { left: margin, right: margin }
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
 
   // ====================
   // SCRIPT D'ALERTE (FIN DU DOCUMENT)
