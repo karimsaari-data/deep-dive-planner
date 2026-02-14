@@ -453,17 +453,25 @@ const OutingDetail = () => {
                 <p className="text-sm text-muted-foreground">
                   Encadrant : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
                 </p>
-                {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (
-                  <div className="flex items-center gap-2">
-                    <Gauge className="h-4 w-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-700">
-                      Profondeur max encadrement :{" "}
-                      {outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution"
-                        ? `${outing.organizer_max_depth_eao}m (eau ouverte)`
-                        : `${outing.organizer_max_depth_eaa}m (eau artificielle)`}
-                    </span>
-                  </div>
-                )}
+                {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (() => {
+                  const isOpenWater = outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution";
+                  const organizerMaxDepth = isOpenWater ? outing.organizer_max_depth_eao : outing.organizer_max_depth_eaa;
+                  const locationMaxDepth = outing.location_details?.max_depth;
+
+                  // If both organizer and location have max depth, show the minimum (most restrictive)
+                  const effectiveMaxDepth = organizerMaxDepth && locationMaxDepth
+                    ? Math.min(organizerMaxDepth, locationMaxDepth)
+                    : organizerMaxDepth || locationMaxDepth;
+
+                  return effectiveMaxDepth ? (
+                    <div className="flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-700">
+                        Profondeur max encadrement : {effectiveMaxDepth}m {isOpenWater ? "(eau ouverte)" : "(eau artificielle)"}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
           </div>
