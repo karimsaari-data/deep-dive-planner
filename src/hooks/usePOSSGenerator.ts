@@ -157,6 +157,7 @@ export const usePOSSGenerator = () => {
         organizerLevel: organizerApneaLevel,
         waterEntryTime: null, // TODO: add field in form
         waterExitTime: null, // TODO: add field in form
+        weather: null, // TODO: integrate weather data from API
       };
 
       // Generate the PDF
