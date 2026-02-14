@@ -447,6 +447,9 @@ const OutingDetail = () => {
                 )}
               </div>
             </div>
+            {outing.description && (
+              <p className="mt-2 text-muted-foreground">{outing.description}</p>
+            )}
             {/* Organizer info with max depth */}
             {outing.organizer && (
               <div className="mt-4 space-y-2">

@@ -20,10 +20,11 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Initialize map centered on the actual dive site location
     const map = L.map(mapRef.current, {
       center: [latitude, longitude],
-      zoom: 17,
-      minZoom: 13,
+      zoom: 15,
+      minZoom: 10,
       maxZoom: 19,
       scrollWheelZoom: false,
       dragging: true,
@@ -75,7 +76,7 @@ const SatelliteMiniMap = ({ latitude, longitude, siteName, siteId }: SatelliteMi
   // Update map center if coordinates change
   useEffect(() => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([latitude, longitude], 17);
+      mapInstanceRef.current.setView([latitude, longitude], 15);
     }
   }, [latitude, longitude]);
 

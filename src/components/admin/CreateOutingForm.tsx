@@ -21,6 +21,8 @@ import { useCreateOuting, OutingType } from "@/hooks/useOutings";
 import { useLocations } from "@/hooks/useLocations";
 import { useBoats } from "@/hooks/useBoats";
 import { useAuth } from "@/contexts/AuthContext";
+import { useApneaLevels } from "@/hooks/useApneaLevels";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -57,10 +59,13 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const createOuting = useCreateOuting();
   const { data: locations } = useLocations();
   const { data: boats } = useBoats();
+  const { data: apneaLevels } = useApneaLevels();
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [createdOutingId, setCreatedOutingId] = useState<string | null>(null);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [userApneaLevel, setUserApneaLevel] = useState<string | null>(null);
+  const [maxParticipantsLimit, setMaxParticipantsLimit] = useState<number>(100);
 
   const form = useForm<OutingFormData>({
     resolver: zodResolver(outingSchema),
@@ -96,6 +101,61 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       form.setValue("boat_id", undefined);
     }
   }, [isNaturalEnvironment, form]);
+
+  // Fetch user's apnea level and determine max participants limit
+  useEffect(() => {
+    const fetchUserLevel = async () => {
+      if (!user?.id || !apneaLevels) return;
+
+      // Get current season year
+      const currentSeasonYear = new Date().getMonth() >= 8
+        ? new Date().getFullYear() + 1
+        : new Date().getFullYear();
+
+      // Get user's email from profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.email) return;
+
+      // Get directory entry
+      const { data: directoryEntry } = await supabase
+        .from("club_members_directory")
+        .select("id")
+        .eq("email", profile.email.toLowerCase())
+        .single();
+
+      if (!directoryEntry?.id) return;
+
+      // Get apnea level from membership_yearly_status
+      const { data: membershipStatus } = await supabase
+        .from("membership_yearly_status")
+        .select("apnea_level")
+        .eq("member_id", directoryEntry.id)
+        .eq("season_year", currentSeasonYear)
+        .single();
+
+      if (membershipStatus?.apnea_level) {
+        setUserApneaLevel(membershipStatus.apnea_level);
+
+        // Find the level in apnea_levels to get max_participants_encadrement
+        const levelInfo = apneaLevels.find(l => l.code === membershipStatus.apnea_level);
+        const limit = levelInfo?.max_participants_encadrement || 100;
+        setMaxParticipantsLimit(limit);
+
+        // Update max_participants if current value exceeds limit
+        const currentMax = form.getValues("max_participants");
+        if (currentMax > limit) {
+          form.setValue("max_participants", limit);
+        }
+      }
+    };
+
+    fetchUserLevel();
+  }, [user, form, apneaLevels]);
 
   // Pre-fill location when props change
   useEffect(() => {
@@ -388,21 +448,29 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                         <Input
                           type="number"
                           min={1}
-                          max={100}
+                          max={maxParticipantsLimit}
                           className="w-20 text-center"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 1;
+                            field.onChange(Math.min(maxParticipantsLimit, Math.max(1, value)));
+                          }}
                         />
                         <Button
                           type="button"
                           variant="outline"
                           size="icon"
-                          onClick={() => field.onChange(Math.min(100, field.value + 1))}
+                          onClick={() => field.onChange(Math.min(maxParticipantsLimit, field.value + 1))}
                         >
                           +
                         </Button>
                       </div>
                     </FormControl>
+                    {userApneaLevel && maxParticipantsLimit < 100 && (
+                      <FormDescription className="text-xs text-muted-foreground">
+                        Limité à {maxParticipantsLimit} participants pour votre niveau ({userApneaLevel})
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
