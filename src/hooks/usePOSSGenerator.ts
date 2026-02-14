@@ -155,8 +155,8 @@ export const usePOSSGenerator = () => {
         participants,
         organizerName,
         organizerLevel: organizerApneaLevel,
-        waterEntryTime: null, // TODO: add field in form
-        waterExitTime: null, // TODO: add field in form
+        waterEntryTime: outing.water_entry_time || null,
+        waterExitTime: outing.water_exit_time || null,
         weather: null, // TODO: integrate weather data from API
       };
 

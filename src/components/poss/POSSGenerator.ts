@@ -420,8 +420,8 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     columnStyles: {
       0: { cellWidth: 35, fontStyle: "bold" },
       1: { cellWidth: 30 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: contentWidth - 90 },
+      2: { cellWidth: 45 },
+      3: { cellWidth: contentWidth - 110 },
     },
     didParseCell: (data) => {
       if (data.section === 'body' && data.row.index < participants.length) {
@@ -449,16 +449,13 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
 
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
 
+  // Force new page after participants to maintain consistent 4-page layout
+  doc.addPage();
+  y = margin;
 
   // ====================
   // G. INVENTAIRE DU MATÉRIEL DE SECOURS (Art. A.322-13 Code du sport)
   // ====================
-
-  // Check if we need a new page
-  if (y + 70 > pageHeight - margin) {
-    doc.addPage();
-    y = margin;
-  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
