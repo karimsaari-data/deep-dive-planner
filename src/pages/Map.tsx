@@ -490,9 +490,9 @@ const Map = () => {
             </p>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-3">
+          <div className="grid gap-8 lg:grid-cols-4">
             {/* Map */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
               <Card className="overflow-hidden shadow-card relative" ref={mapContainerRef}>
                 <CardContent className="p-0">
                   <div
