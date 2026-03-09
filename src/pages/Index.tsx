@@ -33,23 +33,31 @@ const Index = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="hero-gradient relative overflow-hidden py-16 text-foam md:py-24">
-        <div className="absolute inset-0 opacity-10">
-          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z" fill="currentColor" className="animate-wave" />
-          </svg>
-        </div>
+      <section className="relative overflow-hidden py-14 text-white md:py-20" style={{ background: "var(--gradient-hero)" }}>
+        {/* Rayons de lumière – mêmes que la landing */}
+        <svg className="absolute inset-0 h-full w-full pointer-events-none opacity-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="hero-ray" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#a8dcf0" stopOpacity="1" />
+              <stop offset="100%" stopColor="#a8dcf0" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon points="43,0 49,0 65,100 28,100" fill="url(#hero-ray)" />
+          <polygon points="47,0 51,0 56,100 43,100" fill="url(#hero-ray)" />
+          <polygon points="51,0 55,0 72,100 56,100" fill="url(#hero-ray)" />
+        </svg>
 
-        <div className="container relative mx-auto px-4 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-foam/10 backdrop-blur-sm animate-float">
-            <Waves className="h-8 w-8 text-foam" />
-          </div>
-
-          <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">Réserve ta sortie TO2 !</h1>
-
-          <p className="mx-auto max-w-2xl text-lg text-foam/80">
-            Association d'apnée éco-engagée de Martigues à Marseille
+        <div className="container relative mx-auto px-4 md:px-10">
+          <p className="mb-2 text-xs font-semibold tracking-widest text-white/45 uppercase" style={{ letterSpacing: "0.22em" }}>
+            Association d'apnée • Côte bleue – Marseille
           </p>
+          <h1 className="mb-3 text-3xl font-bold tracking-widest text-white md:text-4xl" style={{ letterSpacing: "0.1em" }}>
+            Prochaines sorties
+          </h1>
+          <div className="flex items-center gap-2 text-white/60">
+            <Waves className="h-4 w-4" />
+            <span className="text-sm">Team Oxygen</span>
+          </div>
         </div>
       </section>
 

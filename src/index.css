@@ -72,53 +72,55 @@
   }
 
   .dark {
-    --background: 205 45% 7%;
+    /* ── Palette calée sur la landing page (#010c1c → #0e8c88) ── */
+    --background: 215 87% 5%;       /* #010c1c – fond profond */
     --foreground: 210 40% 98%;
 
-    --card: 205 45% 10%;
+    --card: 214 73% 9%;             /* #051828 – surface carte */
     --card-foreground: 210 40% 98%;
 
-    --popover: 205 45% 10%;
+    --popover: 214 73% 9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 199 89% 48%;
-    --primary-foreground: 205 45% 7%;
+    --primary: 187 74% 35%;         /* teal de la landing */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 205 35% 18%;
+    --secondary: 214 55% 15%;       /* bleu intermédiaire */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 205 35% 18%;
-    --muted-foreground: 210 30% 65%;
+    --muted: 214 50% 13%;
+    --muted-foreground: 210 30% 58%;
 
-    --accent: 187 85% 43%;
+    --accent: 183 74% 32%;          /* teal profond */
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 205 35% 20%;
-    --input: 205 35% 20%;
-    --ring: 199 89% 48%;
+    --border: 214 45% 16%;          /* bordures très subtiles */
+    --input: 214 45% 16%;
+    --ring: 187 74% 35%;
 
-    --ocean-deep: 201 90% 15%;
-    --ocean-medium: 201 90% 35%;
-    --ocean-light: 199 89% 48%;
-    --ocean-surface: 205 35% 18%;
+    --ocean-deep: 215 87% 5%;
+    --ocean-medium: 214 73% 18%;
+    --ocean-light: 187 74% 35%;
+    --ocean-surface: 214 55% 15%;
     --foam: 210 40% 98%;
-    --sand: 205 25% 20%;
+    --sand: 214 30% 18%;
 
-    --gradient-ocean: linear-gradient(135deg, hsl(201 90% 10%), hsl(201 90% 25%));
-    --gradient-surface: linear-gradient(180deg, hsl(205 35% 12%), hsl(205 45% 7%));
-    --gradient-hero: linear-gradient(135deg, hsl(201 90% 10%) 0%, hsl(201 80% 20%) 50%, hsl(187 85% 33%) 100%);
+    /* Gradient hero = identique à la landing */
+    --gradient-ocean: linear-gradient(168deg, #010c1c, #082d50);
+    --gradient-surface: linear-gradient(180deg, hsl(214 73% 9%), hsl(215 87% 5%));
+    --gradient-hero: linear-gradient(168deg, #010c1c 0%, #051828 18%, #082d50 40%, #0b4f72 60%, #0d6f82 76%, #0e8c88 100%);
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-background: 215 87% 5%;
+    --sidebar-foreground: 210 40% 90%;
+    --sidebar-primary: 187 74% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 214 55% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 214 45% 16%;
+    --sidebar-ring: 187 74% 35%;
   }
 }
 
