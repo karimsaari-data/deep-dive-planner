@@ -130,7 +130,7 @@ const LandingPage = () => (
           className="myox-fade-1 mb-3 text-xs font-semibold tracking-widest text-white/50 uppercase"
           style={{ letterSpacing: "0.25em" }}
         >
-          Association d'apnée • Martigues – Marseille
+          Association d'apnée • Côte bleue – Marseille
         </p>
 
         <h1
