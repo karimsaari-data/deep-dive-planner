@@ -72,8 +72,11 @@ const Header = () => {
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button
-                  variant={isActive(to) ? "secondary" : "ghost"}
-                  className={cn("gap-2 transition-all", isActive(to) && "bg-secondary text-secondary-foreground")}
+                  variant="ghost"
+                  className={cn(
+                    "gap-2 transition-all text-white/70 hover:text-white hover:bg-white/10",
+                    isActive(to) && "bg-white/15 text-white"
+                  )}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
@@ -87,11 +90,11 @@ const Header = () => {
           {user ? (
             <>
               <Link to="/profile">
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full text-white/70 hover:text-white hover:bg-white/10">
                   <User className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={signOut} className="rounded-full">
+              <Button variant="ghost" size="icon" onClick={signOut} className="rounded-full text-white/70 hover:text-white hover:bg-white/10">
                 <LogOut className="h-5 w-5" />
               </Button>
             </>
@@ -112,11 +115,11 @@ const Header = () => {
           {navItems.map(({ to, label, icon: Icon }) => (
             <Link key={to} to={to}>
               <Button
-                variant={isActive(to) ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 className={cn(
-                  "gap-1.5 text-xs whitespace-nowrap",
-                  isActive(to) && "bg-secondary text-secondary-foreground"
+                  "gap-1.5 text-xs whitespace-nowrap text-white/70 hover:text-white hover:bg-white/10",
+                  isActive(to) && "bg-white/15 text-white"
                 )}
               >
                 <Icon className="h-4 w-4" />
