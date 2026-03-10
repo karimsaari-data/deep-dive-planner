@@ -11,7 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Users, Crown, GraduationCap, UserCircle, Mail, Phone, MessageCircle } from "lucide-react";
+import { Users, Crown, GraduationCap, UserCircle, Mail, Phone, MessageCircle, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 
 // Generate a pastel color from initials
@@ -224,15 +225,30 @@ const Section = ({
   );
 };
 
+const filterMembers = (members: TrombiMember[], query: string): TrombiMember[] => {
+  if (!query) return members;
+  const q = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return members.filter((m) => {
+    const full = `${m.first_name} ${m.last_name}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return full.includes(q);
+  });
+};
+
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
+  const [search, setSearch] = useState("");
+
+  const bureau = filterMembers(data?.bureau || [], search);
+  const encadrants = filterMembers(data?.encadrants || [], search);
+  const membres = filterMembers(data?.membres || [], search);
+  const totalFiltered = bureau.length + encadrants.length + membres.length;
 
   return (
     <Layout>
       <div className="container mx-auto px-3 py-6 md:px-4 md:py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center gap-3">
+        <div className="mb-4 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
             <Users className="h-6 w-6 text-primary" />
           </div>
@@ -243,6 +259,32 @@ const Trombinoscope = () => {
             </p>
           </div>
         </div>
+
+        {/* Search bar */}
+        <div className="relative mb-6 max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Rechercher un membre..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {search && (
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              onClick={() => setSearch("")}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {search && !isLoading && (
+          <p className="mb-4 text-sm text-muted-foreground">
+            {totalFiltered} résultat{totalFiltered !== 1 ? "s" : ""} pour « {search} »
+          </p>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
@@ -255,7 +297,7 @@ const Trombinoscope = () => {
             <Section
               title="Le Bureau"
               icon={<Crown className="h-4 w-4 text-amber-500" />}
-              members={data?.bureau || []}
+              members={bureau}
               showBoardRole={true}
               accentColor="bg-amber-500"
               onMemberClick={setSelectedMember}
@@ -264,7 +306,7 @@ const Trombinoscope = () => {
             <Section
               title="Encadrants"
               icon={<GraduationCap className="h-4 w-4 text-primary" />}
-              members={data?.encadrants || []}
+              members={encadrants}
               showTechnicalLevel={true}
               accentColor="bg-primary"
               onMemberClick={setSelectedMember}
@@ -273,10 +315,14 @@ const Trombinoscope = () => {
             <Section
               title="Membres"
               icon={<UserCircle className="h-4 w-4 text-muted-foreground" />}
-              members={data?.membres || []}
+              members={membres}
               accentColor="bg-muted-foreground"
               onMemberClick={setSelectedMember}
             />
+
+            {search && totalFiltered === 0 && (
+              <p className="text-center text-muted-foreground py-12">Aucun membre trouvé.</p>
+            )}
           </>
         )}
       </div>
