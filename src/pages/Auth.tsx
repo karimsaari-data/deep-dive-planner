@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, Lock, User, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
 import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,8 @@ const Auth = () => {
   const location = useLocation();
   const { user, signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
   // Get the redirect URL from state or default to "/"
   const from = (location.state as { from?: string })?.from || "/";
@@ -138,7 +140,14 @@ const Auth = () => {
                         <FormControl>
                           <div className="relative">
                             <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input type="password" className="pl-10" {...field} />
+                            <Input type={showSignInPassword ? "text" : "password"} className="pl-10 pr-10" {...field} />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowSignInPassword((v) => !v)}
+                            >
+                              {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -216,7 +225,14 @@ const Auth = () => {
                         <FormControl>
                           <div className="relative">
                             <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input type="password" className="pl-10" {...field} />
+                            <Input type={showSignUpPassword ? "text" : "password"} className="pl-10 pr-10" {...field} />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              onClick={() => setShowSignUpPassword((v) => !v)}
+                            >
+                              {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                           </div>
                         </FormControl>
                         <FormMessage />
