@@ -23,7 +23,6 @@ const Header = () => {
     const items = [
       { to: "/", label: "Sorties", icon: Waves },
       { to: "/reservations", label: "Mes Réservations", icon: Calendar },
-      { to: "/trombinoscope", label: "Trombi", icon: Users },
     ];
 
     // For encadrants: hide Souvenirs to save space for more important tools
@@ -40,6 +39,8 @@ const Header = () => {
       items.push({ to: "/equipment", label: "Matériel", icon: Package });
       items.push({ to: "/archives", label: "Archives", icon: FileText });
     }
+
+    items.push({ to: "/trombinoscope", label: "Trombi", icon: Users });
 
     if (isAdmin) {
       items.push({ to: "/admin", label: "Administration", icon: Settings });
