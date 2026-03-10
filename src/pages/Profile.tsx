@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield } from "lucide-react";
+import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { QRCodeSVG } from "qrcode.react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // French phone regex: accepts formats like 06 12 34 56 78, 0612345678, +33612345678
 const frenchPhoneRegex = /^(?:(?:\+|00)33[\s.-]?|0)[1-9](?:[\s.-]?\d{2}){4}$/;
@@ -40,6 +42,7 @@ const profileSchema = z.object({
       (val) => !val || frenchPhoneRegex.test(val.replace(/\s/g, "")),
       { message: "Format invalide. Ex: 06 12 34 56 78" }
     ),
+  security_docs_url: z.string().url("URL invalide").optional().or(z.literal("")),
 });
 
 type ProfileData = z.infer<typeof profileSchema>;
@@ -50,6 +53,7 @@ const Profile = () => {
   const { user, loading: authLoading } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [showQrDialog, setShowQrDialog] = useState(false);
 
   // Fetch app profile
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -80,6 +84,7 @@ const Profile = () => {
       address: "",
       emergency_contact_name: "",
       emergency_contact_phone: "",
+      security_docs_url: "",
     },
   });
 
@@ -92,6 +97,7 @@ const Profile = () => {
         address: directoryProfile?.address ?? "",
         emergency_contact_name: directoryProfile?.emergency_contact_name ?? "",
         emergency_contact_phone: directoryProfile?.emergency_contact_phone ?? "",
+        security_docs_url: directoryProfile?.security_docs_url ?? "",
       });
     }
   }, [profile, directoryProfile, form]);
@@ -122,6 +128,7 @@ const Profile = () => {
           address: data.address || null,
           emergency_contact_name: data.emergency_contact_name || null,
           emergency_contact_phone: data.emergency_contact_phone || null,
+          security_docs_url: data.security_docs_url || null,
         });
       }
     },
@@ -209,6 +216,7 @@ const Profile = () => {
   };
 
   return (
+    <>
     <Layout>
       <section className="py-12">
         <div className="container mx-auto max-w-2xl px-4">
@@ -222,33 +230,48 @@ const Profile = () => {
             <CardContent>
               {/* Avatar Section */}
               <div className="mb-6 flex flex-col items-center gap-4">
-                <div className="relative">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={profile?.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Button
-                    size="icon"
-                    variant="secondary"
-                    className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Camera className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={profile?.avatar_url ?? undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                  </div>
+
+                  {/* QR Code bouton — encadrants avec dossier secu */}
+                  {directoryProfile?.is_encadrant && directoryProfile?.security_docs_url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex flex-col items-center gap-1 h-auto py-3 px-4 border-primary text-primary hover:bg-primary hover:text-white"
+                      onClick={() => setShowQrDialog(true)}
+                    >
+                      <QrCode className="h-8 w-8" />
+                      <span className="text-xs font-medium">Docs sécu</span>
+                    </Button>
+                  )}
                 </div>
 
                 {/* Member Code & Encadrant Badge */}
@@ -437,6 +460,54 @@ const Profile = () => {
                     </>
                   )}
 
+                  {/* Dossier sécurité - encadrants uniquement */}
+                  {directoryProfile?.is_encadrant && (
+                    <>
+                      <Separator />
+                      <h4 className="text-sm font-medium flex items-center gap-2">
+                        <FolderOpen className="h-4 w-4 text-primary" />
+                        Documents de sécurité
+                      </h4>
+
+                      <FormField
+                        control={form.control}
+                        name="security_docs_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              Lien dossier Drive
+                            </FormLabel>
+                            <div className="flex gap-2">
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  type="url"
+                                  placeholder="https://drive.google.com/..."
+                                />
+                              </FormControl>
+                              {field.value && (
+                                <a
+                                  href={field.value}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-shrink-0"
+                                >
+                                  <Button type="button" variant="outline" size="icon">
+                                    <ExternalLink className="h-4 w-4" />
+                                  </Button>
+                                </a>
+                              )}
+                            </div>
+                            <FormDescription>
+                              Dossier partagé avec vos documents de sécu (BNSSA, secourisme, assurance…)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+
                   <div className="rounded-lg border border-border bg-muted/30 p-4">
                     <p className="text-sm text-muted-foreground">
                       <strong>Email :</strong> {user?.email}
@@ -468,6 +539,36 @@ const Profile = () => {
         </div>
       </section>
     </Layout>
+
+      {/* QR Code Dialog */}
+      <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Documents de sécurité
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <p className="text-sm text-center text-muted-foreground">
+              Présentez ce QR code lors d'un contrôle pour accéder au dossier de sécurité.
+            </p>
+            {directoryProfile?.security_docs_url && (
+              <div className="rounded-lg border-4 border-primary p-3 bg-white">
+                <QRCodeSVG
+                  value={directoryProfile.security_docs_url}
+                  size={220}
+                  level="M"
+                />
+              </div>
+            )}
+            <p className="text-xs text-center text-muted-foreground break-all max-w-xs">
+              {directoryProfile?.security_docs_url}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
