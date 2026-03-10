@@ -55,15 +55,16 @@ const Header = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-card/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-md" style={{ background: "rgba(1,12,28,0.85)" }}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-80">
-          <img 
-            src={logoTeamOxygen} 
-            alt="Team Oxygen" 
-            className="h-10 w-10 rounded-xl object-contain"
+        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-75">
+          <img
+            src={logoTeamOxygen}
+            alt="My Oxygen"
+            className="h-8 w-8 object-contain"
+            style={{ filter: "brightness(0) invert(1)", opacity: 0.9 }}
           />
-          <span className="text-xl font-semibold text-foreground">Team Oxygen</span>
+          <span className="text-sm font-semibold tracking-widest text-white/85 uppercase">My Oxygen</span>
         </Link>
 
         {user && (
@@ -71,8 +72,11 @@ const Header = () => {
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button
-                  variant={isActive(to) ? "secondary" : "ghost"}
-                  className={cn("gap-2 transition-all", isActive(to) && "bg-secondary text-secondary-foreground")}
+                  variant="ghost"
+                  className={cn(
+                    "gap-2 transition-all text-white/70 hover:text-white hover:bg-white/10",
+                    isActive(to) && "bg-white/15 text-white"
+                  )}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
@@ -86,11 +90,11 @@ const Header = () => {
           {user ? (
             <>
               <Link to="/profile">
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full text-white/70 hover:text-white hover:bg-white/10">
                   <User className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={signOut} className="rounded-full">
+              <Button variant="ghost" size="icon" onClick={signOut} className="rounded-full text-white/70 hover:text-white hover:bg-white/10">
                 <LogOut className="h-5 w-5" />
               </Button>
             </>
@@ -105,16 +109,17 @@ const Header = () => {
       {user && (
         <nav
           ref={mobileNavRef}
-          className="flex justify-center gap-1 border-t border-border/50 bg-card p-2 md:hidden overflow-x-auto"
+          className="flex justify-center gap-1 border-t border-white/5 p-2 md:hidden overflow-x-auto"
+          style={{ background: "rgba(1,12,28,0.95)" }}
         >
           {navItems.map(({ to, label, icon: Icon }) => (
             <Link key={to} to={to}>
               <Button
-                variant={isActive(to) ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 className={cn(
-                  "gap-1.5 text-xs whitespace-nowrap",
-                  isActive(to) && "bg-secondary text-secondary-foreground"
+                  "gap-1.5 text-xs whitespace-nowrap text-white/70 hover:text-white hover:bg-white/10",
+                  isActive(to) && "bg-white/15 text-white"
                 )}
               >
                 <Icon className="h-4 w-4" />
