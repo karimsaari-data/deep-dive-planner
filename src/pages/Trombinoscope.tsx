@@ -73,29 +73,29 @@ const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 pt-2">
+        <div className="flex gap-3 pt-2 justify-center">
           {member.email && (
-            <Button asChild variant="outline" className="justify-start gap-3 h-11">
-              <a href={`mailto:${member.email}`}>
-                <Mail className="h-4 w-4 text-primary shrink-0" />
-                <span className="truncate text-sm">{member.email}</span>
+            <Button asChild variant="outline" size="icon" className="h-14 w-14 flex-col gap-1 rounded-xl" title={`Envoyer un email`}>
+              <a href={`mailto:${member.email}`} className="flex flex-col items-center gap-1">
+                <Mail className="h-5 w-5 text-primary" />
+                <span className="text-[10px]">Email</span>
               </a>
             </Button>
           )}
 
           {phone && (
             <>
-              <Button asChild variant="outline" className="justify-start gap-3 h-11">
-                <a href={`tel:${phone}`}>
-                  <Phone className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-sm">{member.phone}</span>
+              <Button asChild variant="outline" size="icon" className="h-14 w-14 flex-col gap-1 rounded-xl" title="Appeler">
+                <a href={`tel:${phone}`} className="flex flex-col items-center gap-1">
+                  <Phone className="h-5 w-5 text-primary" />
+                  <span className="text-[10px]">Appeler</span>
                 </a>
               </Button>
 
-              <Button asChild variant="outline" className="justify-start gap-3 h-11 border-green-500 text-green-600 hover:bg-green-500 hover:text-white">
-                <a href={`https://wa.me/${phone.replace("+", "")}`} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-4 w-4 shrink-0" />
-                  <span className="text-sm">WhatsApp</span>
+              <Button asChild variant="outline" size="icon" className="h-14 w-14 flex-col gap-1 rounded-xl border-green-500 text-green-600 hover:bg-green-500 hover:text-white" title="WhatsApp">
+                <a href={`https://wa.me/${phone.replace("+", "")}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1">
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="text-[10px]">WhatsApp</span>
                 </a>
               </Button>
             </>
