@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -29,6 +29,7 @@ const Header = () => {
     // For encadrants: hide Souvenirs to save space for more important tools
     if (!isEncadrant) {
       items.push({ to: "/souvenirs", label: "Souvenirs", icon: Image });
+      items.push({ to: "/security", label: "Sécurité", icon: Shield });
     }
 
     items.push({ to: "/map", label: "Carte", icon: MapIcon });

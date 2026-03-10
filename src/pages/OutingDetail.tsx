@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { formatFullName } from "@/lib/formatName";
 
@@ -296,6 +296,24 @@ const OutingDetail = () => {
                   </PopoverContent>
                 </Popover>
               )}
+              {/* Fiche Sécurité Download - Available to all users */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/files/Fiche sécurité.pdf';
+                  link.download = 'Fiche_Securite_Apnee.pdf';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success("Téléchargement de la fiche sécurité...");
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Fiche Sécurité
+              </Button>
               {!isPast && canCancelOuting && (
                 <EditOutingDialog outing={outing} />
               )}

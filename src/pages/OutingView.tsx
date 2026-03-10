@@ -15,6 +15,7 @@ import {
   Plus,
   Shield,
   ArrowDown,
+  Download,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -423,6 +424,27 @@ const OutingView = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Fiche Sécurité - Available to all */}
+          <Card className="shadow-card mb-6">
+            <CardContent className="pt-6">
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/files/Fiche sécurité.pdf';
+                  link.download = 'Fiche_Securite_Apnee.pdf';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Télécharger la Fiche Sécurité Apnée
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* 3. Participants list - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
           <Card className="shadow-card mb-6">

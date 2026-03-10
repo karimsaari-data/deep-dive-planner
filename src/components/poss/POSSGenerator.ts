@@ -34,6 +34,15 @@ export interface POSSBoat {
   home_port: string | null;
 }
 
+export interface POSSWeather {
+  windSpeed: string | null;
+  maxWindSpeed: string | null;
+  waveHeight: string | null;
+  maxWaveHeight: string | null;
+  temperature: string | null;
+  conditions: string | null;
+}
+
 export interface POSSData {
   outingTitle: string;
   outingDateTime: string;
@@ -47,6 +56,7 @@ export interface POSSData {
   organizerLevel: string | null;
   waterEntryTime: string | null;
   waterExitTime: string | null;
+  weather: POSSWeather | null;
 }
 
 // Helper: Convert image URL to Base64 (CORS-safe)
@@ -137,7 +147,7 @@ const calculateDuration = (entryTime: string | null, exitTime: string | null): s
 
 // Main POSS Generator
 export const generatePOSS = async (data: POSSData): Promise<void> => {
-  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, waterEntryTime, waterExitTime } = data;
+  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, waterEntryTime, waterExitTime, weather } = data;
   
   const doc = new jsPDF({
     orientation: "landscape",
@@ -180,13 +190,20 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   const dateStr = format(new Date(outingDateTime), "EEEE d MMMM yyyy", { locale: fr });
+  const sessionDuration = calculateDuration(waterEntryTime, waterExitTime);
+  const sessionTimeInfo = waterEntryTime && waterExitTime
+    ? `Mise à l'eau : ${waterEntryTime} | Sortie : ${waterExitTime} | Durée : ${sessionDuration}`
+    : "Horaires non définis";
+
   doc.text(`Date : ${dateStr}  |  Lieu : ${location?.name || outingLocation}`, margin + 22, y + 12);
+  doc.setFontSize(7.5);
+  doc.text(sessionTimeInfo, margin + 22, y + 15.5);
 
   // Numéros d'urgence dans le bandeau
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor("#dc2626");
-  doc.text("URGENCE : VHF 16 | CROSS 196 | SAMU 15", margin + 22, y + 16);
+  doc.text("URGENCE : VHF 16 | CROSS 196 | SAMU 15", margin + 22, y + 19);
   doc.setTextColor("#000000");
 
   // Responsable et date de génération (top right)
@@ -204,19 +221,35 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   y += headerHeight + 3;
 
   // ====================
+  // ENCART MÉTÉO SYNTHÉTIQUE
+  // ====================
+  if (weather) {
+    const weatherHeight = 12;
+    drawBox(doc, margin, y, contentWidth, weatherHeight, { fill: "#fef3c7", stroke: "#f59e0b", lineWidth: 0.8 });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor("#92400e");
+    doc.text(`⚠ ${weather.conditions || "Conditions défavorables"} — Vent ${weather.windSpeed || "N/A"} (raf. ${weather.maxWindSpeed || "N/A"}) ≈ Houle ${weather.waveHeight || "N/A"} (max ${weather.maxWaveHeight || "N/A"}) 🌡 ${weather.temperature || "N/A"}°`, margin + 5, y + 8);
+    doc.setTextColor("#000000");
+
+    y += weatherHeight + 3;
+  }
+
+  // ====================
   // PROFONDEUR MAX - MISE EN ÉVIDENCE
   // ====================
   const maxDepth = getMaxDepthForLevel(organizerLevel);
   const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
 
-  drawBox(doc, margin, y, contentWidth, 10, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.5 });
+  drawBox(doc, margin, y, contentWidth, 8, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.2 });
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor("#dc2626");
-  doc.text(`PROFONDEUR MAX (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, pageWidth / 2, y + 6.5, { align: "center" });
+  doc.text(`PROFONDEUR MAX (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, pageWidth / 2, y + 5.5, { align: "center" });
   doc.setTextColor("#000000");
 
-  y += 13;
+  y += 11;
 
   // ====================
   // B. CARTOGRAPHIE OPÉRATIONNELLE
@@ -311,11 +344,11 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   // C. MOYENS LOGISTIQUES
   // ====================
   const isBoatMode = diveMode === "boat" && boat;
-  
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor("#0369a1");
-  
+
   if (isBoatMode) {
     doc.text("SUPPORT SURFACE", margin, y);
     y += 5;
@@ -343,33 +376,6 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     });
 
     y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
-  } else {
-    doc.text("ACCÈS TERRE", margin, y);
-    y += 5;
-    doc.setTextColor("#000000");
-
-    const parkingWp = waypoints.find(w => w.point_type === "parking");
-    const exitWp = waypoints.find(w => w.point_type === "water_exit");
-
-    const shoreInfo = [
-      ["Parking", parkingWp ? `${parkingWp.name} (${formatGPS(parkingWp.latitude, parkingWp.longitude)})` : "Non défini"],
-      ["Point évacuation", exitWp ? `${exitWp.name} (${formatGPS(exitWp.latitude, exitWp.longitude)})` : location?.maps_url || "Non défini"],
-    ];
-
-    autoTable(doc, {
-      startY: y,
-      head: [],
-      body: shoreInfo,
-      theme: "grid",
-      styles: { fontSize: 9, cellPadding: 2 },
-      columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 35 },
-        1: { cellWidth: contentWidth - 35 },
-      },
-      margin: { left: margin, right: margin },
-    });
-
-    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
   }
 
   doc.setTextColor("#000000");
@@ -382,93 +388,74 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.text("LISTE DES PARTICIPANTS", margin, y);
   y += 3;
 
+  // Helper to check if level is encadrant (EA1, EA2, EA3, EA4, E1, E2, E3, E4)
+  const isEncadrant = (level: string | null): boolean => {
+    if (!level) return false;
+    const levelUpper = level.toUpperCase().trim();
+    return /EA[1-4]|E[1-4]/.test(levelUpper);
+  };
+
   const participantData = participants.map((p) => [
     p.last_name?.toUpperCase() || "",
     p.first_name || "",
     p.apnea_level || "-",
     p.emergency_contact_phone ? `${p.emergency_contact_name || ""} ${p.emergency_contact_phone}` : "-",
-    "", // Heure mise à l'eau
-    "", // Heure sortie
   ]);
 
   autoTable(doc, {
     startY: y,
-    head: [["NOM", "Prénom", "Niveau", "Contact Urgence", "H. Mise à l'eau", "H. Sortie"]],
-    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", "", "", ""]],
+    head: [["NOM", "Prénom", "Niveau", "Contact Urgence"]],
+    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", ""]],
     theme: "striped",
-    headStyles: { fillColor: [14, 165, 233], textColor: 255, fontStyle: "bold", fontSize: 9 },
-    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: {
+      fillColor: [14, 165, 233],
+      textColor: 255,
+      fontStyle: "bold",
+      fontSize: 9
+    },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 2.5
+    },
     columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 25 },
-      2: { cellWidth: 20 },
-      3: { cellWidth: 50 },
-      4: { cellWidth: 25 },
-      5: { cellWidth: 25 },
+      0: { cellWidth: 35, fontStyle: "bold" },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 45 },
+      3: { cellWidth: contentWidth - 110 },
+    },
+    didParseCell: (data) => {
+      if (data.section === 'body' && data.row.index < participants.length) {
+        const participant = participants[data.row.index];
+        const participantFullName = `${participant.first_name} ${participant.last_name}`;
+
+        // Highlight organizer (responsable)
+        if (participantFullName.toLowerCase().includes(organizerName.toLowerCase().split(' ')[0]) ||
+            organizerName.toLowerCase().includes(participant.last_name?.toLowerCase() || '')) {
+          data.cell.styles.fillColor = "#fef3c7"; // Light yellow
+          data.cell.styles.fontStyle = "bold";
+          if (data.column.index === 2) {
+            data.cell.text = [`⭐ ${data.cell.text[0]}`];
+          }
+        }
+        // Highlight encadrants
+        else if (isEncadrant(participant.apnea_level)) {
+          data.cell.styles.fillColor = "#dbeafe"; // Light blue
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
     },
     margin: { left: margin, right: margin },
   });
 
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
 
-  // ====================
-  // F. CHECK-LIST DE SÉCURITÉ
-  // ====================
-  const checklistItems = [
-    "Oxygène (Pression > 100b + Masque)",
-    "Trousse de Secours Complète",
-    "VHF Testée / Batterie OK + Tél Chargé",
-    "Pavillon Alpha (Visibilité)",
-    "Eau Potable / Hydratation",
-    "Check Matériel Membres (Longe, Plombs...)",
-    "Constitution des Binômes",
-    "Speech Sécurité (Briefing effectué)",
-  ];
-
-  const checklistHeight = 55;
-
-  // Check if we need a new page
-  if (y + checklistHeight > pageHeight - 30) {
-    doc.addPage();
-    y = margin;
-  }
-
-  drawBox(doc, margin, y, contentWidth, checklistHeight, { fill: "#f0fdf4", stroke: "#22c55e", lineWidth: 1 });
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor("#166534");
-  doc.text("VÉRIFICATIONS AVANT DÉPART", margin + 5, y + 7);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor("#000000");
-
-  let checkY = y + 14;
-  const colWidth = (contentWidth - 10) / 2;
-
-  checklistItems.forEach((item, idx) => {
-    const col = idx < 4 ? 0 : 1;
-    const row = idx % 4;
-    const checkX = margin + 5 + col * colWidth;
-    const itemY = checkY + row * 9;
-
-    // Draw checkbox
-    drawBox(doc, checkX, itemY - 3, 4, 4);
-    doc.text(item, checkX + 6, itemY);
-  });
-
-  y += checklistHeight + 5;
+  // Force new page after participants to maintain consistent 4-page layout
+  doc.addPage();
+  y = margin;
 
   // ====================
   // G. INVENTAIRE DU MATÉRIEL DE SECOURS (Art. A.322-13 Code du sport)
   // ====================
-
-  // Check if we need a new page
-  if (y + 70 > pageHeight - margin) {
-    doc.addPage();
-    y = margin;
-  }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -478,20 +465,19 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
 
   const equipmentData = [
     ["OXYGÉNOTHÉRAPIE", "", ""],
-    ["Bouteille O2 médical", "5L / 200 bars", "☐"],
-    ["Détendeur-débitmètre", "15 L/min", "☐"],
-    ["Masque haute concentration", "Adulte + Enfant", "☐"],
-    ["BAVU (insufflateur manuel)", "Adulte", "☐"],
+    ["Bouteille O2 médical", "5L / 200 bars", ""],
+    ["Détendeur-débitmètre", "15 L/min", ""],
+    ["Masque haute concentration", "Adulte + Enfant", ""],
+    ["BAVU (insufflateur manuel)", "Adulte", ""],
     ["SECOURISME", "", ""],
-    ["DAE (Défibrillateur)", "Automatisé Externe", "☐"],
-    ["Trousse de secours complète", "Couverture survie, désinfectant, pansements, compresses", "☐"],
-    ["Aspirine 500mg", "Sachet de 10", "☐"],
-    ["Eau douce (rinçage)", "5L minimum", "☐"],
-    ["Fiche d'évacuation POSS", "Pré-remplie", "☐"],
+    ["Trousse de secours complète", "Couverture survie, désinfectant, pansements, compresses", ""],
+    ["Aspirine 500mg", "Sachet de 10", ""],
+    ["Eau douce (rinçage)", "5L minimum", ""],
+    ["Fiche d'évacuation POSS", "Pré-remplie", ""],
     ["COMMUNICATION & SÉCURITÉ", "", ""],
-    ["Radio VHF portable", "Testée + Batterie OK", "☐"],
-    ["Téléphone portable", "Chargé + Crédit", "☐"],
-    ["Pavillon Alpha / Bouée signalisation", "Visible (bateau/côte)", "☐"],
+    ["Radio VHF portable", "Testée + Batterie OK", ""],
+    ["Téléphone portable", "Chargé + Crédit", ""],
+    ["Pavillon Alpha / Bouée signalisation", "Visible (bateau/côte)", ""],
   ];
 
   autoTable(doc, {
@@ -503,27 +489,33 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
       fillColor: "#0369a1",
       textColor: "#ffffff",
       fontStyle: "bold",
-      fontSize: 9
+      fontSize: 9,
+      halign: "center"
     },
     styles: {
-      fontSize: 8,
-      cellPadding: 1.5,
-      lineColor: "#cbd5e1",
-      lineWidth: 0.1
+      fontSize: 8.5,
+      cellPadding: 2.5,
+      lineColor: "#94a3b8",
+      lineWidth: 0.2,
+      valign: "middle"
     },
     columnStyles: {
-      0: { cellWidth: 70, fontStyle: "bold" },
-      1: { cellWidth: contentWidth - 90, halign: "left" },
-      2: { cellWidth: 15, halign: "center", fontSize: 10 }
+      0: { cellWidth: 75, fontStyle: "bold", halign: "left" },
+      1: { cellWidth: contentWidth - 100, halign: "left" },
+      2: { cellWidth: 20, halign: "center", fontSize: 12 }
     },
     didParseCell: (data) => {
-      // Bold section headers (oxygénothérapie, secourisme, communication)
-      if (data.row.index === 0 || data.row.index === 5 || data.row.index === 11) {
-        if (data.column.index === 0) {
-          data.cell.styles.fillColor = "#e0f2fe";
-          data.cell.styles.fontStyle = "bold";
-          data.cell.styles.fontSize = 9;
-        }
+      // Section headers styling
+      if (data.row.index === 0 || data.row.index === 5 || data.row.index === 10) {
+        data.cell.styles.fillColor = "#dbeafe";
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fontSize = 9;
+        data.cell.styles.textColor = "#1e40af";
+      }
+
+      // Add checkbox in third column for non-header rows
+      if (data.column.index === 2 && data.row.index !== 0 && data.row.index !== 5 && data.row.index !== 10) {
+        data.cell.text = ["☐"];
       }
     },
     margin: { left: margin, right: margin }
