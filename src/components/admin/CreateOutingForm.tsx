@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints } from "lucide-react";
+import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,8 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const [linkCopied, setLinkCopied] = useState(false);
   const [userApneaLevel, setUserApneaLevel] = useState<string | null>(null);
   const [maxParticipantsLimit, setMaxParticipantsLimit] = useState<number>(100);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [locationSearch, setLocationSearch] = useState(prefilledLocationName || "");
 
   const form = useForm<OutingFormData>({
     resolver: zodResolver(outingSchema),
@@ -185,19 +187,17 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
     if (prefilledLocationId && prefilledLocationName) {
       form.setValue("location_id", prefilledLocationId);
       form.setValue("location", prefilledLocationName);
+      setLocationSearch(prefilledLocationName);
     }
   }, [prefilledLocationId, prefilledLocationName, form]);
 
   const selectedLocationId = form.watch("location_id");
 
-  // When a location is selected, update the location name
-  const handleLocationChange = (locationId: string) => {
-    form.setValue("location_id", locationId);
-    const selectedLocation = locations?.find((l) => l.id === locationId);
-    if (selectedLocation) {
-      form.setValue("location", selectedLocation.name);
-    }
-  };
+  const filteredLocations = (locations || []).filter((l) => {
+    if (!locationSearch) return true;
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return norm(l.name).includes(norm(locationSearch));
+  });
 
   const onSubmit = (data: OutingFormData) => {
     const startDateTime = new Date(data.date);
@@ -465,50 +465,62 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lieu enregistré</FormLabel>
-                    <Select onValueChange={handleLocationChange} value={field.value || ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un lieu" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations?.map((location) => (
-                          <SelectItem key={location.id} value={location.id}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ou saisir un lieu</FormLabel>
-                    <FormControl>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lieu</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                       <Input
-                        placeholder="Marseille, Calanque de Sormiou"
-                        {...field}
-                        disabled={!!selectedLocationId}
+                        placeholder="Calanque de Sormiou..."
+                        value={locationSearch}
+                        autoComplete="off"
+                        className="pl-9 pr-8"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setLocationSearch(val);
+                          field.onChange(val);
+                          form.setValue("location_id", "");
+                          setLocationOpen(true);
+                        }}
+                        onFocus={() => setLocationOpen(true)}
+                        onBlur={() => setTimeout(() => setLocationOpen(false), 150)}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      {selectedLocationId && (
+                        <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary pointer-events-none" />
+                      )}
+                      {locationOpen && filteredLocations.length > 0 && (
+                        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border border-border bg-popover shadow-md max-h-52 overflow-y-auto">
+                          {filteredLocations.map((loc) => (
+                            <button
+                              key={loc.id}
+                              type="button"
+                              className={cn(
+                                "w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors",
+                                selectedLocationId === loc.id && "bg-accent/50 font-medium"
+                              )}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setLocationSearch(loc.name);
+                                field.onChange(loc.name);
+                                form.setValue("location_id", loc.id);
+                                setLocationOpen(false);
+                              }}
+                            >
+                              {loc.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
