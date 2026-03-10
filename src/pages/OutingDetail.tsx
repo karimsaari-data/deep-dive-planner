@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { formatFullName } from "@/lib/formatName";
 
@@ -15,6 +15,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +78,9 @@ const OutingDetail = () => {
   const [linkCopied, setLinkCopied] = useState(false);
   const [sosModalOpen, setSosModalOpen] = useState(false);
   const [isGeneratingPOSS, setIsGeneratingPOSS] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<{
+    firstName: string; lastName: string; avatarUrl: string | null; email: string | null; phone: string | null;
+  } | null>(null);
 
   // Compute derived values for the query
   const outingDate = outing ? new Date(outing.date_time) : new Date();
@@ -139,6 +148,24 @@ const OutingDetail = () => {
       });
     },
     enabled: !!outing?.reservations && canMarkAttendance,
+  });
+
+  // Fetch participant phones for contact dialog
+  const { data: participantPhones } = useQuery({
+    queryKey: ["participant-phones", id],
+    queryFn: async () => {
+      if (!outing?.reservations) return new Map<string, string | null>();
+      const emails = outing.reservations
+        .filter(r => r.status === "confirmé" && r.profile?.email)
+        .map(r => (r.profile!.email as string).toLowerCase());
+      if (emails.length === 0) return new Map<string, string | null>();
+      const { data } = await supabase
+        .from("club_members_directory")
+        .select("email, phone")
+        .in("email", emails);
+      return new Map((data || []).map(d => [d.email.toLowerCase(), d.phone ?? null]));
+    },
+    enabled: !!outing?.reservations,
   });
 
   useEffect(() => {
@@ -539,8 +566,18 @@ const OutingDetail = () => {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <Avatar className="h-10 w-10">
+                          <button
+                            type="button"
+                            className="relative focus:outline-none"
+                            onClick={() => profile && setSelectedContact({
+                              firstName: profile.first_name ?? "",
+                              lastName: profile.last_name ?? "",
+                              avatarUrl: profile.avatar_url ?? null,
+                              email: profile.email ?? null,
+                              phone: participantPhones?.get((profile.email ?? "").toLowerCase()) ?? null,
+                            })}
+                          >
+                            <Avatar className="h-10 w-10 transition-opacity hover:opacity-80">
                               <AvatarImage src={profile?.avatar_url ?? undefined} />
                               <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
                                 {initials}
@@ -551,7 +588,7 @@ const OutingDetail = () => {
                                 <Shield className="h-3 w-3 text-white" />
                               </div>
                             )}
-                          </div>
+                          </button>
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="font-medium text-foreground">
@@ -799,6 +836,61 @@ const OutingDetail = () => {
         participants={participantsEmergency || []}
         outingTitle={outing.title}
       />
+
+      {/* Contact dialog */}
+      {selectedContact && (() => {
+        const normalizePhone = (p: string) => {
+          const digits = p.replace(/[\s.\-()]/g, "");
+          return digits.startsWith("0") && digits.length === 10 ? "+33" + digits.slice(1) : digits;
+        };
+        const phone = selectedContact.phone ? normalizePhone(selectedContact.phone) : null;
+        return (
+          <Dialog open={!!selectedContact} onOpenChange={(open) => !open && setSelectedContact(null)}>
+            <DialogContent className="sm:max-w-xs">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    {selectedContact.avatarUrl && <AvatarImage src={selectedContact.avatarUrl} />}
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {selectedContact.firstName.charAt(0)}{selectedContact.lastName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-left leading-tight">
+                    <p className="font-semibold">{selectedContact.firstName}</p>
+                    <p className="text-sm font-normal text-muted-foreground">{selectedContact.lastName}</p>
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex gap-3 pt-2 justify-center">
+                {selectedContact.email && (
+                  <Button asChild variant="outline" size="icon" className="h-14 w-14 flex-col gap-1 rounded-xl">
+                    <a href={`mailto:${selectedContact.email}`} className="flex flex-col items-center gap-1">
+                      <Mail className="h-5 w-5 text-primary" />
+                      <span className="text-[10px]">Email</span>
+                    </a>
+                  </Button>
+                )}
+                {phone && (
+                  <>
+                    <Button asChild variant="outline" size="icon" className="h-14 w-14 flex-col gap-1 rounded-xl">
+                      <a href={`tel:${phone}`} className="flex flex-col items-center gap-1">
+                        <Phone className="h-5 w-5 text-primary" />
+                        <span className="text-[10px]">Appeler</span>
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="h-14 w-14 flex-col gap-1 rounded-xl border-green-500 text-green-600 hover:bg-green-500 hover:text-white">
+                      <a href={`https://wa.me/${phone.replace("+", "")}`} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1">
+                        <MessageCircle className="h-5 w-5" />
+                        <span className="text-[10px]">WhatsApp</span>
+                      </a>
+                    </Button>
+                  </>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </Layout>
   );
 };
