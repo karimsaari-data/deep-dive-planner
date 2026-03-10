@@ -1,4 +1,7 @@
 -- Expose phone in get_trombinoscope_members (members-only RPC, auth required)
+-- DROP required because return type changes
+DROP FUNCTION IF EXISTS public.get_trombinoscope_members();
+
 CREATE OR REPLACE FUNCTION public.get_trombinoscope_members()
  RETURNS TABLE(id uuid, first_name text, last_name text, apnea_level text, board_role text, is_encadrant boolean, email text, phone text, avatar_url text)
  LANGUAGE sql
