@@ -31,9 +31,8 @@ const outingSchema = z.object({
   description: z.string().max(500).optional(),
   date: z.date({ required_error: "La date est requise" }),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
-  waterEntryTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
-  waterExitTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
+  prepDuration: z.number().min(0).max(180),
+  sessionDuration: z.number().min(15).max(480),
   location_id: z.string().optional(),
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères").max(200),
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
@@ -75,9 +74,8 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       title: "",
       description: "",
       startTime: "10:00",
-      endTime: "12:00",
-      waterEntryTime: "",
-      waterExitTime: "",
+      prepDuration: 30,
+      sessionDuration: 120,
       location: prefilledLocationName || "",
       location_id: prefilledLocationId || "",
       outing_type: "Mer",
@@ -94,6 +92,27 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const carpoolSeats = form.watch("carpool_seats") || 1;
   const outingType = form.watch("outing_type");
   const diveMode = form.watch("dive_mode");
+  const startTime = form.watch("startTime");
+  const prepDuration = form.watch("prepDuration");
+  const sessionDuration = form.watch("sessionDuration");
+
+  const addMinutes = (time: string, minutes: number): string => {
+    const [h, m] = time.split(":").map(Number);
+    const total = h * 60 + m + minutes;
+    return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  };
+
+  const formatDuration = (minutes: number): string => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h} h`;
+    return `${h} h ${String(m).padStart(2, "0")}`;
+  };
+
+  const waterEntryTime = addMinutes(startTime || "10:00", prepDuration ?? 30);
+  const waterExitTime = addMinutes(waterEntryTime, sessionDuration ?? 120);
+  const endTime = addMinutes(waterExitTime, 30);
 
   // Check if current outing type requires boat/shore selection
   const isNaturalEnvironment = NATURAL_ENVIRONMENT_TYPES.includes(outingType as OutingType);
@@ -185,21 +204,22 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
     const [startHours, startMinutes] = data.startTime.split(":").map(Number);
     startDateTime.setHours(startHours, startMinutes);
 
-    let endDateTime: Date | undefined;
-    if (data.endTime) {
-      endDateTime = new Date(data.date);
-      const [endHours, endMinutes] = data.endTime.split(":").map(Number);
-      endDateTime.setHours(endHours, endMinutes);
-    }
+    const computedWaterEntry = addMinutes(data.startTime, data.prepDuration);
+    const computedWaterExit = addMinutes(computedWaterEntry, data.sessionDuration);
+    const computedEnd = addMinutes(computedWaterExit, 30);
+
+    const endDateTime = new Date(data.date);
+    const [endH, endM] = computedEnd.split(":").map(Number);
+    endDateTime.setHours(endH, endM);
 
     createOuting.mutate(
       {
         title: data.title,
         description: data.description || undefined,
         date_time: startDateTime.toISOString(),
-        end_date: endDateTime?.toISOString(),
-        water_entry_time: data.waterEntryTime || undefined,
-        water_exit_time: data.waterExitTime || undefined,
+        end_date: endDateTime.toISOString(),
+        water_entry_time: computedWaterEntry,
+        water_exit_time: computedWaterExit,
         location: data.location,
         location_id: data.location_id || undefined,
         outing_type: data.outing_type as OutingType,
@@ -288,7 +308,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               )}
             />
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="date"
@@ -340,21 +360,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Début</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fin</FormLabel>
+                    <FormLabel>Heure de RDV</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -364,40 +370,99 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            {/* Durées calculées */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
               <FormField
                 control={form.control}
-                name="waterEntryTime"
+                name="prepDuration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Heure mise à l'eau</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} placeholder="10:30" />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Pour le POSS (optionnel)
-                    </FormDescription>
-                    <FormMessage />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>Préparation</FormLabel>
+                        <p className="text-xs text-muted-foreground">Échauffement, équipement, briefing</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => field.onChange(Math.max(0, field.value - 15))}
+                          disabled={field.value <= 0}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-14 text-center font-semibold">{formatDuration(field.value)}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => field.onChange(Math.min(180, field.value + 15))}
+                          disabled={field.value >= 180}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </FormItem>
                 )}
               />
 
               <FormField
                 control={form.control}
-                name="waterExitTime"
+                name="sessionDuration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Heure sortie eau</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} placeholder="11:30" />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Pour le POSS (optionnel)
-                    </FormDescription>
-                    <FormMessage />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <FormLabel>Session dans l'eau</FormLabel>
+                        <p className="text-xs text-muted-foreground">Durée de la session d'apnée</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => field.onChange(Math.max(15, field.value - 15))}
+                          disabled={field.value <= 15}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="w-14 text-center font-semibold">{formatDuration(field.value)}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => field.onChange(Math.min(480, field.value + 15))}
+                          disabled={field.value >= 480}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </FormItem>
                 )}
               />
+
+              {/* Récapitulatif calculé */}
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Mise à l'eau</p>
+                  <p className="font-semibold text-primary">{waterEntryTime}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Sortie eau</p>
+                  <p className="font-semibold text-primary">{waterExitTime}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">Fin RDV</p>
+                  <p className="font-semibold text-muted-foreground">{endTime}</p>
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
