@@ -265,7 +265,7 @@ const Profile = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="flex flex-col items-center gap-1 h-auto py-3 px-4 border-primary text-primary hover:bg-primary hover:text-white"
+                      className="flex flex-col items-center gap-1 h-auto py-3 px-4 ml-4 border-red-500 text-red-600 hover:bg-red-500 hover:text-white"
                       onClick={() => setShowQrDialog(true)}
                     >
                       <QrCode className="h-8 w-8" />
