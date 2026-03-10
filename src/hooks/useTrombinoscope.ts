@@ -8,6 +8,8 @@ export interface TrombiMember {
   apnea_level: string | null;
   board_role: string | null;
   is_encadrant: boolean;
+  email: string | null;
+  phone: string | null;
   avatar_url: string | null;
 }
 
@@ -84,6 +86,8 @@ export const useTrombinoscope = () => {
         apnea_level: m.apnea_level,
         board_role: m.board_role,
         is_encadrant: m.is_encadrant ?? false,
+        email: m.email || null,
+        phone: (m as { phone?: string }).phone || null,
         avatar_url: m.avatar_url || null,
       }));
 

@@ -1,9 +1,17 @@
+import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Crown, GraduationCap, UserCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Users, Crown, GraduationCap, UserCircle, Mail, Phone, MessageCircle } from "lucide-react";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 
 // Generate a pastel color from initials
@@ -22,12 +30,6 @@ const getInitials = (firstName: string, lastName: string): string => {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 };
 
-interface MemberCardProps {
-  member: TrombiMember;
-  showBoardRole?: boolean;
-  showTechnicalLevel?: boolean;
-}
-
 // Check if member has top-tier qualification (BPJEPS/DEJEPS)
 const hasTopTierQualification = (apneaLevel: string | null): boolean => {
   if (!apneaLevel) return false;
@@ -35,14 +37,94 @@ const hasTopTierQualification = (apneaLevel: string | null): boolean => {
   return levelLower.includes("bpjeps") || levelLower.includes("dejeps");
 };
 
-const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false }: MemberCardProps) => {
+// Normalize phone for tel: / WhatsApp links (strip spaces, dashes, dots; add +33 if French)
+const normalizePhone = (phone: string): string => {
+  const digits = phone.replace(/[\s.\-()]/g, "");
+  if (digits.startsWith("0") && digits.length === 10) {
+    return "+33" + digits.slice(1);
+  }
+  return digits;
+};
+
+interface ContactDialogProps {
+  member: TrombiMember | null;
+  onClose: () => void;
+}
+
+const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
+  if (!member) return null;
+  const phone = member.phone ? normalizePhone(member.phone) : null;
+
+  return (
+    <Dialog open={!!member} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-xs">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <Avatar className="h-10 w-10">
+              {member.avatar_url && <AvatarImage src={member.avatar_url} />}
+              <AvatarFallback className={`${getAvatarColor(member.first_name + member.last_name)} text-foreground font-semibold`}>
+                {getInitials(member.first_name, member.last_name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-left leading-tight">
+              <p className="font-semibold">{formatFirstName(member.first_name)}</p>
+              <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-3 pt-2">
+          {member.email && (
+            <Button asChild variant="outline" className="justify-start gap-3 h-11">
+              <a href={`mailto:${member.email}`}>
+                <Mail className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate text-sm">{member.email}</span>
+              </a>
+            </Button>
+          )}
+
+          {phone && (
+            <>
+              <Button asChild variant="outline" className="justify-start gap-3 h-11">
+                <a href={`tel:${phone}`}>
+                  <Phone className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm">{member.phone}</span>
+                </a>
+              </Button>
+
+              <Button asChild variant="outline" className="justify-start gap-3 h-11 border-green-500 text-green-600 hover:bg-green-500 hover:text-white">
+                <a href={`https://wa.me/${phone.replace("+", "")}`} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="h-4 w-4 shrink-0" />
+                  <span className="text-sm">WhatsApp</span>
+                </a>
+              </Button>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+interface MemberCardProps {
+  member: TrombiMember;
+  showBoardRole?: boolean;
+  showTechnicalLevel?: boolean;
+  onClick: (member: TrombiMember) => void;
+}
+
+const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false, onClick }: MemberCardProps) => {
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
   const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
   const isBureau = showBoardRole && !!member.board_role;
 
   return (
-    <div className="flex flex-col items-center text-center group">
+    <button
+      type="button"
+      className="flex flex-col items-center text-center group cursor-pointer focus:outline-none"
+      onClick={() => onClick(member)}
+    >
       {/* Avatar with optional glow effect for BPJEPS/DEJEPS or bureau */}
       <div className={`relative ${isTopTier ? "before:absolute before:inset-0 before:rounded-full before:bg-amber-400/40 before:blur-lg before:animate-pulse" : isBureau ? "before:absolute before:inset-0 before:rounded-full before:bg-primary/30 before:blur-lg before:animate-pulse" : ""}`}>
         <Avatar className={`h-20 w-20 md:h-24 md:w-24 transition-transform duration-200 md:group-hover:scale-110 relative z-10 ${isTopTier ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30" : isBureau ? "ring-4 ring-primary shadow-lg shadow-primary/30" : "ring-2 ring-border/50"}`}>
@@ -54,7 +136,7 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false 
           </AvatarFallback>
         </Avatar>
       </div>
-      
+
       <p className="mt-2 text-xs md:text-sm font-medium text-foreground truncate w-full">
         {formatFirstName(member.first_name)}
       </p>
@@ -63,31 +145,31 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false 
       <p className="hidden md:block text-xs text-muted-foreground truncate w-full">
         {formatLastName(member.last_name)}
       </p>
-      
+
       {/* Board role for bureau members */}
       {showBoardRole && member.board_role && (
         <Badge variant="default" className="mt-1 text-[10px] px-1.5 py-0">
           {member.board_role}
         </Badge>
       )}
-      
-      {/* Technical level for encadrants - always visible, prominent display */}
+
+      {/* Technical level for encadrants */}
       {showTechnicalLevel && member.apnea_level && (
-        <Badge 
+        <Badge
           variant={isTopTier ? "default" : "outline"}
           className={`mt-1 text-[10px] px-1.5 py-0 font-semibold ${isTopTier ? "bg-amber-500 hover:bg-amber-600 text-white border-0" : "border-primary text-primary"}`}
         >
           {member.apnea_level}
         </Badge>
       )}
-      
+
       {/* Level badge for regular members - hidden on mobile */}
       {!showBoardRole && !showTechnicalLevel && member.apnea_level && (
         <Badge variant="secondary" className="hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0">
           {member.apnea_level}
         </Badge>
       )}
-    </div>
+    </button>
   );
 };
 
@@ -105,18 +187,20 @@ interface SectionProps {
   showBoardRole?: boolean;
   showTechnicalLevel?: boolean;
   accentColor?: string;
+  onMemberClick: (member: TrombiMember) => void;
 }
 
-const Section = ({ 
-  title, 
-  icon, 
-  members, 
-  showBoardRole = false, 
+const Section = ({
+  title,
+  icon,
+  members,
+  showBoardRole = false,
   showTechnicalLevel = false,
-  accentColor = "bg-primary" 
+  accentColor = "bg-primary",
+  onMemberClick,
 }: SectionProps) => {
   if (!members.length) return null;
-  
+
   return (
     <section className="mb-8">
       <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -127,11 +211,12 @@ const Section = ({
       </h2>
       <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
         {members.map((member) => (
-          <MemberCard 
-            key={member.id} 
-            member={member} 
+          <MemberCard
+            key={member.id}
+            member={member}
             showBoardRole={showBoardRole}
             showTechnicalLevel={showTechnicalLevel}
+            onClick={onMemberClick}
           />
         ))}
       </div>
@@ -141,6 +226,7 @@ const Section = ({
 
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
+  const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
 
   return (
     <Layout>
@@ -166,34 +252,39 @@ const Trombinoscope = () => {
           </div>
         ) : (
           <>
-            {/* Bureau Section */}
             <Section
               title="Le Bureau"
               icon={<Crown className="h-4 w-4 text-amber-500" />}
               members={data?.bureau || []}
               showBoardRole={true}
               accentColor="bg-amber-500"
+              onMemberClick={setSelectedMember}
             />
 
-            {/* Encadrants Section - Technical qualifications only */}
             <Section
               title="Encadrants"
               icon={<GraduationCap className="h-4 w-4 text-primary" />}
               members={data?.encadrants || []}
               showTechnicalLevel={true}
               accentColor="bg-primary"
+              onMemberClick={setSelectedMember}
             />
 
-            {/* Members Section */}
             <Section
               title="Membres"
               icon={<UserCircle className="h-4 w-4 text-muted-foreground" />}
               members={data?.membres || []}
               accentColor="bg-muted-foreground"
+              onMemberClick={setSelectedMember}
             />
           </>
         )}
       </div>
+
+      <ContactDialog
+        member={selectedMember}
+        onClose={() => setSelectedMember(null)}
+      />
     </Layout>
   );
 };
