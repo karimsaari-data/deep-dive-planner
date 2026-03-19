@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Crown } from "lucide-react";
+import { Users, Search, Crown, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-// Removed: Select components - no longer needed
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Profile {
   id: string;
@@ -27,6 +29,7 @@ interface UserRole {
 
 const MemberManager = () => {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
   const { data: profiles, isLoading } = useQuery({
@@ -82,6 +85,25 @@ const MemberManager = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de la mise à jour du rôle");
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("delete-user", {
+        body: { userId },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data?.error) throw new Error(res.data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-profiles"] });
+      toast.success("Compte supprimé");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la suppression");
     },
   });
 
@@ -163,6 +185,32 @@ const MemberManager = () => {
                       }
                     />
                     <Crown className={`h-4 w-4 ${isUserAdmin(profile.id) ? "text-amber-500" : "text-muted-foreground"}`} />
+                    {profile.id !== currentUser?.id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Supprimer ce compte ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Le compte de <strong>{profile.first_name} {profile.last_name}</strong> ({profile.email}) sera définitivement supprimé. Cette action est irréversible.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => deleteUser.mutate(profile.id)}
+                            >
+                              Supprimer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               );
