@@ -171,7 +171,7 @@ export const useGlobalEquipmentInventory = () => {
         .select(`
           *,
           catalog:equipment_catalog(*),
-          owner:profiles!equipment_inventory_owner_id_fkey(id, first_name, last_name)
+          owner:profiles!equipment_inventory_owner_id_fkey(id, first_name, last_name, email)
         `)
         .order("created_at", { ascending: false });
 

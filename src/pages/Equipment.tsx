@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import {
   useEquipmentCatalog,
   useMyEquipmentInventory,
@@ -42,18 +43,20 @@ const Equipment = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isOrganizer, loading: roleLoading } = useUserRole();
+  const { data: isEncadrantFromDirectory, isLoading: encadrantLoading } = useIsCurrentUserEncadrant();
+  const isEncadrant = isOrganizer || isEncadrantFromDirectory;
 
   useEffect(() => {
-    if (!authLoading && !roleLoading) {
+    if (!authLoading && !roleLoading && !encadrantLoading) {
       if (!user) {
         navigate("/auth");
-      } else if (!isOrganizer) {
+      } else if (!isEncadrant) {
         navigate("/");
       }
     }
-  }, [user, isOrganizer, authLoading, roleLoading, navigate]);
+  }, [user, isEncadrant, authLoading, roleLoading, encadrantLoading, navigate]);
 
-  if (authLoading || roleLoading) {
+  if (authLoading || roleLoading || encadrantLoading) {
     return (
       <Layout>
         <div className="flex min-h-[50vh] items-center justify-center">
@@ -63,7 +66,7 @@ const Equipment = () => {
     );
   }
 
-  if (!isOrganizer) {
+  if (!isEncadrant) {
     return null;
   }
 
@@ -650,16 +653,23 @@ const GlobalInventoryTab = () => {
   // Get unique owners from inventory
   const owners = useMemo(() => {
     if (!inventory) return [];
-    const ownerMap = new Map<string, { id: string; name: string }>();
+    const ownerMap = new Map<string, { id: string; name: string; email?: string }>();
     inventory.forEach((item) => {
       if (item.owner && !ownerMap.has(item.owner.id)) {
         ownerMap.set(item.owner.id, {
           id: item.owner.id,
           name: `${item.owner.first_name} ${item.owner.last_name}`,
+          email: item.owner.email,
         });
       }
     });
-    return Array.from(ownerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const list = Array.from(ownerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    // Détecter les noms en doublon pour afficher l'email
+    const nameCounts = list.reduce<Record<string, number>>((acc, o) => {
+      acc[o.name] = (acc[o.name] || 0) + 1;
+      return acc;
+    }, {});
+    return list.map((o) => ({ ...o, showEmail: nameCounts[o.name] > 1 }));
   }, [inventory]);
 
   const filteredInventory = inventory?.filter((item) => {
@@ -743,7 +753,7 @@ const GlobalInventoryTab = () => {
                   <SelectItem value="all">Tous les détenteurs</SelectItem>
                   {owners.map((owner) => (
                     <SelectItem key={owner.id} value={owner.id}>
-                      {owner.name}
+                      {owner.name}{owner.showEmail && owner.email && <span className="ml-1 text-xs text-muted-foreground">({owner.email})</span>}
                     </SelectItem>
                   ))}
                 </SelectContent>

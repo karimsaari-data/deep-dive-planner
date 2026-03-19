@@ -34,9 +34,12 @@ const Header = () => {
     items.push({ to: "/map", label: "Carte", icon: MapIcon });
     items.push({ to: "/weather", label: "Météo", icon: CloudSun });
 
+    if (isEncadrant) {
+      items.push({ to: "/equipment", label: "Matériel", icon: Package });
+    }
+
     if (isOrganizer) {
       items.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
-      items.push({ to: "/equipment", label: "Matériel", icon: Package });
       items.push({ to: "/archives", label: "Archives", icon: FileText });
     }
 
