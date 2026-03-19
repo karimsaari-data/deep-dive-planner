@@ -31,8 +31,11 @@ type SignUpData = z.infer<typeof signUpSchema>;
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
 
@@ -67,6 +70,18 @@ const Auth = () => {
     } else {
       toast.success("Connexion réussie !");
       navigate(from, { replace: true });
+    }
+  };
+
+  const onForgotPassword = async () => {
+    if (!forgotEmail) return;
+    setIsLoading(true);
+    const { error } = await resetPassword(forgotEmail);
+    setIsLoading(false);
+    if (error) {
+      toast.error("Erreur lors de l'envoi : " + error.message);
+    } else {
+      setForgotSent(true);
     }
   };
 
@@ -105,6 +120,41 @@ const Auth = () => {
         </CardHeader>
 
         <CardContent>
+          {showForgot ? (
+            <div className="space-y-4">
+              {forgotSent ? (
+                <div className="text-center space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Un lien de réinitialisation a été envoyé à <strong>{forgotEmail}</strong>. Vérifiez vos emails.
+                  </p>
+                  <Button variant="ghost" className="w-full" onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail(""); }}>
+                    Retour à la connexion
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Entrez votre adresse email pour recevoir un lien de réinitialisation.</p>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="vous@exemple.com"
+                      className="pl-10"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="ocean" className="w-full" onClick={onForgotPassword} disabled={isLoading || !forgotEmail}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Envoyer le lien
+                  </Button>
+                  <Button variant="ghost" className="w-full" onClick={() => setShowForgot(false)}>
+                    Retour
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Connexion</TabsTrigger>
@@ -159,6 +209,13 @@ const Auth = () => {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Se connecter
                   </Button>
+                  <button
+                    type="button"
+                    className="w-full text-center text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                    onClick={() => setShowForgot(true)}
+                  >
+                    Mot de passe oublié ?
+                  </button>
                 </form>
               </Form>
             </TabsContent>
@@ -248,6 +305,7 @@ const Auth = () => {
               </Form>
             </TabsContent>
           </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>

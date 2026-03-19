@@ -22,6 +22,7 @@ import MesSorties from "./pages/MesSorties";
 import LocationDetail from "./pages/LocationDetail";
 import Trombinoscope from "./pages/Trombinoscope";
 import Security from "./pages/Security";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/mes-sorties" element={<MesSorties />} />
             <Route path="/trombinoscope" element={<Trombinoscope />} />
             <Route path="/security" element={<Security />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
