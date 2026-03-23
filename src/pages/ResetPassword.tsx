@@ -16,6 +16,7 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     // Listener en premier pour ne pas rater l'événement (race condition)
@@ -32,7 +33,15 @@ const ResetPassword = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Timeout : si après 8s rien ne s'est passé, le lien est expiré ou invalide
+    const timeout = setTimeout(() => {
+      setExpired(true);
+    }, 8000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +76,23 @@ const ResetPassword = () => {
         </CardHeader>
         <CardContent>
           {!ready ? (
-            <p className="text-center text-sm text-muted-foreground">Vérification du lien en cours…</p>
+            <div className="text-center space-y-4">
+              {expired ? (
+                <>
+                  <p className="text-sm text-destructive font-medium">
+                    Ce lien est expiré ou déjà utilisé.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Veuillez faire une nouvelle demande de réinitialisation.
+                  </p>
+                  <Button variant="ocean" className="w-full" onClick={() => navigate("/auth")}>
+                    Retour à la connexion
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Vérification du lien en cours…</p>
+              )}
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="relative">
