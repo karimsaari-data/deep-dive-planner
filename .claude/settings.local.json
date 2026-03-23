@@ -12,7 +12,19 @@
       "Bash(git pull:*)",
       "Bash(gh pr merge:*)",
       "Bash(gh pr view:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npm run build)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080)",
+      "Bash(where npm.cmd)",
+      "Bash(where npm)",
+      "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__list_projects",
+      "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__apply_migration",
+      "Bash(npm install qrcode.react)",
+      "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__execute_sql",
+      "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__get_project",
+      "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__deploy_edge_function"
     ]
   }
 }
