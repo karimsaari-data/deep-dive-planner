@@ -18,19 +18,20 @@ const ResetPassword = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Vérifie si Supabase a déjà traité le token avant le montage du composant
+    // Listener en premier pour ne pas rater l'événement (race condition)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
+        setReady(true);
+      }
+    });
+
+    // Vérifie aussi si la session est déjà établie au montage
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setReady(true);
       }
     });
 
-    // Écoute l'événement au cas où il arrive après le montage
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
-    });
     return () => subscription.unsubscribe();
   }, []);
 

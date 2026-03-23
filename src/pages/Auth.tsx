@@ -125,7 +125,7 @@ const Auth = () => {
               {forgotSent ? (
                 <div className="text-center space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Un lien de réinitialisation a été envoyé à <strong>{forgotEmail}</strong>. Vérifiez vos emails.
+                    Un lien de réinitialisation a été envoyé à <strong>{forgotEmail}</strong>. Vérifiez vos emails, y compris le dossier <strong>spam ou courriers indésirables</strong>.
                   </p>
                   <Button variant="ghost" className="w-full" onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail(""); }}>
                     Retour à la connexion
