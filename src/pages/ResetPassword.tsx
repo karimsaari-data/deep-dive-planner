@@ -18,7 +18,14 @@ const ResetPassword = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Supabase met à jour la session automatiquement via le hash de l'URL
+    // Vérifie si Supabase a déjà traité le token avant le montage du composant
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setReady(true);
+      }
+    });
+
+    // Écoute l'événement au cas où il arrive après le montage
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setReady(true);
