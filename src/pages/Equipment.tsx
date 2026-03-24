@@ -22,6 +22,7 @@ import {
   useTransferEquipment,
   useDecommissionEquipment,
   useEncadrants,
+  useAllEncadrants,
   useEquipmentHistory,
   EquipmentInventoryItem,
 } from "@/hooks/useEquipment";
@@ -648,7 +649,7 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
 
 const GlobalInventoryTab = () => {
   const { data: inventory, isLoading } = useGlobalEquipmentInventory();
-  const { data: encadrants } = useEncadrants();
+  const { data: encadrants } = useAllEncadrants();
   const [subTab, setSubTab] = useState<"synthesis" | "list" | "by-encadrant">("synthesis");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
 
