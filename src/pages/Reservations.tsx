@@ -129,6 +129,7 @@ const Reservations = () => {
                                 maxVisible={10}
                                 size="lg"
                                 showNames
+                                organizerId={reservation.outing?.organizer_id}
                               />
                             </div>
                           )}

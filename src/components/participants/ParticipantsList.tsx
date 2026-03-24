@@ -13,6 +13,7 @@ interface ParticipantsListProps {
   maxVisible?: number;
   size?: "sm" | "md" | "lg";
   showNames?: boolean;
+  organizerId?: string | null;
 }
 
 const ParticipantsList = ({
@@ -20,6 +21,7 @@ const ParticipantsList = ({
   maxVisible = 6,
   size = "sm",
   showNames = false,
+  organizerId,
 }: ParticipantsListProps) => {
   if (participants.length === 0) {
     return (
@@ -29,8 +31,12 @@ const ParticipantsList = ({
     );
   }
 
-  // Sort: Encadrants first, then by first_name
+  // Sort: organizer first, then encadrants, then by first_name
   const sortedParticipants = [...participants].sort((a, b) => {
+    const aIsOrg = organizerId ? a.id === organizerId : false;
+    const bIsOrg = organizerId ? b.id === organizerId : false;
+    if (aIsOrg && !bIsOrg) return -1;
+    if (!aIsOrg && bIsOrg) return 1;
     if (a.member_status === "Encadrant" && b.member_status !== "Encadrant") return -1;
     if (a.member_status !== "Encadrant" && b.member_status === "Encadrant") return 1;
     return a.first_name.localeCompare(b.first_name);
@@ -50,6 +56,7 @@ const ParticipantsList = ({
                 lastName={participant.last_name}
                 avatarUrl={participant.avatar_url}
                 memberStatus={participant.member_status}
+                isOrganizer={organizerId ? participant.id === organizerId : false}
                 size={size}
               />
               <span className="text-xs text-muted-foreground text-center max-w-[60px] truncate">
@@ -77,6 +84,7 @@ const ParticipantsList = ({
             lastName={participant.last_name}
             avatarUrl={participant.avatar_url}
             memberStatus={participant.member_status}
+            isOrganizer={organizerId ? participant.id === organizerId : false}
             size={size}
           />
         ))}

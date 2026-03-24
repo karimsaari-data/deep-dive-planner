@@ -1,12 +1,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Shield } from "lucide-react";
+import { Shield, Star } from "lucide-react";
 
 interface ParticipantAvatarProps {
   firstName: string;
   lastName: string;
   avatarUrl?: string | null;
   memberStatus?: string | null;
+  isOrganizer?: boolean;
   size?: "sm" | "md" | "lg";
 }
 
@@ -27,6 +28,7 @@ const ParticipantAvatar = ({
   lastName,
   avatarUrl,
   memberStatus,
+  isOrganizer = false,
   size = "sm",
 }: ParticipantAvatarProps) => {
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -38,23 +40,32 @@ const ParticipantAvatar = ({
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="relative inline-block">
-            <Avatar className={`${sizeClasses[size]} border-2 border-background shadow-sm`}>
+            <Avatar className={`${sizeClasses[size]} border-2 ${isOrganizer ? "border-amber-400" : "border-background"} shadow-sm`}>
               <AvatarImage src={avatarUrl ?? undefined} alt={fullName} />
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+              <AvatarFallback className={`text-xs font-medium ${isOrganizer ? "bg-amber-100 text-amber-800" : "bg-primary/10 text-primary"}`}>
                 {initials}
               </AvatarFallback>
             </Avatar>
-            {isEncadrant && (
+            {isOrganizer ? (
+              <div
+                className={`absolute ${badgeSizeClasses[size]} flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background`}
+              >
+                <Star className="h-2 w-2 fill-white" />
+              </div>
+            ) : isEncadrant ? (
               <div
                 className={`absolute ${badgeSizeClasses[size]} flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background`}
               >
                 <Shield className="h-2.5 w-2.5" />
               </div>
-            )}
+            ) : null}
           </div>
         </TooltipTrigger>
         <TooltipContent>
           <p className="font-medium">{fullName}</p>
+          {isOrganizer && (
+            <p className="text-xs text-amber-500">Organisateur</p>
+          )}
           {isEncadrant && (
             <p className="text-xs text-amber-500">Encadrant</p>
           )}
