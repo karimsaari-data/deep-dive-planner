@@ -1256,19 +1256,39 @@ const ClubMembersDirectory = () => {
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                <Checkbox
-                  id="is_encadrant"
-                  checked={seasonalFormData.is_encadrant ?? false}
-                  onCheckedChange={(checked) => setSeasonalFormData({ ...seasonalFormData, is_encadrant: !!checked })}
-                />
-                <Label htmlFor="is_encadrant" className="text-sm font-medium cursor-pointer">
-                  🤿 Est Encadrant ({getSeasonLabel(selectedSeason)})
-                  <span className="block text-xs text-muted-foreground font-normal">
-                    Cette personne encadre les sorties et a accès aux outils d'organisation
-                  </span>
-                </Label>
-              </div>
+              {(() => {
+                const currentLevelInfo = apneaLevels?.find(l => l.code === seasonalFormData.apnea_level);
+                const hasInstructorDiploma = currentLevelInfo?.is_instructor ?? false;
+                const warnNoLevel = (seasonalFormData.is_encadrant ?? false) && !hasInstructorDiploma;
+                return (
+                  <div className={`p-3 rounded-lg border ${warnNoLevel ? "bg-orange-50 border-orange-300 dark:bg-orange-950/20 dark:border-orange-700" : "bg-primary/5 border-primary/20"}`}>
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="is_encadrant"
+                        checked={seasonalFormData.is_encadrant ?? false}
+                        onCheckedChange={(checked) => {
+                          if (checked && !hasInstructorDiploma) {
+                            toast.warning("Attention : ce membre n'a pas de diplôme d'encadrant reconnu. Vérifiez son niveau apnée avant de valider.");
+                          }
+                          setSeasonalFormData({ ...seasonalFormData, is_encadrant: !!checked });
+                        }}
+                      />
+                      <Label htmlFor="is_encadrant" className="text-sm font-medium cursor-pointer">
+                        🤿 Est Encadrant ({getSeasonLabel(selectedSeason)})
+                        <span className="block text-xs text-muted-foreground font-normal">
+                          Cette personne encadre les sorties et a accès aux outils d'organisation
+                        </span>
+                      </Label>
+                    </div>
+                    {warnNoLevel && (
+                      <p className="mt-2 text-xs text-orange-700 dark:text-orange-400 flex items-center gap-1">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        Aucun diplôme d'encadrant détecté pour le niveau «&nbsp;{seasonalFormData.apnea_level || "non renseigné"}&nbsp;». Vérifiez le niveau apnée.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               <div>
                 <Label htmlFor="notes">Notes</Label>
                 <Textarea

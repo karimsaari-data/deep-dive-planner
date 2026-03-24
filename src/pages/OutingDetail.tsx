@@ -255,17 +255,19 @@ const OutingDetail = () => {
     (apneaLevels || []).map(l => [l.code, l])
   );
 
-  // Sort participants: organizer first, then instructors, then others
+  // Sort participants: organizer first, then instructors (by member_status OR apnea level), then others
+  const isReservationEncadrant = (r: typeof confirmedReservations[number]) => {
+    if (r.profile?.member_status === "Encadrant") return true;
+    const li = apneaLevelMap.get(r.profile?.apnea_level ?? "");
+    return li?.is_instructor ?? false;
+  };
   const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
     const aIsOrganizer = a.user_id === outing.organizer_id;
     const bIsOrganizer = b.user_id === outing.organizer_id;
     if (aIsOrganizer && !bIsOrganizer) return -1;
     if (!aIsOrganizer && bIsOrganizer) return 1;
-
-    const aLevel = apneaLevelMap.get(a.profile?.apnea_level ?? "");
-    const bLevel = apneaLevelMap.get(b.profile?.apnea_level ?? "");
-    const aIsInstructor = aLevel?.is_instructor ?? false;
-    const bIsInstructor = bLevel?.is_instructor ?? false;
+    const aIsInstructor = isReservationEncadrant(a);
+    const bIsInstructor = isReservationEncadrant(b);
     if (aIsInstructor && !bIsInstructor) return -1;
     if (!aIsInstructor && bIsInstructor) return 1;
     return 0;
@@ -536,111 +538,167 @@ const OutingDetail = () => {
           )}
 
           {/* 2. Participants - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
+          {(() => {
+            // A person is an encadrant if their member_status = 'Encadrant' (admin-controlled, always up to date)
+            // OR if their apnea level is flagged as instructor in the apnea_levels table.
+            const isEncadrant = (r: typeof sortedConfirmed[number]) => {
+              if (r.profile?.member_status === "Encadrant") return true;
+              const li = apneaLevelMap.get(r.profile?.apnea_level ?? "");
+              return li?.is_instructor ?? false;
+            };
+
+            // Separate confirmed reservations into instructors and regular participants
+            const confirmedInstructors = sortedConfirmed.filter(isEncadrant);
+            const confirmedParticipants = sortedConfirmed.filter(r => !isEncadrant(r));
+
+            // Effective max = sum of each instructor's max_participants_encadrement
+            const effectiveMax = confirmedInstructors.length > 0
+              ? confirmedInstructors.reduce((sum, r) => {
+                  const li = apneaLevelMap.get(r.profile?.apnea_level ?? "");
+                  return sum + (li?.max_participants_encadrement ?? outing.max_participants);
+                }, 0)
+              : outing.max_participants;
+
+            const renderRow = (reservation: typeof sortedConfirmed[number]) => {
+              const profile = reservation.profile;
+              const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
+              const isOrg = reservation.user_id === outing.organizer_id;
+              const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
+              const isInstructor = isEncadrant(reservation);
+              const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
+              return (
+                <div
+                  key={reservation.id}
+                  className={`flex items-center justify-between rounded-lg border p-3 ${
+                    isOrg
+                      ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
+                      : isInstructor
+                        ? "border-blue-200 bg-blue-50/60 dark:bg-blue-950/20 dark:border-blue-700"
+                        : "border-border bg-muted/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="relative focus:outline-none"
+                      onClick={() => profile && setSelectedContact({
+                        firstName: profile.first_name ?? "",
+                        lastName: profile.last_name ?? "",
+                        avatarUrl: profile.avatar_url ?? null,
+                        email: profile.email ?? null,
+                        phone: participantPhones?.get((profile.email ?? "").toLowerCase()) ?? null,
+                      })}
+                    >
+                      <Avatar className="h-10 w-10 transition-opacity hover:opacity-80">
+                        <AvatarImage src={profile?.avatar_url ?? undefined} />
+                        <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : isInstructor ? "bg-blue-100 text-blue-800" : "bg-primary/10 text-primary"}`}>
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {isInstructor && (
+                        <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
+                          <Shield className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">
+                          {profile?.first_name} {profile?.last_name}
+                        </p>
+                        {isOrg && (
+                          <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
+                        )}
+                        {isInstructor && !isOrg && (
+                          <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">Encadrant</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {profile?.apnea_level && (
+                          <Badge variant={isInstructor ? "default" : "outline"} className={`text-xs ${isInstructor ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300" : ""}`}>
+                            {profile.apnea_level}
+                          </Badge>
+                        )}
+                        {depth && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                            <ArrowDown className="h-3 w-3" />
+                            {depth}
+                          </span>
+                        )}
+                        {reservation.carpool_option === "driver" && (
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            <Car className="h-3 w-3" /> {reservation.carpool_seats} places
+                          </Badge>
+                        )}
+                        {reservation.carpool_option === "passenger" && (
+                          <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {canMarkAttendance && canEditPresenceAndReport && (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={reservation.is_present}
+                        onCheckedChange={(checked) =>
+                          updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">Présent</span>
+                    </div>
+                  )}
+                  {canMarkAttendance && !canEditPresenceAndReport && (
+                    <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
+                      {reservation.is_present ? "Présent" : "Absent"}
+                    </Badge>
+                  )}
+                </div>
+              );
+            };
+
+            return (
           <Card className="shadow-card my-6">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 flex-wrap">
                 <Users className="h-5 w-5 text-primary" />
-                Participants confirmés ({confirmedReservations.length}/{outing.max_participants})
+                Participants confirmés ({confirmedReservations.length}/{effectiveMax})
+                {confirmedInstructors.length >= 2 && (
+                  <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300">
+                    {confirmedInstructors.length} encadrants · capacité ×{confirmedInstructors.length}
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {sortedConfirmed.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">Aucun inscrit</p>
               ) : (
-                <div className="space-y-2">
-                  {sortedConfirmed.map((reservation) => {
-                    const profile = reservation.profile;
-                    const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
-                    const isOrg = reservation.user_id === outing.organizer_id;
-                    const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
-                    const isInstructor = levelInfo?.is_instructor ?? false;
-                    const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
-
-                    return (
-                      <div
-                        key={reservation.id}
-                        className={`flex items-center justify-between rounded-lg border p-3 ${
-                          isOrg
-                            ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
-                            : "border-border bg-muted/30"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            className="relative focus:outline-none"
-                            onClick={() => profile && setSelectedContact({
-                              firstName: profile.first_name ?? "",
-                              lastName: profile.last_name ?? "",
-                              avatarUrl: profile.avatar_url ?? null,
-                              email: profile.email ?? null,
-                              phone: participantPhones?.get((profile.email ?? "").toLowerCase()) ?? null,
-                            })}
-                          >
-                            <Avatar className="h-10 w-10 transition-opacity hover:opacity-80">
-                              <AvatarImage src={profile?.avatar_url ?? undefined} />
-                              <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
-                                {initials}
-                              </AvatarFallback>
-                            </Avatar>
-                            {isInstructor && (
-                              <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
-                                <Shield className="h-3 w-3 text-white" />
-                              </div>
-                            )}
-                          </button>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-foreground">
-                                {profile?.first_name} {profile?.last_name}
-                              </p>
-                              {isOrg && (
-                                <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                              {profile?.apnea_level && (
-                                <Badge variant={isInstructor ? "default" : "outline"} className={`text-xs ${isInstructor ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300" : ""}`}>
-                                  {profile.apnea_level}
-                                </Badge>
-                              )}
-                              {depth && (
-                                <span className="text-xs text-muted-foreground flex items-center gap-0.5">
-                                  <ArrowDown className="h-3 w-3" />
-                                  {depth}
-                                </span>
-                              )}
-                              {reservation.carpool_option === "driver" && (
-                                <Badge variant="secondary" className="text-xs gap-1">
-                                  <Car className="h-3 w-3" /> {reservation.carpool_seats} places
-                                </Badge>
-                              )}
-                              {reservation.carpool_option === "passenger" && (
-                                <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {canMarkAttendance && canEditPresenceAndReport && (
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              checked={reservation.is_present}
-                              onCheckedChange={(checked) =>
-                                updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
-                              }
-                            />
-                            <span className="text-sm text-muted-foreground">Présent</span>
-                          </div>
-                        )}
-                        {canMarkAttendance && !canEditPresenceAndReport && (
-                          <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
-                            {reservation.is_present ? "Présent" : "Absent"}
-                          </Badge>
-                        )}
+                <div className="space-y-3">
+                  {confirmedInstructors.length > 0 && (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 flex items-center gap-1.5 px-1">
+                        <Shield className="h-3.5 w-3.5" />
+                        Encadrant{confirmedInstructors.length > 1 ? "s" : ""} ({confirmedInstructors.length})
+                      </p>
+                      <div className="space-y-2">
+                        {confirmedInstructors.map(renderRow)}
                       </div>
-                    );
-                  })}
+                    </>
+                  )}
+                  {confirmedParticipants.length > 0 && (
+                    <>
+                      {confirmedInstructors.length > 0 && (
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 px-1 pt-1">
+                          <Users className="h-3.5 w-3.5" />
+                          Participants ({confirmedParticipants.length})
+                        </p>
+                      )}
+                      <div className="space-y-2">
+                        {confirmedParticipants.map(renderRow)}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -689,6 +747,8 @@ const OutingDetail = () => {
               )}
             </CardContent>
           </Card>
+            );
+          })()}
 
           {/* 3. Carpool Section - full width */}
           <CarpoolSection
