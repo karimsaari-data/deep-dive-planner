@@ -1,3 +1,4 @@
+import { Shield, Users } from "lucide-react";
 import ParticipantAvatar from "./ParticipantAvatar";
 
 interface Participant {
@@ -46,25 +47,58 @@ const ParticipantsList = ({
   const remainingCount = participants.length - maxVisible;
 
   if (showNames) {
+    const encadrants = visibleParticipants.filter(
+      p => p.member_status === "Encadrant" || (organizerId && p.id === organizerId)
+    );
+    const regularParticipants = visibleParticipants.filter(
+      p => p.member_status !== "Encadrant" && !(organizerId && p.id === organizerId)
+    );
+    const hasGroups = encadrants.length > 0 && regularParticipants.length > 0;
+
+    const renderAvatar = (participant: Participant) => (
+      <div key={participant.id} className="flex flex-col items-center gap-1">
+        <ParticipantAvatar
+          firstName={participant.first_name}
+          lastName={participant.last_name}
+          avatarUrl={participant.avatar_url}
+          memberStatus={participant.member_status}
+          isOrganizer={organizerId ? participant.id === organizerId : false}
+          size={size}
+        />
+        <span className="text-xs text-muted-foreground text-center max-w-[60px] truncate">
+          {participant.first_name}
+        </span>
+      </div>
+    );
+
     return (
       <div className="space-y-2">
-        <div className="flex flex-wrap gap-3">
-          {visibleParticipants.map((participant) => (
-            <div key={participant.id} className="flex flex-col items-center gap-1">
-              <ParticipantAvatar
-                firstName={participant.first_name}
-                lastName={participant.last_name}
-                avatarUrl={participant.avatar_url}
-                memberStatus={participant.member_status}
-                isOrganizer={organizerId ? participant.id === organizerId : false}
-                size={size}
-              />
-              <span className="text-xs text-muted-foreground text-center max-w-[60px] truncate">
-                {participant.first_name}
-              </span>
+        {hasGroups ? (
+          <>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 flex items-center gap-1 mb-1.5">
+                <Shield className="h-3 w-3" />
+                Encadrant{encadrants.length > 1 ? "s" : ""}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {encadrants.map(renderAvatar)}
+              </div>
             </div>
-          ))}
-        </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1 mb-1.5">
+                <Users className="h-3 w-3" />
+                Participants
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {regularParticipants.map(renderAvatar)}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {visibleParticipants.map(renderAvatar)}
+          </div>
+        )}
         {remainingCount > 0 && (
           <p className="text-xs text-muted-foreground">
             +{remainingCount} autres participants
