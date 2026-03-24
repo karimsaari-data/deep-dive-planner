@@ -83,6 +83,7 @@ import {
   MembershipYearlyStatus
 } from "@/hooks/useMembershipYearlyStatus";
 import { useApneaLevels } from "@/hooks/useApneaLevels";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -297,7 +298,15 @@ const ClubMembersDirectory = () => {
           is_encadrant: seasonalFormData.is_encadrant,
         },
       });
-      
+
+      // Sync profiles.member_status so the encadrant badge appears everywhere in the app
+      if (formData.email) {
+        await supabase
+          .from("profiles")
+          .update({ member_status: seasonalFormData.is_encadrant ? "Encadrant" : "Membre" })
+          .eq("email", formData.email.toLowerCase());
+      }
+
       setIsFormOpen(false);
       resetForm();
     } catch (error) {
