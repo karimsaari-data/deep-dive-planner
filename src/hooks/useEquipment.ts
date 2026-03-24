@@ -351,7 +351,7 @@ export const useEquipmentHistory = (inventoryId?: string) => {
   });
 };
 
-// Hook to get encadrants for transfer
+// Hook to get encadrants for transfer (profiles only)
 export const useEncadrants = () => {
   return useQuery({
     queryKey: ["encadrants"],
@@ -364,6 +364,59 @@ export const useEncadrants = () => {
 
       if (error) throw error;
       return data;
+    },
+  });
+};
+
+// Hook to get ALL encadrants for current season (profiles + directory members without account)
+export const useAllEncadrants = () => {
+  return useQuery({
+    queryKey: ["all-encadrants"],
+    queryFn: async () => {
+      const now = new Date();
+      const seasonYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear();
+
+      // Source 1: profiles with member_status = 'Encadrant'
+      const { data: profileEncadrants, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email")
+        .eq("member_status", "Encadrant");
+      if (profilesError) throw profilesError;
+
+      // Source 2: directory members marked encadrant this season
+      const { data: dirMembers, error: dirError } = await supabase
+        .from("club_members_directory")
+        .select("id, first_name, last_name, email, membership_yearly_status!inner(is_encadrant, season_year)")
+        .eq("membership_yearly_status.is_encadrant", true)
+        .eq("membership_yearly_status.season_year", seasonYear);
+      if (dirError) throw dirError;
+
+      // Build lookup: email → profile
+      const profileByEmail = new Map(
+        (profileEncadrants || [])
+          .filter(p => p.email)
+          .map(p => [p.email!.toLowerCase(), p])
+      );
+
+      const result: { id: string; first_name: string; last_name: string }[] = [];
+      const seenIds = new Set<string>();
+
+      // Add directory encadrants (matched to profile when possible)
+      for (const member of dirMembers || []) {
+        const email = member.email?.toLowerCase();
+        const profile = email ? profileByEmail.get(email) : null;
+        const id = profile?.id ?? member.id;
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+          result.push({
+            id,
+            first_name: profile?.first_name ?? member.first_name,
+            last_name: profile?.last_name ?? member.last_name,
+          });
+        }
+      }
+
+      return result.sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
     },
   });
 };
