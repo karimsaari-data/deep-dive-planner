@@ -31,6 +31,7 @@ import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import { EquipmentDetailSheet } from "@/components/equipment/EquipmentDetailSheet";
 import { EquipmentSynthesis } from "@/components/equipment/EquipmentSynthesis";
+import { EquipmentSynthesisByEncadrant } from "@/components/equipment/EquipmentSynthesisByEncadrant";
 const statusLabels: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   disponible: { label: "Disponible", variant: "default" },
   prêté: { label: "Prêté", variant: "secondary" },
@@ -647,7 +648,7 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
 
 const GlobalInventoryTab = () => {
   const { data: inventory, isLoading } = useGlobalEquipmentInventory();
-  const [subTab, setSubTab] = useState<"synthesis" | "list">("synthesis");
+  const [subTab, setSubTab] = useState<"synthesis" | "list" | "by-encadrant">("synthesis");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
 
   // Get unique owners from inventory
@@ -720,7 +721,7 @@ const GlobalInventoryTab = () => {
       <CardContent className="space-y-4">
         {/* Sub-tabs */}
         <Tabs value={subTab} onValueChange={(v) => setSubTab(v as typeof subTab)}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="synthesis" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Synthèse
@@ -728,6 +729,10 @@ const GlobalInventoryTab = () => {
             <TabsTrigger value="list" className="flex items-center gap-2">
               <List className="h-4 w-4" />
               Liste détaillée
+            </TabsTrigger>
+            <TabsTrigger value="by-encadrant" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Par encadrant
             </TabsTrigger>
           </TabsList>
 
@@ -738,6 +743,16 @@ const GlobalInventoryTab = () => {
               </div>
             ) : (
               <EquipmentSynthesis inventory={inventory || []} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="by-encadrant" className="mt-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <EquipmentSynthesisByEncadrant inventory={inventory || []} />
             )}
           </TabsContent>
 
