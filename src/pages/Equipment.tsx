@@ -648,6 +648,7 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
 
 const GlobalInventoryTab = () => {
   const { data: inventory, isLoading } = useGlobalEquipmentInventory();
+  const { data: encadrants } = useEncadrants();
   const [subTab, setSubTab] = useState<"synthesis" | "list" | "by-encadrant">("synthesis");
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
 
@@ -752,7 +753,7 @@ const GlobalInventoryTab = () => {
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : (
-              <EquipmentSynthesisByEncadrant inventory={inventory || []} />
+              <EquipmentSynthesisByEncadrant inventory={inventory || []} encadrants={encadrants || []} />
             )}
           </TabsContent>
 

@@ -1,8 +1,15 @@
 import { Shield } from "lucide-react";
 import { EquipmentInventoryItem } from "@/hooks/useEquipment";
 
+interface Encadrant {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 interface EquipmentSynthesisByEncadrantProps {
   inventory: EquipmentInventoryItem[];
+  encadrants: Encadrant[];
 }
 
 const ACTIVE_STATUSES = new Set(["disponible", "prêté"]);
@@ -50,15 +57,26 @@ interface EncadrantRow {
 
 export const EquipmentSynthesisByEncadrant = ({
   inventory,
+  encadrants,
 }: EquipmentSynthesisByEncadrantProps) => {
-  // Build rows grouped by owner, only active items
+  // Seed rowMap with all encadrants (even those with no inventory)
   const rowMap = new Map<string, EncadrantRow>();
+  for (const enc of encadrants) {
+    rowMap.set(enc.id, {
+      id: enc.id,
+      name: `${enc.first_name} ${enc.last_name}`,
+      counts: { planche: 0, bouee: 0, kit: 0, telephone: 0, autres: 0 },
+      valo: 0,
+    });
+  }
 
+  // Fill counts from inventory (active items only)
   for (const item of inventory) {
     if (!ACTIVE_STATUSES.has(item.status)) continue;
     if (!item.owner) continue;
 
     const ownerId = item.owner.id;
+    // If owner is not in encadrants list, add them anyway
     if (!rowMap.has(ownerId)) {
       rowMap.set(ownerId, {
         id: ownerId,
@@ -88,7 +106,7 @@ export const EquipmentSynthesisByEncadrant = ({
   }
 
   const rows = Array.from(rowMap.values()).sort((a, b) =>
-    a.name.localeCompare(b.name, "fr")
+    b.valo - a.valo || a.name.localeCompare(b.name, "fr")
   );
 
   if (rows.length === 0) {
