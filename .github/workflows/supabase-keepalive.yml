@@ -1,0 +1,24 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    - cron: '0 8 */3 * *'  # Toutes les 3 jours à 8h UTC
+  workflow_dispatch:       # Déclenchement manuel possible
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/outings?limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+          echo "Réponse HTTP: $response"
+          if [ "$response" != "200" ]; then
+            echo "Attention: Supabase a répondu avec le statut $response"
+            exit 1
+          else
+            echo "Supabase est actif et répond correctement"
+          fi
