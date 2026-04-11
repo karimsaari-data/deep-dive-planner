@@ -303,6 +303,12 @@ const LocationManager = () => {
               className="pl-9 w-[200px] md:w-[250px]"
             />
           </div>
+          <Button asChild variant="outline" size="sm" className="gap-2">
+            <a href="https://oxygen-map-forge.lovable.app" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4" />
+              Map Forge
+            </a>
+          </Button>
           <Dialog open={isDialogOpen} onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) {
