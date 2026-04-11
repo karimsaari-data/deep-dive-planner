@@ -83,12 +83,14 @@ const Index = () => {
                   Archives / Saisie passée
                 </Button>
               )}
-              <Button asChild variant="outline" className="gap-2">
-                <a href="https://clean-data-collector.lovable.app" target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-4 w-4" />
-                  Caractérisation
-                </a>
-              </Button>
+              {isAdmin && (
+                <Button asChild variant="outline" className="gap-2">
+                  <a href="https://clean-data-collector.lovable.app" target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Caractérisation
+                  </a>
+                </Button>
+              )}
               <OutingFilters activeFilter={typeFilter} onFilterChange={setTypeFilter} />
             </div>
           </div>
