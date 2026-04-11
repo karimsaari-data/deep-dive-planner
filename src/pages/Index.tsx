@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Waves, Loader2, History } from "lucide-react";
+import { Waves, Loader2, History, ExternalLink } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import OutingCard from "@/components/outings/OutingCard";
 import OutingFilters from "@/components/outings/OutingFilters";
@@ -83,6 +83,12 @@ const Index = () => {
                   Archives / Saisie passée
                 </Button>
               )}
+              <Button asChild variant="outline" className="gap-2">
+                <a href="https://clean-data-collector.lovable.app" target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  Caractérisation
+                </a>
+              </Button>
               <OutingFilters activeFilter={typeFilter} onFilterChange={setTypeFilter} />
             </div>
           </div>
