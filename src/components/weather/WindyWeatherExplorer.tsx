@@ -23,10 +23,10 @@ interface ForecastDaySummary {
 }
 
 const getOverallCondition = (avgWind: number, avgWave: number): { color: "green" | "orange" | "red"; } => {
-  // Red: strong wind (>=30) OR rough sea (>=1.5m)
-  if (avgWind >= 30 || avgWave >= 1.5) return { color: "red" };
-  // Orange: moderate wind (>=20) OR moderate sea (>=1.0m)
-  if (avgWind >= 20 || avgWave >= 1.0) return { color: "orange" };
+  // Red: strong wind (>=30) OR rough sea (>=1.0m) — apnée dangereuse
+  if (avgWind >= 30 || avgWave >= 1.0) return { color: "red" };
+  // Orange: moderate wind (>=20) OR moderate sea (>=0.6m) — au-delà c'est moyen pour l'apnée
+  if (avgWind >= 20 || avgWave >= 0.6) return { color: "orange" };
   // Green: calm
   return { color: "green" };
 };
