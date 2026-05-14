@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useOutings } from "@/hooks/useOutings";
+import { useOutings, useCoInstructedOutings } from "@/hooks/useOutings";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,9 +37,10 @@ const MesSorties = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const { isOrganizer, loading: roleLoading } = useUserRole();
+  const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
   const { data: outings, isLoading } = useOutings();
+  const { data: coInstructedOutings, isLoading: isLoadingCoInstructed } = useCoInstructedOutings();
   const { data: locations } = useLocations();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -85,11 +86,11 @@ const MesSorties = () => {
     if (!authLoading && !roleLoading) {
       if (!user) {
         navigate("/auth");
-      } else if (!isOrganizer) {
+      } else if (!isOrganizer && !isAdmin && !isEncadrantFromDirectory) {
         navigate("/");
       }
     }
-  }, [user, isOrganizer, authLoading, roleLoading, navigate]);
+  }, [user, isOrganizer, isAdmin, isEncadrantFromDirectory, authLoading, roleLoading, navigate]);
 
   // Clear prefilled location after form closes
   const handleFormClose = () => {
@@ -104,7 +105,7 @@ const MesSorties = () => {
     ? locations?.find(l => l.id === prefilledLocationId)
     : undefined;
 
-  if (authLoading || roleLoading) {
+  if (authLoading || roleLoading || isLoading || isLoadingCoInstructed) {
     return (
       <Layout>
         <div className="flex min-h-[50vh] items-center justify-center">
@@ -114,12 +115,17 @@ const MesSorties = () => {
     );
   }
 
-  if (!isOrganizer) {
+  if (!isOrganizer && !isAdmin && !isEncadrantFromDirectory) {
     return null;
   }
 
-  // Filter outings to show only those created by the current user
-  const myOutings = outings?.filter((outing) => outing.organizer_id === user?.id) || [];
+  // Merge own outings + co-instructed outings (deduplicate by id, sort by date)
+  const ownOutings = outings?.filter((outing) => outing.organizer_id === user?.id) || [];
+  const ownOutingIds = new Set(ownOutings.map((o) => o.id));
+  const coOutings = (coInstructedOutings || []).filter((o) => !ownOutingIds.has(o.id));
+  const myOutings = [...ownOutings, ...coOutings].sort(
+    (a, b) => new Date(a.date_time).getTime() - new Date(b.date_time).getTime()
+  );
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -191,7 +197,8 @@ const MesSorties = () => {
                 <div className="grid gap-4 md:grid-cols-2">
                   {myOutings.map((outing) => {
                     const confirmedCount = outing.confirmed_count ?? 0;
-                    
+                    const isCoInstructed = outing.organizer_id !== user?.id;
+
                     return (
                       <div
                         key={outing.id}
@@ -200,9 +207,16 @@ const MesSorties = () => {
                         <Link to={`/outing/${outing.id}/manage`} className="block">
                           <div className="mb-2 flex items-start justify-between">
                             <div>
-                              <h4 className="font-medium text-foreground">
-                                {outing.title}
-                              </h4>
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <h4 className="font-medium text-foreground">
+                                  {outing.title}
+                                </h4>
+                                {isCoInstructed && (
+                                  <Badge variant="outline" className="text-xs border-primary/50 text-primary">
+                                    Co-encadrant
+                                  </Badge>
+                                )}
+                              </div>
                               <p className="text-sm text-muted-foreground">
                                 {format(new Date(outing.date_time), "d MMMM yyyy 'à' HH'h'mm", {
                                   locale: fr,

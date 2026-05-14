@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle, UserPlus, X } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { formatFullName } from "@/lib/formatName";
 
@@ -35,7 +35,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor } from "@/hooks/useOutings";
+import { useMembersForEncadrant } from "@/hooks/useMembersForEncadrant";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -73,11 +74,16 @@ const OutingDetail = () => {
   const unlockPOSS = useUnlockPOSS();
   const possGenerator = usePOSSGenerator();
   const { data: apneaLevels } = useApneaLevels();
+  const addCoInstructor = useAddCoInstructor();
+  const removeCoInstructor = useRemoveCoInstructor();
+  const { data: allMembers } = useMembersForEncadrant();
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
   const [linkCopied, setLinkCopied] = useState(false);
   const [sosModalOpen, setSosModalOpen] = useState(false);
   const [isGeneratingPOSS, setIsGeneratingPOSS] = useState(false);
+  const [coInstructorSearch, setCoInstructorSearch] = useState("");
+  const [coInstructorPickerOpen, setCoInstructorPickerOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<{
     firstName: string; lastName: string; avatarUrl: string | null; email: string | null; phone: string | null;
   } | null>(null);
@@ -174,11 +180,12 @@ const OutingDetail = () => {
     }
   }, [outing?.session_report]);
 
-  // Redirect if not the organizer of this specific outing or admin
+  // Redirect if not the organizer, co-instructor or admin of this specific outing
   useEffect(() => {
     if (!authLoading && !roleLoading && !isLoading && outing) {
       const isOutingOrganizerCheck = user?.id === outing.organizer_id;
-      if (!isOutingOrganizerCheck && !isAdmin) {
+      const isCoInstructorCheck = outing.co_instructors?.some((ci) => ci.user_id === user?.id) ?? false;
+      if (!isOutingOrganizerCheck && !isCoInstructorCheck && !isAdmin) {
         navigate("/");
       }
     }
@@ -213,11 +220,12 @@ const OutingDetail = () => {
   const mapsUrl = outing.location_details?.maps_url;
   const hasActiveReservations = confirmedReservations.length > 0 || waitlistedReservations.length > 0;
   
-  // Check if user is the organizer of this specific outing OR is admin
+  // Check if user is the organizer, co-instructor or admin of this outing
   const isOutingOrganizer = user?.id === outing.organizer_id;
-  const canEditPresenceAndReport = isOutingOrganizer || isAdmin;
-  // Only the organizer of the outing or admin can cancel it
-  const canCancelOuting = isOutingOrganizer || isAdmin;
+  const isCoInstructor = outing.co_instructors?.some((ci) => ci.user_id === user?.id) ?? false;
+  const canManageOuting = isOutingOrganizer || isCoInstructor || isAdmin;
+  const canEditPresenceAndReport = canManageOuting;
+  const canCancelOuting = canManageOuting;
   
   // Check if outing can be archived (past, has attendance marked, not already archived)
   const hasAttendanceMarked = confirmedReservations.some(r => r.is_present);
@@ -501,7 +509,7 @@ const OutingDetail = () => {
             {outing.organizer && (
               <div className="mt-4 space-y-2">
                 <p className="text-sm text-muted-foreground">
-                  Encadrant : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
+                  Encadrant principal : <span className="font-medium text-foreground">{formatFullName(outing.organizer.first_name, outing.organizer.last_name)}</span>
                 </p>
                 {outing.outing_type !== "Piscine" && (outing.organizer_max_depth_eaa || outing.organizer_max_depth_eao) && (() => {
                   const isOpenWater = outing.outing_type === "Mer" || outing.outing_type === "Étang" || outing.outing_type === "Dépollution";
@@ -524,6 +532,84 @@ const OutingDetail = () => {
                 })()}
               </div>
             )}
+
+            {/* Co-instructors: display + management */}
+            {(() => {
+              const existingCoInstructorIds = new Set(outing.co_instructors?.map((ci) => ci.user_id) ?? []);
+              const filteredMembers = (allMembers ?? []).filter(
+                (m) => m.id !== outing.organizer_id && !existingCoInstructorIds.has(m.id) &&
+                  (coInstructorSearch === "" ||
+                    `${m.first_name} ${m.last_name}`.toLowerCase().includes(coInstructorSearch.toLowerCase()))
+              );
+
+              return (
+                <div className="mt-3 space-y-2">
+                  {/* Existing co-instructors */}
+                  {(outing.co_instructors ?? []).map((ci) => (
+                    <div key={ci.user_id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4 text-primary" />
+                      <span>
+                        Co-encadrant : <span className="font-medium text-foreground">
+                          {ci.profile ? formatFullName(ci.profile.first_name, ci.profile.last_name) : ci.user_id}
+                        </span>
+                      </span>
+                      {isOutingOrganizer && (
+                        <button
+                          onClick={() => removeCoInstructor.mutate({ outingId: outing.id, userId: ci.user_id })}
+                          className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                          title="Retirer ce co-encadrant"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Add co-instructor button (organizer only, future outings) */}
+                  {isOutingOrganizer && !isPast && (
+                    <Popover open={coInstructorPickerOpen} onOpenChange={setCoInstructorPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2 h-8 text-xs">
+                          <UserPlus className="h-3.5 w-3.5" />
+                          Ajouter un co-encadrant
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-3">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Choisir un co-encadrant</p>
+                          <input
+                            className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                            placeholder="Rechercher par nom..."
+                            value={coInstructorSearch}
+                            onChange={(e) => setCoInstructorSearch(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="max-h-48 overflow-y-auto space-y-0.5">
+                            {filteredMembers.length === 0 ? (
+                              <p className="text-xs text-muted-foreground py-2 text-center">Aucun résultat</p>
+                            ) : (
+                              filteredMembers.map((m) => (
+                                <button
+                                  key={m.id}
+                                  className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                                  onClick={() => {
+                                    addCoInstructor.mutate({ outingId: outing.id, userId: m.id });
+                                    setCoInstructorPickerOpen(false);
+                                    setCoInstructorSearch("");
+                                  }}
+                                >
+                                  {formatFullName(m.first_name, m.last_name)}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* 1. Weather summary banner at top */}

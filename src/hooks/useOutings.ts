@@ -27,6 +27,16 @@ export interface Reservation {
   };
 }
 
+export interface CoInstructor {
+  user_id: string;
+  profile: {
+    first_name: string;
+    last_name: string;
+    apnea_level: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
 export interface Outing {
   id: string;
   title: string;
@@ -49,6 +59,7 @@ export interface Outing {
   dive_mode?: "boat" | "shore" | null;
   boat_id?: string | null;
   confirmed_count?: number; // Real count from SECURITY DEFINER function
+  co_instructors?: CoInstructor[];
   organizer?: {
     first_name: string;
     last_name: string;
@@ -91,6 +102,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           *,
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
           location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth),
+          co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
           reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
         `)
         .eq("is_deleted", false)
@@ -163,6 +175,7 @@ export const useOuting = (outingId: string) => {
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
           location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth, satellite_map_url, bathymetric_map_url),
           boat:boats(id, name, registration_number, pilot_name, pilot_phone, oxygen_location, home_port),
+          co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name, apnea_level, avatar_url)),
           reservations(
             id,
             user_id,
@@ -225,7 +238,8 @@ export const useMyReservations = () => {
           outing:outings(
             *,
             organizer:profiles!outings_organizer_id_fkey(first_name, last_name),
-            location_details:locations(id, name, address, maps_url)
+            location_details:locations(id, name, address, maps_url),
+            co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name, avatar_url))
           )
         `)
         .eq("user_id", user.id)
@@ -644,6 +658,95 @@ export const useUnlockPOSS = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors du déverrouillage");
+    },
+  });
+};
+
+export const useCoInstructedOutings = () => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["co-instructed-outings", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from("outing_co_instructors")
+        .select(`
+          outing:outings(
+            *,
+            organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
+            location_details:locations(id, name, address, maps_url),
+            reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
+          )
+        `)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+
+      const now = new Date();
+      const outings = (data || [])
+        .map((d) => d.outing)
+        .filter((o): o is NonNullable<typeof o> => !!o && !o.is_deleted)
+        .filter((o) => {
+          const endDate = o.end_date ? new Date(o.end_date) : new Date(o.date_time);
+          return endDate > now;
+        });
+
+      const outingsWithCounts = await Promise.all(
+        outings.map(async (outing) => {
+          const { data: countData } = await supabase
+            .rpc("get_outing_confirmed_count", { outing_uuid: outing.id });
+          return { ...outing, confirmed_count: countData ?? 0 };
+        })
+      );
+
+      return outingsWithCounts as Outing[];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useAddCoInstructor = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ outingId, userId }: { outingId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("outing_co_instructors")
+        .insert({ outing_id: outingId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["co-instructed-outings"] });
+      toast.success("Co-encadrant ajouté");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'ajout");
+    },
+  });
+};
+
+export const useRemoveCoInstructor = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ outingId, userId }: { outingId: string; userId: string }) => {
+      const { error } = await supabase
+        .from("outing_co_instructors")
+        .delete()
+        .eq("outing_id", outingId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["co-instructed-outings"] });
+      toast.success("Co-encadrant retiré");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la suppression");
     },
   });
 };
