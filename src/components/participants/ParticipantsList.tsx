@@ -53,8 +53,6 @@ const ParticipantsList = ({
     const regularParticipants = visibleParticipants.filter(
       p => p.member_status !== "Encadrant" && !(organizerId && p.id === organizerId)
     );
-    const hasGroups = encadrants.length > 0 && regularParticipants.length > 0;
-
     const renderAvatar = (participant: Participant) => (
       <div key={participant.id} className="flex flex-col items-center gap-1">
         <ParticipantAvatar
@@ -73,7 +71,7 @@ const ParticipantsList = ({
 
     return (
       <div className="space-y-2">
-        {hasGroups ? (
+        {encadrants.length > 0 ? (
           <>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 flex items-center gap-1 mb-1.5">
@@ -84,15 +82,17 @@ const ParticipantsList = ({
                 {encadrants.map(renderAvatar)}
               </div>
             </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1 mb-1.5">
-                <Users className="h-3 w-3" />
-                Participants
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {regularParticipants.map(renderAvatar)}
+            {regularParticipants.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1 mb-1.5">
+                  <Users className="h-3 w-3" />
+                  Participants
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {regularParticipants.map(renderAvatar)}
+                </div>
               </div>
-            </div>
+            )}
           </>
         ) : (
           <div className="flex flex-wrap gap-3">
