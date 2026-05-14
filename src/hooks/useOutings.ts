@@ -707,6 +707,51 @@ export const useCoInstructedOutings = () => {
   });
 };
 
+/** Recalculate max_participants = sum of each instructor's max_participants_encadrement */
+const recalculateMaxParticipants = async (outingId: string): Promise<void> => {
+  // Fetch organizer apnea_level
+  const { data: outing } = await supabase
+    .from("outings")
+    .select("organizer_id, organizer:profiles!outings_organizer_id_fkey(apnea_level)")
+    .eq("id", outingId)
+    .single();
+
+  if (!outing) return;
+
+  // Fetch co-instructors apnea levels
+  const { data: coInstructors } = await supabase
+    .from("outing_co_instructors")
+    .select("profile:profiles(apnea_level)")
+    .eq("outing_id", outingId);
+
+  // Collect all non-null apnea levels
+  const levels = [
+    (outing.organizer as any)?.apnea_level,
+    ...((coInstructors ?? []).map((ci) => (ci.profile as any)?.apnea_level)),
+  ].filter(Boolean) as string[];
+
+  if (levels.length === 0) return;
+
+  // Fetch encadrement limits
+  const { data: levelData } = await supabase
+    .from("apnea_levels")
+    .select("code, max_participants_encadrement")
+    .in("code", levels);
+
+  const levelMap = new Map(
+    (levelData ?? []).map((l) => [l.code, l.max_participants_encadrement ?? 0])
+  );
+
+  const total = levels.reduce((sum, code) => sum + (levelMap.get(code) ?? 0), 0);
+
+  if (total > 0) {
+    await supabase
+      .from("outings")
+      .update({ max_participants: total })
+      .eq("id", outingId);
+  }
+};
+
 export const useAddCoInstructor = () => {
   const queryClient = useQueryClient();
 
@@ -716,9 +761,11 @@ export const useAddCoInstructor = () => {
         .from("outing_co_instructors")
         .insert({ outing_id: outingId, user_id: userId });
       if (error) throw error;
+      await recalculateMaxParticipants(outingId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["co-instructed-outings"] });
       toast.success("Co-encadrant ajouté");
     },
@@ -739,9 +786,11 @@ export const useRemoveCoInstructor = () => {
         .eq("outing_id", outingId)
         .eq("user_id", userId);
       if (error) throw error;
+      await recalculateMaxParticipants(outingId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["co-instructed-outings"] });
       toast.success("Co-encadrant retiré");
     },
