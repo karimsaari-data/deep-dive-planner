@@ -116,23 +116,52 @@ const Reservations = () => {
                           </div>
 
                           {/* Participants trombinoscope */}
-                          {reservation.participants && reservation.participants.length > 0 && (
-                            <div className="mt-4 pt-3 border-t border-border/50">
-                              <div className="flex items-center gap-2 mb-3">
-                                <Users className="h-4 w-4 text-primary" />
-                                <span className="text-sm font-medium text-foreground">
-                                  Participants ({reservation.participants.length})
-                                </span>
+                          {(() => {
+                            // Co-instructors always shown as encadrants regardless of profile member_status
+                            const coInstructorIds = new Set(
+                              (reservation.outing?.co_instructors ?? []).map((ci: any) => ci.user_id)
+                            );
+
+                            // Override member_status for participants who are co-instructors
+                            const participantsWithRoles = (reservation.participants ?? []).map((p) => ({
+                              ...p,
+                              member_status: coInstructorIds.has(p.id) ? "Encadrant" : p.member_status,
+                            }));
+
+                            // Add co-instructors who have no reservation (not in participants list)
+                            const participantIdSet = new Set(participantsWithRoles.map((p) => p.id));
+                            const additionalInstructors = (reservation.outing?.co_instructors ?? [])
+                              .filter((ci: any) => ci.profile && !participantIdSet.has(ci.user_id))
+                              .map((ci: any) => ({
+                                id: ci.user_id,
+                                first_name: ci.profile.first_name,
+                                last_name: ci.profile.last_name,
+                                avatar_url: ci.profile.avatar_url ?? null,
+                                member_status: "Encadrant" as const,
+                              }));
+
+                            const allParticipants = [...participantsWithRoles, ...additionalInstructors];
+
+                            if (allParticipants.length === 0) return null;
+
+                            return (
+                              <div className="mt-4 pt-3 border-t border-border/50">
+                                <div className="flex items-center gap-2 mb-3">
+                                  <Users className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-medium text-foreground">
+                                    Participants ({allParticipants.length})
+                                  </span>
+                                </div>
+                                <ParticipantsList
+                                  participants={allParticipants}
+                                  maxVisible={10}
+                                  size="lg"
+                                  showNames
+                                  organizerId={reservation.outing?.organizer_id}
+                                />
                               </div>
-                              <ParticipantsList
-                                participants={reservation.participants}
-                                maxVisible={10}
-                                size="lg"
-                                showNames
-                                organizerId={reservation.outing?.organizer_id}
-                              />
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           <Button
                             variant="outline"

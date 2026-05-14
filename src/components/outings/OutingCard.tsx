@@ -202,12 +202,23 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
             />
           </div>
 
-          {outing.organizer && (
+          {(outing.organizer || (outing.co_instructors && outing.co_instructors.length > 0)) && (
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <User className="h-4 w-4 text-primary" />
                 <span>
-                  {formatFullName(outing.organizer.first_name, outing.organizer.last_name)}
+                  {[
+                    outing.organizer
+                      ? formatFullName(outing.organizer.first_name, outing.organizer.last_name)
+                      : null,
+                    ...(outing.co_instructors ?? []).map((ci) =>
+                      ci.profile
+                        ? formatFullName(ci.profile.first_name, ci.profile.last_name)
+                        : null
+                    ),
+                  ]
+                    .filter(Boolean)
+                    .join(" & ")}
                 </span>
               </div>
               {/* Display max depth for instructor based on environment (not for pool < 6m) */}
