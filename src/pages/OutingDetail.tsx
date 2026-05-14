@@ -36,7 +36,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor } from "@/hooks/useOutings";
-import { useMembersForEncadrant } from "@/hooks/useMembersForEncadrant";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -76,7 +75,17 @@ const OutingDetail = () => {
   const { data: apneaLevels } = useApneaLevels();
   const addCoInstructor = useAddCoInstructor();
   const removeCoInstructor = useRemoveCoInstructor();
-  const { data: allMembers } = useMembersForEncadrant();
+  const { data: allMembers } = useQuery({
+    queryKey: ["profiles-picker"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .order("last_name");
+      if (error) throw error;
+      return data as { id: string; first_name: string; last_name: string }[];
+    },
+  });
   const [sessionReport, setSessionReport] = useState("");
   const [cancelReason, setCancelReason] = useState("Météo défavorable");
   const [linkCopied, setLinkCopied] = useState(false);
