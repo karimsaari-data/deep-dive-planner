@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { v4 as uuidv4 } from "uuid";
-import { getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons } from "@/hooks/useMembershipYearlyStatus";
+import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
+import { useMembershipYearlyStatus, getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons } from "@/hooks/useMembershipYearlyStatus";
 import type { Poll, Vote, DirectoryMember, PollOption } from "@/types/sondages";
 
 interface UndoToast { voteId: string; memberName: string; timerId: ReturnType<typeof setTimeout> }
@@ -24,29 +24,10 @@ export default function SondagesAdmin() {
   const availableSeasons = getAvailableSeasons();
   const [loading, setLoading] = useState(true);
 
-  const { data: allMembers = [] } = useQuery({
-    queryKey: ["sondages-members"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("club_members_directory")
-        .select("id, first_name, last_name, email, phone, apnea_level, gender")
-        .order("last_name");
-      if (error) throw error;
-      return data as DirectoryMember[];
-    },
-  });
+  const { members: allMembersRaw = [] } = useClubMembersDirectory();
+  const allMembers = allMembersRaw as unknown as DirectoryMember[];
 
-  const { data: seasonStatuses = [] } = useQuery({
-    queryKey: ["sondages-season-ids", selectedSeason],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("membership_yearly_status")
-        .select("member_id")
-        .eq("season_year", selectedSeason);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { statuses: seasonStatuses = [] } = useMembershipYearlyStatus(selectedSeason);
 
   const activeMembers = useMemo(() => {
     if (!seasonStatuses.length) return allMembers;
