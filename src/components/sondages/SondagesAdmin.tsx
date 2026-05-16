@@ -26,7 +26,7 @@ export default function SondagesAdmin() {
   const [activeMemberIds, setActiveMemberIds] = useState<Set<string>>(new Set());
 
   const activeMembers = useMemo(() => {
-    if (activeMemberIds.size === 0) return [];
+    if (activeMemberIds.size === 0) return members; // query failed or loading → show all
     return members.filter(m => activeMemberIds.has(m.id));
   }, [members, activeMemberIds]);
 
@@ -71,13 +71,12 @@ export default function SondagesAdmin() {
   }
 
   async function loadSeasonIds(season: number) {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("membership_yearly_status")
       .select("member_id")
       .eq("season_year", season);
-    if (!error && data) {
-      setActiveMemberIds(new Set(data.map(r => r.member_id)));
-    }
+    // Always update — even empty array. Null (error) → keep existing or fallback.
+    setActiveMemberIds(new Set((data ?? []).map(r => r.member_id)));
   }
 
   async function loadVotes(pollId: string) {
