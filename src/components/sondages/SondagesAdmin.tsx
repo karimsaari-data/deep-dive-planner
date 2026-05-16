@@ -48,6 +48,14 @@ export default function SondagesAdmin() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<UndoToast | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Poll | null>(null);
+  const [openOptions, setOpenOptions] = useState<Set<string>>(new Set());
+  function toggleOption(optId: string) {
+    setOpenOptions(prev => {
+      const next = new Set(prev);
+      next.has(optId) ? next.delete(optId) : next.add(optId);
+      return next;
+    });
+  }
 
   useEffect(() => {
     loadPolls();
@@ -307,9 +315,6 @@ export default function SondagesAdmin() {
                 <div className="w-full bg-gray-100 rounded-full h-2.5">
                   <div className={`h-2.5 rounded-full transition-all ${i === 0 && count > 0 ? "bg-blue-500" : "bg-gray-300"}`} style={{ width: `${barWidth}%` }} />
                 </div>
-                {(optionCounts.voters[opt.id] ?? []).length > 0 && (
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">{optionCounts.voters[opt.id].join(", ")}</p>
-                )}
               </div>
             );
           })}
@@ -326,6 +331,50 @@ export default function SondagesAdmin() {
                 {v.member ? `${v.member.first_name} ${v.member.last_name}` : "?"}
               </span>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Detail per option */}
+      {votes.length > 0 && (
+        <div className="bg-white rounded-xl border mb-4 overflow-hidden">
+          <div className="px-5 py-3 border-b bg-gray-50">
+            <h3 className="font-semibold text-sm">Détail par réponse</h3>
+          </div>
+          <div className="divide-y">
+            {sortedOptions.map((opt, i) => {
+              const voters = optionCounts.voters[opt.id] ?? [];
+              const count = optionCounts.counts[opt.id] ?? 0;
+              const isOpen = openOptions.has(opt.id);
+              return (
+                <div key={opt.id}>
+                  <button
+                    onClick={() => toggleOption(opt.id)}
+                    className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      {i === 0 && count > 0 && <span className="text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-medium">N°1</span>}
+                      <span className="font-medium text-sm">{opt.label}</span>
+                      <span className="text-xs text-gray-400 ml-1">{count} vote{count > 1 ? "s" : ""}</span>
+                    </div>
+                    <span className="text-gray-400 text-sm">{isOpen ? "▲" : "▼"}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="px-5 pb-4">
+                      {voters.length === 0 ? (
+                        <p className="text-xs text-gray-400 italic">Aucun votant</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {voters.map((name, j) => (
+                            <span key={j} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">{name}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
