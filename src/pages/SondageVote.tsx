@@ -18,7 +18,6 @@ export default function SondageVote() {
   const [member, setMember] = useState<DirectoryMember | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [memberLookupError, setMemberLookupError] = useState<string>("");
 
   useEffect(() => {
     if (!authLoading) init();
@@ -45,8 +44,6 @@ export default function SondageVote() {
       .maybeSingle();
 
     if (!memberData) {
-      console.error("Member lookup failed:", memberError, "email:", email);
-      setMemberLookupError(memberError?.message ?? `no rows for ${email}`);
       setStep("no_member"); return;
     }
     setMember(memberData as DirectoryMember);
@@ -106,7 +103,6 @@ export default function SondageVote() {
         <p className="text-4xl">👤</p>
         <p className="font-medium">Compte non reconnu dans l'annuaire.</p>
         <p className="text-xs text-gray-400">Email connecté : {user?.email}</p>
-        {memberLookupError && <p className="text-xs text-red-400 mt-1">Erreur : {memberLookupError}</p>}
         <Button variant="outline" onClick={() => navigate("/")}>Accueil</Button>
       </div>
     </Layout>
