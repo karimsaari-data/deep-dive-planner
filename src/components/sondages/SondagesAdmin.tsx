@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { v4 as uuidv4 } from "uuid";
-import { getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons } from "@/hooks/useMembershipYearlyStatus";
+import { getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons, useMembershipYearlyStatus } from "@/hooks/useMembershipYearlyStatus";
 import type { Poll, Vote, DirectoryMember, PollOption } from "@/types/sondages";
 
 interface UndoToast { voteId: string; memberName: string; timerId: ReturnType<typeof setTimeout> }
@@ -20,10 +20,17 @@ export default function SondagesAdmin() {
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
   const [votes, setVotes] = useState<(Vote & { member?: DirectoryMember })[]>([]);
   const [members, setMembers] = useState<DirectoryMember[]>([]);
-  const [activeMembers, setActiveMembers] = useState<DirectoryMember[]>([]);
   const [selectedSeason, setSelectedSeason] = useState(getCurrentSeasonYear());
   const availableSeasons = getAvailableSeasons();
   const [loading, setLoading] = useState(true);
+
+  // Use proven hook for season membership (same as ClubMembersDirectory)
+  const { statuses: seasonStatuses } = useMembershipYearlyStatus(selectedSeason);
+  const activeMembers = useMemo(() => {
+    if (!seasonStatuses) return members;
+    const activeIds = new Set(seasonStatuses.map(s => s.member_id));
+    return members.filter(m => activeIds.has(m.id));
+  }, [members, seasonStatuses]);
 
   // Create form
   const [newTitle, setNewTitle] = useState("");
@@ -40,12 +47,9 @@ export default function SondagesAdmin() {
 
   useEffect(() => {
     loadPolls();
+    loadMembers();
     return () => { if (toast) clearTimeout(toast.timerId); };
   }, []);
-
-  useEffect(() => {
-    loadMembers(selectedSeason);
-  }, [selectedSeason]);
 
   async function loadPolls() {
     setLoading(true);
@@ -54,15 +58,12 @@ export default function SondagesAdmin() {
     setLoading(false);
   }
 
-  async function loadMembers(season: number) {
-    const [{ data: allData }, { data: seasonData }] = await Promise.all([
-      supabase.from("club_members_directory").select("id, first_name, last_name, email, phone, apnea_level, gender").order("last_name"),
-      supabase.from("membership_yearly_status").select("member_id").eq("season_year", season),
-    ]);
-    const all = (allData as DirectoryMember[]) ?? [];
-    const activeIds = new Set(seasonData?.map(s => s.member_id) ?? []);
-    setMembers(all);
-    setActiveMembers(all.filter(m => activeIds.has(m.id)));
+  async function loadMembers() {
+    const { data } = await supabase
+      .from("club_members_directory")
+      .select("id, first_name, last_name, email, phone, apnea_level, gender")
+      .order("last_name");
+    setMembers((data as DirectoryMember[]) ?? []);
   }
 
   async function loadVotes(pollId: string) {
