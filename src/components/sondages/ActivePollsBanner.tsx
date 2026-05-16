@@ -16,6 +16,10 @@ export default function ActivePollsBanner() {
   }, [user]);
 
   async function load() {
+    // Fresh user from auth (not stale React state)
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+
     // Active polls
     const { data: pollsData } = await supabase
       .from("polls")
@@ -29,14 +33,10 @@ export default function ActivePollsBanner() {
     const { data: memberData } = await supabase
       .from("club_members_directory")
       .select("id")
-      .ilike("email", user!.email!)
+      .eq("email", currentUser.email!.toLowerCase())
       .maybeSingle();
 
-    if (!memberData?.id) {
-      // Not in directory — show all active polls as unvoted
-      setUnvotedPolls(pollsData as Poll[]);
-      return;
-    }
+    if (!memberData?.id) return; // Not in directory — don't show banner
 
     // Votes already cast
     const { data: votesData } = await supabase

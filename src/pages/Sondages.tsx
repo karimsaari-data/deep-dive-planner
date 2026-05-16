@@ -23,15 +23,20 @@ export default function Sondages() {
   }, [authLoading, user]);
 
   async function load() {
-    const [{ data: pollsData }, { data: memberData }] = await Promise.all([
-      supabase.from("polls").select("*").eq("is_active", true).order("created_at", { ascending: false }),
-      user ? supabase.from("club_members_directory").select("id").ilike("email", user.email!).maybeSingle() : Promise.resolve({ data: null }),
-    ]);
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+    const { data: pollsData } = await supabase
+      .from("polls").select("*").eq("is_active", true).order("created_at", { ascending: false });
     setPolls((pollsData as Poll[]) ?? []);
 
-    if (memberData?.id) {
-      const { data: myVotes } = await supabase.from("votes").select("poll_id").eq("member_id", memberData.id);
-      setVotedIds(new Set(myVotes?.map(v => v.poll_id) ?? []));
+    if (currentUser?.email) {
+      const { data: memberData } = await supabase
+        .from("club_members_directory").select("id")
+        .eq("email", currentUser.email.toLowerCase()).maybeSingle();
+      if (memberData?.id) {
+        const { data: myVotes } = await supabase.from("votes").select("poll_id").eq("member_id", memberData.id);
+        setVotedIds(new Set(myVotes?.map(v => v.poll_id) ?? []));
+      }
     }
     setLoading(false);
   }
