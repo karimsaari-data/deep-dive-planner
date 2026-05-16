@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -19,16 +20,39 @@ export default function SondagesAdmin() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
   const [votes, setVotes] = useState<(Vote & { member?: DirectoryMember })[]>([]);
-  const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [selectedSeason, setSelectedSeason] = useState(getCurrentSeasonYear());
   const availableSeasons = getAvailableSeasons();
   const [loading, setLoading] = useState(true);
-  const [activeMemberIds, setActiveMemberIds] = useState<Set<string>>(new Set());
+
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ["sondages-members"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("club_members_directory")
+        .select("id, first_name, last_name, email, phone, apnea_level, gender")
+        .order("last_name");
+      if (error) throw error;
+      return data as DirectoryMember[];
+    },
+  });
+
+  const { data: seasonStatuses = [] } = useQuery({
+    queryKey: ["sondages-season-ids", selectedSeason],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id")
+        .eq("season_year", selectedSeason);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const activeMembers = useMemo(() => {
-    if (activeMemberIds.size === 0) return members; // query failed or loading → show all
-    return members.filter(m => activeMemberIds.has(m.id));
-  }, [members, activeMemberIds]);
+    if (!seasonStatuses.length) return allMembers;
+    const activeIds = new Set(seasonStatuses.map(s => s.member_id));
+    return allMembers.filter(m => activeIds.has(m.id));
+  }, [allMembers, seasonStatuses]);
 
   // Create form
   const [newTitle, setNewTitle] = useState("");
@@ -46,13 +70,8 @@ export default function SondagesAdmin() {
 
   useEffect(() => {
     loadPolls();
-    loadMembers(selectedSeason);
     return () => { if (toast) clearTimeout(toast.timerId); };
   }, []);
-
-  useEffect(() => {
-    loadSeasonIds(selectedSeason);
-  }, [selectedSeason]);
 
   async function loadPolls() {
     setLoading(true);
@@ -61,28 +80,10 @@ export default function SondagesAdmin() {
     setLoading(false);
   }
 
-  async function loadMembers(season: number) {
-    const { data } = await supabase
-      .from("club_members_directory")
-      .select("id, first_name, last_name, email, phone, apnea_level, gender")
-      .order("last_name");
-    setMembers((data as DirectoryMember[]) ?? []);
-    await loadSeasonIds(season);
-  }
-
-  async function loadSeasonIds(season: number) {
-    const { data } = await supabase
-      .from("membership_yearly_status")
-      .select("member_id")
-      .eq("season_year", season);
-    // Always update — even empty array. Null (error) → keep existing or fallback.
-    setActiveMemberIds(new Set((data ?? []).map(r => r.member_id)));
-  }
-
   async function loadVotes(pollId: string) {
     const { data } = await supabase.from("votes").select("*").eq("poll_id", pollId);
     if (!data) return;
-    const memberMap = new Map(members.map(m => [m.id, m]));
+    const memberMap = new Map(allMembers.map(m => [m.id, m]));
     setVotes(data.map(v => ({ ...(v as Vote), member: memberMap.get(v.member_id) })));
   }
 
@@ -137,7 +138,7 @@ export default function SondagesAdmin() {
     }).select().single();
     setSaving(s => ({ ...s, [memberId]: false }));
     if (error || !data) return;
-    const member = members.find(m => m.id === memberId);
+    const member = allMembers.find(m => m.id === memberId);
     setVotes(prev => [{ ...(data as Vote), member }, ...prev]);
     setPending(p => { const n = { ...p }; delete n[memberId]; return n; });
     if (toast) clearTimeout(toast.timerId);
