@@ -86,17 +86,31 @@ export default function SondagesAdmin() {
 
   function exportCSV(poll: Poll) {
     const rows: string[][] = [];
+    // Metadata header
     rows.push(["Sondage", poll.title]);
     rows.push(["Date", new Date(poll.created_at).toLocaleDateString("fr-FR")]);
     rows.push(["Participation", `${votes.length} / ${totalActiveMembers} (${participationPct}%)`]);
     rows.push([]);
-    rows.push(["Réponse", "Votes", "% votants", "% total", "Votants"]);
+    // DB-style: one row per voter per option
+    rows.push(["Réponse", "Nb votes", "% votants", "% total", "Votant"]);
     for (const opt of sortedOptions) {
       const count = optionCounts.counts[opt.id] ?? 0;
       const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
       const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
-      const names = (optionCounts.voters[opt.id] ?? []).join("; ");
-      rows.push([opt.label, String(count), `${pctVoters}%`, `${pctTotal}%`, names]);
+      const names = optionCounts.voters[opt.id] ?? [];
+      if (names.length === 0) {
+        rows.push([opt.label, String(count), `${pctVoters}%`, `${pctTotal}%`, ""]);
+      } else {
+        names.forEach((name, i) => {
+          rows.push([
+            i === 0 ? opt.label : "",
+            i === 0 ? String(count) : "",
+            i === 0 ? `${pctVoters}%` : "",
+            i === 0 ? `${pctTotal}%` : "",
+            name,
+          ]);
+        });
+      }
     }
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
