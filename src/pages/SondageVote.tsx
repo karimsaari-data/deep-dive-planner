@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import type { Poll, DirectoryMember } from "@/types/sondages";
 
-type Step = "loading" | "not_found" | "closed" | "already" | "vote" | "done";
+type Step = "loading" | "not_found" | "no_member" | "closed" | "already" | "vote" | "done";
 
 export default function SondageVote() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +41,7 @@ export default function SondageVote() {
       .maybeSingle();
 
     if (!memberData) {
-      setStep("not_found"); return;
+      setStep("no_member"); return;
     }
     setMember(memberData as DirectoryMember);
 
@@ -88,7 +88,18 @@ export default function SondageVote() {
     <Layout>
       <div className="flex min-h-[50vh] items-center justify-center flex-col gap-3 text-gray-500">
         <p className="text-4xl">🔍</p>
-        <p className="font-medium">Sondage introuvable ou compte non reconnu.</p>
+        <p className="font-medium">Sondage introuvable ou fermé.</p>
+        <Button variant="outline" onClick={() => navigate("/")}>Accueil</Button>
+      </div>
+    </Layout>
+  );
+
+  if (step === "no_member") return (
+    <Layout>
+      <div className="flex min-h-[50vh] items-center justify-center flex-col gap-3 text-gray-500">
+        <p className="text-4xl">👤</p>
+        <p className="font-medium">Compte non reconnu dans l'annuaire.</p>
+        <p className="text-xs text-gray-400">Email connecté : {user?.email}</p>
         <Button variant="outline" onClick={() => navigate("/")}>Accueil</Button>
       </div>
     </Layout>
