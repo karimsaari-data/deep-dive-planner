@@ -84,6 +84,30 @@ export default function SondagesAdmin() {
     setSearch("");
   }
 
+  function exportCSV(poll: Poll) {
+    const rows: string[][] = [];
+    rows.push(["Sondage", poll.title]);
+    rows.push(["Date", new Date(poll.created_at).toLocaleDateString("fr-FR")]);
+    rows.push(["Participation", `${votes.length} / ${totalActiveMembers} (${participationPct}%)`]);
+    rows.push([]);
+    rows.push(["Réponse", "Votes", "% votants", "% total", "Votants"]);
+    for (const opt of sortedOptions) {
+      const count = optionCounts.counts[opt.id] ?? 0;
+      const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
+      const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
+      const names = (optionCounts.voters[opt.id] ?? []).join("; ");
+      rows.push([opt.label, String(count), `${pctVoters}%`, `${pctTotal}%`, names]);
+    }
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sondage-${poll.title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function toggleActive(poll: Poll) {
     await supabase.from("polls").update({ is_active: !poll.is_active }).eq("id", poll.id);
     setPolls(prev => prev.map(p => p.id === poll.id ? { ...p, is_active: !p.is_active } : p));
@@ -242,6 +266,7 @@ export default function SondagesAdmin() {
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="sm" onClick={() => setView("list")}>← Sondages</Button>
         <h2 className="text-xl font-bold flex-1">{selectedPoll.title}</h2>
+        <Button variant="outline" size="sm" onClick={() => exportCSV(selectedPoll)}>⬇ CSV</Button>
         <Button variant={selectedPoll.is_active ? "destructive" : "outline"} size="sm" onClick={() => toggleActive(selectedPoll)}>
           {selectedPoll.is_active ? "Fermer" : "Rouvrir"}
         </Button>
@@ -294,46 +319,56 @@ export default function SondagesAdmin() {
       <div className="bg-white rounded-xl border p-5 mb-4">
         <h3 className="font-semibold mb-4">Résultats <span className="text-xs font-normal text-gray-400">sur {votes.length} votant{votes.length > 1 ? "s" : ""}</span></h3>
         <div className="space-y-4">
-          {sortedOptions.map((opt, i) => {
-            const count = optionCounts.counts[opt.id] ?? 0;
-            const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
-            const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
-            const barWidth = Math.round((count / maxCount) * 100);
+          {(() => {
+            const notVoted = totalActiveMembers - votes.length;
+            const effectiveMax = Math.max(maxCount, notVoted, 1);
+            const notVotedBarWidth = Math.round((notVoted / effectiveMax) * 100);
+            const notVotedPct = totalActiveMembers > 0 ? Math.round((notVoted / totalActiveMembers) * 100) : 0;
             return (
-              <div key={opt.id}>
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    {i === 0 && count > 0 && <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-700">N°1</Badge>}
-                    <span className="font-medium text-sm">{opt.label}</span>
+              <>
+                {sortedOptions.map((opt, i) => {
+                  const count = optionCounts.counts[opt.id] ?? 0;
+                  const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
+                  const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
+                  const barWidth = Math.round((count / effectiveMax) * 100);
+                  return (
+                    <div key={opt.id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          {i === 0 && count > 0 && <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-700">N°1</Badge>}
+                          <span className="font-medium text-sm">{opt.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-bold">{count}</span>
+                          <span className="text-blue-600 font-medium">{pctVoters}%</span>
+                          <span className="text-gray-400 text-xs">({pctTotal}% total)</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2.5">
+                        <div className={`h-2.5 rounded-full transition-all ${i === 0 && count > 0 ? "bg-blue-500" : "bg-gray-300"}`} style={{ width: `${barWidth}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                {totalActiveMembers > 0 && (
+                  <div className="pt-1 border-t border-dashed border-gray-200">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm text-gray-400 italic">N'a pas voté</span>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-bold text-gray-400">{notVoted}</span>
+                        <span className="text-gray-400 font-medium">{notVotedPct}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2.5">
+                      <div className="h-2.5 rounded-full transition-all bg-gray-200" style={{ width: `${notVotedBarWidth}%` }} />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-bold">{count}</span>
-                    <span className="text-blue-600 font-medium">{pctVoters}%</span>
-                    <span className="text-gray-400 text-xs">({pctTotal}% total)</span>
-                  </div>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5">
-                  <div className={`h-2.5 rounded-full transition-all ${i === 0 && count > 0 ? "bg-blue-500" : "bg-gray-300"}`} style={{ width: `${barWidth}%` }} />
-                </div>
-              </div>
+                )}
+              </>
             );
-          })}
+          })()}
         </div>
       </div>
-
-      {/* Voted / not voted */}
-      {votes.length > 0 && (
-        <div className="bg-white rounded-xl border p-4 mb-4">
-          <h3 className="font-semibold text-sm mb-2">Ont voté ({votes.length})</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {votes.map(v => (
-              <span key={v.id} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
-                {v.member ? `${v.member.first_name} ${v.member.last_name}` : "?"}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Detail per option */}
       {votes.length > 0 && (
