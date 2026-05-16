@@ -86,12 +86,6 @@ export default function SondagesAdmin() {
 
   function exportCSV(poll: Poll) {
     const rows: string[][] = [];
-    // Metadata header
-    rows.push(["Sondage", poll.title]);
-    rows.push(["Date", new Date(poll.created_at).toLocaleDateString("fr-FR")]);
-    rows.push(["Participation", `${votes.length} / ${totalActiveMembers} (${participationPct}%)`]);
-    rows.push([]);
-    // Flat DB format: one row per voter — ready for pivot table
     rows.push(["Réponse", "Votant"]);
     for (const opt of sortedOptions) {
       const names = optionCounts.voters[opt.id] ?? [];
