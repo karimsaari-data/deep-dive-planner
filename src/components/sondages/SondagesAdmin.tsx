@@ -48,6 +48,11 @@ export default function SondagesAdmin() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<UndoToast | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Poll | null>(null);
+  const [editPoll, setEditPoll] = useState<Poll | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editOptions, setEditOptions] = useState<PollOption[]>([]);
+  const [editAllowMultiple, setEditAllowMultiple] = useState(true);
+  const [editSaving, setEditSaving] = useState(false);
   const [openOptions, setOpenOptions] = useState<Set<string>>(new Set());
   function toggleOption(optId: string) {
     setOpenOptions(prev => {
@@ -108,6 +113,26 @@ export default function SondagesAdmin() {
     await supabase.from("polls").update({ is_active: !poll.is_active }).eq("id", poll.id);
     setPolls(prev => prev.map(p => p.id === poll.id ? { ...p, is_active: !p.is_active } : p));
     if (selectedPoll?.id === poll.id) setSelectedPoll(p => p ? { ...p, is_active: !p.is_active } : p);
+  }
+
+  function openEdit(poll: Poll) {
+    setEditPoll(poll);
+    setEditTitle(poll.title);
+    setEditOptions(poll.options.map(o => ({ ...o })));
+    setEditAllowMultiple(poll.allow_multiple);
+  }
+
+  async function saveEdit() {
+    if (!editPoll || !editTitle.trim()) return;
+    const validOptions = editOptions.filter(o => o.label.trim());
+    if (validOptions.length < 2) return;
+    setEditSaving(true);
+    const updated = { title: editTitle.trim(), options: validOptions, allow_multiple: editAllowMultiple };
+    await supabase.from("polls").update(updated).eq("id", editPoll.id);
+    setPolls(prev => prev.map(p => p.id === editPoll.id ? { ...p, ...updated } : p));
+    if (selectedPoll?.id === editPoll.id) setSelectedPoll(p => p ? { ...p, ...updated } : p);
+    setEditSaving(false);
+    setEditPoll(null);
   }
 
   async function createPoll() {
@@ -515,6 +540,7 @@ export default function SondagesAdmin() {
                 <div className="flex items-center gap-3">
                   <Badge variant={poll.is_active ? "default" : "secondary"}>{poll.is_active ? "Actif" : "Fermé"}</Badge>
                   <Button variant="outline" size="sm" onClick={() => openResults(poll)}>Résultats →</Button>
+                  <Button variant="ghost" size="sm" className="px-2" onClick={() => openEdit(poll)}>✏️</Button>
                   <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2" onClick={() => setDeleteConfirm(poll)}>🗑</Button>
                 </div>
               </div>
@@ -541,6 +567,47 @@ export default function SondagesAdmin() {
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Annuler</Button>
               <Button variant="destructive" onClick={() => deletePoll(deleteConfirm)}>Supprimer</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit modal */}
+      {editPoll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+            <p className="font-bold text-lg mb-4">Modifier le sondage</p>
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-1 block">Titre</label>
+              <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+            </div>
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-1 block">Options</label>
+              <div className="space-y-2">
+                {editOptions.map((opt, i) => (
+                  <div key={opt.id} className="flex gap-2">
+                    <Input
+                      value={opt.label}
+                      onChange={e => setEditOptions(prev => prev.map((o, j) => j === i ? { ...o, label: e.target.value } : o))}
+                      placeholder={`Option ${i + 1}`}
+                    />
+                    {editOptions.length > 2 && (
+                      <Button variant="ghost" size="sm" className="px-2 text-red-400" onClick={() => setEditOptions(prev => prev.filter((_, j) => j !== i))}>×</Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setEditOptions(prev => [...prev, { id: uuidv4(), label: "" }])}>+ Option</Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mb-6">
+              <input type="checkbox" id="edit-multi" checked={editAllowMultiple} onChange={e => setEditAllowMultiple(e.target.checked)} />
+              <label htmlFor="edit-multi" className="text-sm">Choix multiple</label>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setEditPoll(null)}>Annuler</Button>
+              <Button onClick={saveEdit} disabled={editSaving || !editTitle.trim() || editOptions.filter(o => o.label.trim()).length < 2}>
+                {editSaving ? "Enregistrement..." : "Enregistrer"}
+              </Button>
             </div>
           </div>
         </div>
