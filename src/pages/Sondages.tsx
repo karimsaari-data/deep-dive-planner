@@ -25,7 +25,7 @@ export default function Sondages() {
   async function load() {
     const [{ data: pollsData }, { data: memberData }] = await Promise.all([
       supabase.from("polls").select("*").eq("is_active", true).order("created_at", { ascending: false }),
-      user ? supabase.from("club_members_directory").select("id").eq("email", user.email!).maybeSingle() : Promise.resolve({ data: null }),
+      user ? supabase.from("club_members_directory").select("id").ilike("email", user.email!).maybeSingle() : Promise.resolve({ data: null }),
     ]);
     setPolls((pollsData as Poll[]) ?? []);
 

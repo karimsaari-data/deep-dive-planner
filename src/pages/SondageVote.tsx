@@ -33,15 +33,14 @@ export default function SondageVote() {
     setPoll(p);
     if (!p.is_active) { setStep("closed"); return; }
 
-    // Find member in directory by email
+    // Find member in directory by email (case-insensitive)
     const { data: memberData } = await supabase
       .from("club_members_directory")
       .select("id, first_name, last_name, email, phone, apnea_level")
-      .eq("email", user.email)
+      .ilike("email", user.email!)
       .maybeSingle();
 
     if (!memberData) {
-      // Not in directory — show closed (shouldn't happen for club members)
       setStep("not_found"); return;
     }
     setMember(memberData as DirectoryMember);

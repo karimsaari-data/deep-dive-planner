@@ -29,7 +29,7 @@ export default function ActivePollsBanner() {
     const { data: memberData } = await supabase
       .from("club_members_directory")
       .select("id")
-      .eq("email", user!.email!)
+      .ilike("email", user!.email!)
       .maybeSingle();
 
     if (!memberData?.id) {
