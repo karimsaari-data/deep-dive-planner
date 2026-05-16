@@ -25,7 +25,9 @@ export default function SondageVote() {
   }, [id, authLoading, user]);
 
   async function init() {
-    if (!user) { navigate("/auth"); return; }
+    // Always get fresh user from Supabase auth (not stale React state)
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) { navigate("/auth"); return; }
 
     // Load poll
     const { data: pollData } = await supabase.from("polls").select("*").eq("id", id).single();
@@ -34,16 +36,17 @@ export default function SondageVote() {
     setPoll(p);
     if (!p.is_active) { setStep("closed"); return; }
 
-    // Find member in directory by email (case-insensitive)
+    // Find member in directory by email
+    const email = currentUser.email!.toLowerCase();
     const { data: memberData, error: memberError } = await supabase
       .from("club_members_directory")
       .select("id, first_name, last_name, email, phone, apnea_level")
-      .eq("email", user.email!.toLowerCase())
+      .eq("email", email)
       .maybeSingle();
 
     if (!memberData) {
-      console.error("Member lookup failed:", memberError, "email:", user.email);
-      setMemberLookupError(memberError?.message ?? "no rows");
+      console.error("Member lookup failed:", memberError, "email:", email);
+      setMemberLookupError(memberError?.message ?? `no rows for ${email}`);
       setStep("no_member"); return;
     }
     setMember(memberData as DirectoryMember);
@@ -83,7 +86,7 @@ export default function SondageVote() {
     setSubmitting(false);
   }
 
-  if (step === "loading" || authLoading) return (
+  if (step === "loading") return (
     <Layout><div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div></Layout>
   );
 
