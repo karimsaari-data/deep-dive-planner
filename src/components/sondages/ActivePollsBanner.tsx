@@ -38,11 +38,11 @@ export default function ActivePollsBanner() {
 
     if (!memberData?.id) return; // Not in directory — don't show banner
 
-    // Votes already cast — query by user_id (always set when user votes themselves)
+    // Votes already cast — check both user_id (self-voted) and member_id (admin-entered)
     const { data: votesData } = await supabase
       .from("votes")
       .select("poll_id")
-      .eq("user_id", currentUser.id);
+      .or(`user_id.eq.${currentUser.id},member_id.eq.${memberData.id}`);
 
     const votedIds = new Set(votesData?.map(v => v.poll_id) ?? []);
     setUnvotedPolls((pollsData as Poll[]).filter(p => !votedIds.has(p.id)));
