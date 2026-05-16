@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { v4 as uuidv4 } from "uuid";
-import { getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons, useMembershipYearlyStatus } from "@/hooks/useMembershipYearlyStatus";
+import { getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons } from "@/hooks/useMembershipYearlyStatus";
 import type { Poll, Vote, DirectoryMember, PollOption } from "@/types/sondages";
 
 interface UndoToast { voteId: string; memberName: string; timerId: ReturnType<typeof setTimeout> }
@@ -23,14 +23,12 @@ export default function SondagesAdmin() {
   const [selectedSeason, setSelectedSeason] = useState(getCurrentSeasonYear());
   const availableSeasons = getAvailableSeasons();
   const [loading, setLoading] = useState(true);
+  const [activeMemberIds, setActiveMemberIds] = useState<Set<string>>(new Set());
 
-  // Use proven hook for season membership (same as ClubMembersDirectory)
-  const { statuses: seasonStatuses } = useMembershipYearlyStatus(selectedSeason);
   const activeMembers = useMemo(() => {
-    if (!seasonStatuses) return members;
-    const activeIds = new Set(seasonStatuses.map(s => s.member_id));
-    return members.filter(m => activeIds.has(m.id));
-  }, [members, seasonStatuses]);
+    if (activeMemberIds.size === 0) return [];
+    return members.filter(m => activeMemberIds.has(m.id));
+  }, [members, activeMemberIds]);
 
   // Create form
   const [newTitle, setNewTitle] = useState("");
@@ -44,12 +42,17 @@ export default function SondagesAdmin() {
   const [pending, setPending] = useState<Record<string, string[]>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<UndoToast | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Poll | null>(null);
 
   useEffect(() => {
     loadPolls();
-    loadMembers();
+    loadMembers(selectedSeason);
     return () => { if (toast) clearTimeout(toast.timerId); };
   }, []);
+
+  useEffect(() => {
+    loadSeasonIds(selectedSeason);
+  }, [selectedSeason]);
 
   async function loadPolls() {
     setLoading(true);
@@ -58,12 +61,23 @@ export default function SondagesAdmin() {
     setLoading(false);
   }
 
-  async function loadMembers() {
+  async function loadMembers(season: number) {
     const { data } = await supabase
       .from("club_members_directory")
       .select("id, first_name, last_name, email, phone, apnea_level, gender")
       .order("last_name");
     setMembers((data as DirectoryMember[]) ?? []);
+    await loadSeasonIds(season);
+  }
+
+  async function loadSeasonIds(season: number) {
+    const { data, error } = await supabase
+      .from("membership_yearly_status")
+      .select("member_id")
+      .eq("season_year", season);
+    if (!error && data) {
+      setActiveMemberIds(new Set(data.map(r => r.member_id)));
+    }
   }
 
   async function loadVotes(pollId: string) {
@@ -130,6 +144,14 @@ export default function SondagesAdmin() {
     if (toast) clearTimeout(toast.timerId);
     const timerId = setTimeout(() => setToast(null), 4000);
     setToast({ voteId: data.id, memberName, timerId });
+  }
+
+  async function deletePoll(poll: Poll) {
+    await supabase.from("votes").delete().eq("poll_id", poll.id);
+    await supabase.from("polls").delete().eq("id", poll.id);
+    setPolls(prev => prev.filter(p => p.id !== poll.id));
+    setDeleteConfirm(null);
+    if (selectedPoll?.id === poll.id) setView("list");
   }
 
   async function undoVote() {
@@ -234,6 +256,7 @@ export default function SondagesAdmin() {
         <Button variant={selectedPoll.is_active ? "destructive" : "outline"} size="sm" onClick={() => toggleActive(selectedPoll)}>
           {selectedPoll.is_active ? "Fermer" : "Rouvrir"}
         </Button>
+        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2" onClick={() => setDeleteConfirm(selectedPoll)}>🗑</Button>
       </div>
 
       {/* Share link */}
@@ -436,9 +459,25 @@ export default function SondagesAdmin() {
               <div className="flex items-center gap-3">
                 <Badge variant={poll.is_active ? "default" : "secondary"}>{poll.is_active ? "Actif" : "Fermé"}</Badge>
                 <Button variant="outline" size="sm" onClick={() => openResults(poll)}>Résultats →</Button>
+                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2" onClick={() => setDeleteConfirm(poll)}>🗑</Button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+            <p className="font-bold text-lg mb-2">Supprimer le sondage ?</p>
+            <p className="text-sm text-gray-500 mb-1">« {deleteConfirm.title} »</p>
+            <p className="text-xs text-red-500 mb-6">Tous les votes seront supprimés. Action irréversible.</p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Annuler</Button>
+              <Button variant="destructive" onClick={() => deletePoll(deleteConfirm)}>Supprimer</Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
