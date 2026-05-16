@@ -18,6 +18,7 @@ export default function SondageVote() {
   const [member, setMember] = useState<DirectoryMember | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [memberLookupError, setMemberLookupError] = useState<string>("");
 
   useEffect(() => {
     if (!authLoading) init();
@@ -34,13 +35,15 @@ export default function SondageVote() {
     if (!p.is_active) { setStep("closed"); return; }
 
     // Find member in directory by email (case-insensitive)
-    const { data: memberData } = await supabase
+    const { data: memberData, error: memberError } = await supabase
       .from("club_members_directory")
       .select("id, first_name, last_name, email, phone, apnea_level")
-      .ilike("email", user.email!)
+      .eq("email", user.email!.toLowerCase())
       .maybeSingle();
 
     if (!memberData) {
+      console.error("Member lookup failed:", memberError, "email:", user.email);
+      setMemberLookupError(memberError?.message ?? "no rows");
       setStep("no_member"); return;
     }
     setMember(memberData as DirectoryMember);
@@ -100,6 +103,7 @@ export default function SondageVote() {
         <p className="text-4xl">👤</p>
         <p className="font-medium">Compte non reconnu dans l'annuaire.</p>
         <p className="text-xs text-gray-400">Email connecté : {user?.email}</p>
+        {memberLookupError && <p className="text-xs text-red-400 mt-1">Erreur : {memberLookupError}</p>}
         <Button variant="outline" onClick={() => navigate("/")}>Accueil</Button>
       </div>
     </Layout>
