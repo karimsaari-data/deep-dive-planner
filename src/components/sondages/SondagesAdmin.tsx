@@ -91,26 +91,11 @@ export default function SondagesAdmin() {
     rows.push(["Date", new Date(poll.created_at).toLocaleDateString("fr-FR")]);
     rows.push(["Participation", `${votes.length} / ${totalActiveMembers} (${participationPct}%)`]);
     rows.push([]);
-    // DB-style: one row per voter per option
-    rows.push(["Réponse", "Nb votes", "% votants", "% total", "Votant"]);
+    // Flat DB format: one row per voter — ready for pivot table
+    rows.push(["Réponse", "Votant"]);
     for (const opt of sortedOptions) {
-      const count = optionCounts.counts[opt.id] ?? 0;
-      const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
-      const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
       const names = optionCounts.voters[opt.id] ?? [];
-      if (names.length === 0) {
-        rows.push([opt.label, String(count), `${pctVoters}%`, `${pctTotal}%`, ""]);
-      } else {
-        names.forEach((name, i) => {
-          rows.push([
-            i === 0 ? opt.label : "",
-            i === 0 ? String(count) : "",
-            i === 0 ? `${pctVoters}%` : "",
-            i === 0 ? `${pctTotal}%` : "",
-            name,
-          ]);
-        });
-      }
+      names.forEach(name => rows.push([opt.label, name]));
     }
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
