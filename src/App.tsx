@@ -23,6 +23,8 @@ import LocationDetail from "./pages/LocationDetail";
 import Trombinoscope from "./pages/Trombinoscope";
 import Security from "./pages/Security";
 import ResetPassword from "./pages/ResetPassword";
+import Sondages from "./pages/Sondages";
+import SondageVote from "./pages/SondageVote";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +56,8 @@ const App = () => (
             <Route path="/trombinoscope" element={<Trombinoscope />} />
             <Route path="/security" element={<Security />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/sondages" element={<Sondages />} />
+            <Route path="/sondages/:id" element={<SondageVote />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
