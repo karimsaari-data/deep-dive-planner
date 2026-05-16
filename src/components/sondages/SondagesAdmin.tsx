@@ -91,6 +91,7 @@ export default function SondagesAdmin() {
       const names = optionCounts.voters[opt.id] ?? [];
       names.forEach(name => rows.push([opt.label, name]));
     }
+    notVotedMembers.forEach(m => rows.push(["N'a pas voté", `${m.first_name} ${m.last_name}`]));
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
