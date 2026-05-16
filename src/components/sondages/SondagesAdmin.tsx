@@ -272,13 +272,7 @@ export default function SondagesAdmin() {
         <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2" onClick={() => setDeleteConfirm(selectedPoll)}>🗑</Button>
       </div>
 
-      {/* Share link */}
-      <div className="bg-blue-50 rounded-xl p-3 mb-5 flex items-center gap-3">
-        <code className="flex-1 text-xs text-blue-800 truncate">{window.location.origin}/sondages/{selectedPoll.id}</code>
-        <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/sondages/${selectedPoll.id}`)}>
-          Copier
-        </Button>
-      </div>
+
 
       {/* Season selector */}
       <div className="flex items-center gap-2 mb-4">
@@ -515,16 +509,26 @@ export default function SondagesAdmin() {
       ) : (
         <div className="space-y-3">
           {polls.map(poll => (
-            <div key={poll.id} className="bg-white rounded-xl border p-4 flex items-center justify-between">
-              <div>
-                <p className="font-medium">{poll.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{new Date(poll.created_at).toLocaleDateString("fr-FR")}</p>
+            <div key={poll.id} className="bg-white rounded-xl border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{poll.title}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{new Date(poll.created_at).toLocaleDateString("fr-FR")}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={poll.is_active ? "default" : "secondary"}>{poll.is_active ? "Actif" : "Fermé"}</Badge>
+                  <Button variant="outline" size="sm" onClick={() => openResults(poll)}>Résultats →</Button>
+                  <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2" onClick={() => setDeleteConfirm(poll)}>🗑</Button>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Badge variant={poll.is_active ? "default" : "secondary"}>{poll.is_active ? "Actif" : "Fermé"}</Badge>
-                <Button variant="outline" size="sm" onClick={() => openResults(poll)}>Résultats →</Button>
-                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2" onClick={() => setDeleteConfirm(poll)}>🗑</Button>
-              </div>
+              {poll.is_active && (
+                <div className="mt-3 flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
+                  <code className="flex-1 text-xs text-blue-800 truncate">{window.location.origin}/sondages/{poll.id}</code>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigator.clipboard.writeText(`${window.location.origin}/sondages/${poll.id}`)}>
+                    Copier
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
