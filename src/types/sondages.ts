@@ -30,4 +30,5 @@ export interface DirectoryMember {
   email: string
   phone: string | null
   apnea_level: string | null
+  gender: string | null
 }

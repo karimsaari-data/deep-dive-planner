@@ -4,7 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { v4 as uuidv4 } from "uuid";
+import { getCurrentSeasonYear, getSeasonLabel, getAvailableSeasons } from "@/hooks/useMembershipYearlyStatus";
 import type { Poll, Vote, DirectoryMember, PollOption } from "@/types/sondages";
 
 interface UndoToast { voteId: string; memberName: string; timerId: ReturnType<typeof setTimeout> }
@@ -18,6 +20,9 @@ export default function SondagesAdmin() {
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
   const [votes, setVotes] = useState<(Vote & { member?: DirectoryMember })[]>([]);
   const [members, setMembers] = useState<DirectoryMember[]>([]);
+  const [activeMembers, setActiveMembers] = useState<DirectoryMember[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState(getCurrentSeasonYear());
+  const availableSeasons = getAvailableSeasons();
   const [loading, setLoading] = useState(true);
 
   // Create form
@@ -35,9 +40,12 @@ export default function SondagesAdmin() {
 
   useEffect(() => {
     loadPolls();
-    loadMembers();
     return () => { if (toast) clearTimeout(toast.timerId); };
   }, []);
+
+  useEffect(() => {
+    loadMembers(selectedSeason);
+  }, [selectedSeason]);
 
   async function loadPolls() {
     setLoading(true);
@@ -46,12 +54,15 @@ export default function SondagesAdmin() {
     setLoading(false);
   }
 
-  async function loadMembers() {
-    const { data } = await supabase
-      .from("club_members_directory")
-      .select("id, first_name, last_name, email, phone, apnea_level")
-      .order("last_name");
-    setMembers((data as DirectoryMember[]) ?? []);
+  async function loadMembers(season: number) {
+    const [{ data: allData }, { data: seasonData }] = await Promise.all([
+      supabase.from("club_members_directory").select("id, first_name, last_name, email, phone, apnea_level, gender").order("last_name"),
+      supabase.from("membership_yearly_status").select("member_id").eq("season_year", season),
+    ]);
+    const all = (allData as DirectoryMember[]) ?? [];
+    const activeIds = new Set(seasonData?.map(s => s.member_id) ?? []);
+    setMembers(all);
+    setActiveMembers(all.filter(m => activeIds.has(m.id)));
   }
 
   async function loadVotes(pollId: string) {
@@ -94,9 +105,9 @@ export default function SondagesAdmin() {
     setCreating(false);
   }
 
-  // Manual vote entry
+  // Manual vote entry — only active members for selected season
   const votedMemberIds = new Set(votes.map(v => v.member_id));
-  const notVotedMembers = members.filter(m => !votedMemberIds.has(m.id));
+  const notVotedMembers = activeMembers.filter(m => !votedMemberIds.has(m.id));
   const filteredMembers = search.trim()
     ? notVotedMembers.filter(m => `${m.first_name} ${m.last_name}`.toLowerCase().includes(search.toLowerCase()))
     : notVotedMembers;
@@ -154,7 +165,17 @@ export default function SondagesAdmin() {
     ? [...selectedPoll.options].sort((a, b) => (optionCounts.counts[b.id] ?? 0) - (optionCounts.counts[a.id] ?? 0))
     : [];
   const maxCount = Math.max(...(selectedPoll?.options.map(o => optionCounts.counts[o.id] ?? 0) ?? []), 1);
-  const participationPct = members.length > 0 ? Math.round((votes.length / members.length) * 100) : 0;
+  const totalActiveMembers = activeMembers.length;
+  const participationPct = totalActiveMembers > 0 ? Math.round((votes.length / totalActiveMembers) * 100) : 0;
+
+  // H/F breakdown
+  const genderStats = useMemo(() => {
+    const voterIds = new Set(votes.map(v => v.member_id));
+    const voted = activeMembers.filter(m => voterIds.has(m.id));
+    const h = { voted: voted.filter(m => m.gender === "Homme").length, total: activeMembers.filter(m => m.gender === "Homme").length };
+    const f = { voted: voted.filter(m => m.gender === "Femme").length, total: activeMembers.filter(m => m.gender === "Femme").length };
+    return { h, f };
+  }, [votes, activeMembers]);
 
   // ── VIEWS ──
 
@@ -222,6 +243,22 @@ export default function SondagesAdmin() {
         </Button>
       </div>
 
+      {/* Season selector */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-sm text-gray-500">Saison :</span>
+        <Select value={selectedSeason.toString()} onValueChange={v => setSelectedSeason(parseInt(v))}>
+          <SelectTrigger className="w-[130px] h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {availableSeasons.map(y => (
+              <SelectItem key={y} value={y.toString()}>{getSeasonLabel(y)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-gray-400">{totalActiveMembers} membres actifs</span>
+      </div>
+
       {/* Participation */}
       <div className="bg-white rounded-xl border p-5 mb-4">
         <div className="flex items-end justify-between mb-2">
@@ -231,7 +268,13 @@ export default function SondagesAdmin() {
         <div className="w-full bg-gray-100 rounded-full h-3 mb-1">
           <div className="bg-blue-500 h-3 rounded-full transition-all" style={{ width: `${participationPct}%` }} />
         </div>
-        <p className="text-xs text-gray-500">{votes.length} / {members.length} membres</p>
+        <p className="text-xs text-gray-500">{votes.length} / {totalActiveMembers} membres ({getSeasonLabel(selectedSeason)})</p>
+        {(genderStats.h.total > 0 || genderStats.f.total > 0) && (
+          <div className="flex gap-4 mt-2 text-xs text-gray-500">
+            <span>H : {genderStats.h.voted} / {genderStats.h.total}{genderStats.h.total > 0 ? ` (${Math.round(genderStats.h.voted / genderStats.h.total * 100)}%)` : ""}</span>
+            <span>F : {genderStats.f.voted} / {genderStats.f.total}{genderStats.f.total > 0 ? ` (${Math.round(genderStats.f.voted / genderStats.f.total * 100)}%)` : ""}</span>
+          </div>
+        )}
       </div>
 
       {/* Results */}
@@ -241,7 +284,7 @@ export default function SondagesAdmin() {
           {sortedOptions.map((opt, i) => {
             const count = optionCounts.counts[opt.id] ?? 0;
             const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
-            const pctTotal = members.length > 0 ? Math.round((count / members.length) * 100) : 0;
+            const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
             const barWidth = Math.round((count / maxCount) * 100);
             return (
               <div key={opt.id}>
@@ -359,9 +402,23 @@ export default function SondagesAdmin() {
   // List view
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold">Sondages</h2>
         <Button onClick={() => setView("create")}>+ Nouveau sondage</Button>
+      </div>
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-sm text-gray-500">Saison :</span>
+        <Select value={selectedSeason.toString()} onValueChange={v => setSelectedSeason(parseInt(v))}>
+          <SelectTrigger className="w-[130px] h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {availableSeasons.map(y => (
+              <SelectItem key={y} value={y.toString()}>{getSeasonLabel(y)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-gray-400">{totalActiveMembers} membres actifs</span>
       </div>
       {loading ? (
         <p className="text-gray-400 text-sm">Chargement...</p>
