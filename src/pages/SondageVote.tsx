@@ -40,7 +40,7 @@ export default function SondageVote() {
     const email = currentUser.email!.toLowerCase();
     const { data: memberData, error: memberError } = await supabase
       .from("club_members_directory")
-      .select("id, first_name, last_name, email, phone, apnea_level")
+      .select("id, first_name, last_name, email, phone")
       .eq("email", email)
       .maybeSingle();
 

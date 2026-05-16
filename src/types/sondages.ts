@@ -29,6 +29,5 @@ export interface DirectoryMember {
   last_name: string
   email: string
   phone: string | null
-  apnea_level: string | null
   gender: string | null
 }
