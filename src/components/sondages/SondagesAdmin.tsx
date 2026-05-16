@@ -320,16 +320,16 @@ export default function SondagesAdmin() {
         <div className="space-y-4">
           {(() => {
             const notVoted = totalActiveMembers - votes.length;
-            const effectiveMax = Math.max(maxCount, notVoted, 1);
-            const notVotedBarWidth = Math.round((notVoted / effectiveMax) * 100);
-            const notVotedPct = totalActiveMembers > 0 ? Math.round((notVoted / totalActiveMembers) * 100) : 0;
+            const scale = Math.max(totalActiveMembers, 1);
+            const notVotedBarWidth = Math.round((notVoted / scale) * 100);
+            const notVotedPct = Math.round((notVoted / scale) * 100);
             return (
               <>
                 {sortedOptions.map((opt, i) => {
                   const count = optionCounts.counts[opt.id] ?? 0;
                   const pctVoters = votes.length > 0 ? Math.round((count / votes.length) * 100) : 0;
-                  const pctTotal = totalActiveMembers > 0 ? Math.round((count / totalActiveMembers) * 100) : 0;
-                  const barWidth = Math.round((count / effectiveMax) * 100);
+                  const pctTotal = Math.round((count / scale) * 100);
+                  const barWidth = Math.round((count / scale) * 100);
                   return (
                     <div key={opt.id}>
                       <div className="flex items-center justify-between mb-1">
@@ -352,14 +352,14 @@ export default function SondagesAdmin() {
                 {totalActiveMembers > 0 && (
                   <div className="pt-1 border-t border-dashed border-gray-200">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-gray-400 italic">N'a pas voté</span>
+                      <span className="text-sm text-red-400 italic">N'a pas voté</span>
                       <div className="flex items-center gap-2 text-sm">
-                        <span className="font-bold text-gray-400">{notVoted}</span>
-                        <span className="text-gray-400 font-medium">{notVotedPct}%</span>
+                        <span className="font-bold text-red-400">{notVoted}</span>
+                        <span className="text-red-400 font-medium">{notVotedPct}%</span>
                       </div>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-2.5">
-                      <div className="h-2.5 rounded-full transition-all bg-gray-200" style={{ width: `${notVotedBarWidth}%` }} />
+                      <div className="h-2.5 rounded-full transition-all bg-red-300" style={{ width: `${notVotedBarWidth}%` }} />
                     </div>
                   </div>
                 )}
