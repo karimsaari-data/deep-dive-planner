@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import HistoricalOutingForm from "@/components/outings/HistoricalOutingForm";
 import { useCarpoolCounts } from "@/hooks/useCarpoolCounts";
 import LandingPage from "@/pages/LandingPage";
+import ActivePollsBanner from "@/components/sondages/ActivePollsBanner";
 
 const Index = () => {
   // ── Tous les hooks en premier (règle des hooks React) ─────────────
@@ -60,6 +61,8 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      <ActivePollsBanner />
 
       {/* Outings Section */}
       <section className="py-12">
