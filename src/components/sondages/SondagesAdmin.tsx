@@ -93,7 +93,9 @@ export default function SondagesAdmin() {
     }
     notVotedMembers.forEach(m => rows.push(["N'a pas voté", `${m.first_name} ${m.last_name}`]));
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const encoder = new TextEncoder();
+    const blob = new Blob([bom, encoder.encode(csv)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
