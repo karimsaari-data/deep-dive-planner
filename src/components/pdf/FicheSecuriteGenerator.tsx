@@ -17,8 +17,8 @@ export const FicheSecuriteGenerator = () => {
     const toastId = toast.loading("Génération de la fiche sécurité...");
 
     try {
-      await new Promise((r) => setTimeout(r, 500));
       await document.fonts.ready;
+      await new Promise((r) => setTimeout(r, 1000));
 
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -30,7 +30,7 @@ export const FicheSecuriteGenerator = () => {
       if (!page) throw new Error("Page not found");
 
       const canvas = await html2canvas(page, {
-        scale: 3,
+        scale: 5,
         useCORS: true,
         allowTaint: true,
         logging: false,
