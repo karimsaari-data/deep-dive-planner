@@ -1,10 +1,8 @@
-import { Shield, Download } from "lucide-react";
+import { Shield } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import { FicheSecuriteGenerator } from "@/components/pdf/FicheSecuriteGenerator";
 
 const securityPages = [
@@ -15,16 +13,6 @@ const securityPages = [
 ];
 
 const Security = () => {
-  const handleDownloadPDF = () => {
-    const link = document.createElement("a");
-    link.href = "/files/Fiche Sécurité  TO2.pdf";
-    link.download = "Fiche_Securite_TO2.pdf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Téléchargement de la fiche sécurité...");
-  };
-
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4 max-w-5xl">
@@ -58,10 +46,7 @@ const Security = () => {
           {/* Tab 1: original security images */}
           <TabsContent value="securite">
             <div className="flex justify-end mb-4">
-              <Button variant="outline" onClick={handleDownloadPDF} className="gap-2">
-                <Download className="h-4 w-4" />
-                Télécharger la fiche
-              </Button>
+              <FicheSecuriteGenerator />
             </div>
             <div className="space-y-8">
               {securityPages.map((page) => (
@@ -78,10 +63,7 @@ const Security = () => {
               ))}
             </div>
             <div className="mt-6 flex justify-center">
-              <Button variant="outline" onClick={handleDownloadPDF} className="gap-2">
-                <Download className="h-4 w-4" />
-                Télécharger la fiche sécurité
-              </Button>
+              <FicheSecuriteGenerator />
             </div>
           </TabsContent>
 
