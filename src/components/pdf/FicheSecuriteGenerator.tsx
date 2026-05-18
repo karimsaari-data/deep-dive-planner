@@ -30,7 +30,7 @@ export const FicheSecuriteGenerator = () => {
       if (!page) throw new Error("Page not found");
 
       const canvas = await html2canvas(page, {
-        scale: 4,
+        scale: 5,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -39,7 +39,7 @@ export const FicheSecuriteGenerator = () => {
         windowHeight: 1123,
       });
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
       // A4 portrait: 210mm x 297mm
       pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
 
