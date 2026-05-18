@@ -204,7 +204,8 @@ export const PDFPageSecuritePortrait = () => {
               <div>
                 <div style={{ fontSize: "10px", fontWeight: "800", color: "#dc2626", marginBottom: "3px", textTransform: "uppercase" }}>Règle stricte</div>
                 <div style={{ fontSize: "10px", color: "#7f1d1d", lineHeight: 1.5 }}>
-                  Tout apnéiste ne disposant pas de la liste exhaustive du matériel,{" "}
+                  Pour des raisons de responsabilité de l'association et de l'encadrant,{" "}
+                  tout apnéiste ne disposant pas de la liste exhaustive du matériel,{" "}
                   ou présentant un équipement en mauvais état,{" "}
                   <strong>se verra refuser la sortie en mer par l'encadrant.</strong>
                 </div>

@@ -123,8 +123,10 @@ const Security = () => {
                         RÈGLE STRICTE
                       </p>
                       <p className="text-sm text-red-700 dark:text-red-400">
-                        En cas de manquement à l'un de ces éléments,{" "}
-                        <strong>le refus de sortir en mer sera appliqué immédiatement.</strong>
+                        Pour des raisons de responsabilité de l'association et de l'encadrant,
+                        tout apnéiste ne disposant pas de la liste exhaustive du matériel,
+                        ou présentant un équipement en mauvais état,{" "}
+                        <strong>se verra refuser la sortie en mer par l'encadrant.</strong>
                       </p>
                     </div>
                   </div>
