@@ -88,11 +88,11 @@ export const PDFPageSecuritePortrait = () => {
         fontFamily: "Inter, system-ui, sans-serif",
         position: "relative",
         overflow: "hidden",
-        padding: "28px 36px",
+        padding: "20px 36px",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: "9px",
+        gap: "8px",
       }}
     >
       {/* Header */}
@@ -158,22 +158,25 @@ export const PDFPageSecuritePortrait = () => {
               Équipement requis par apnéiste
             </div>
             {[
-              { svg: <IconPalmes />, label: "Palmes" },
-              { svg: <IconMasque />, label: "Masque" },
-              { svg: <IconTuba />, label: "Tuba" },
-              { svg: <IconCombinaison />, label: "Combinaison (néoprène refendu recommandé)" },
-              { svg: <IconCeinture />, label: "Ceinture de plombs" },
-              { svg: <IconGourde />, label: "Gourde d'eau (obligatoire)" },
+              { svg: <IconPalmes />, label: "Palmes", desc: "Propulsion efficace — préserve l'oxygène, mouvement de tout le corps." },
+              { svg: <IconMasque />, label: "Masque", desc: "Vision sous-marine et espace nasal pour l'équilibrage des pressions." },
+              { svg: <IconTuba />, label: "Tuba", desc: "Ventilation en surface sans effort — préserve la capacité pulmonaire." },
+              { svg: <IconCombinaison />, label: "Combinaison (néoprène refendu recommandé)", desc: "Protection thermique contre l'hypothermie — le refendu limite les entrées d'eau." },
+              { svg: <IconCeinture />, label: "Ceinture de plombs", desc: "Compense la flottabilité — descente fluide, neutralité à mi-profondeur." },
+              { svg: <IconGourde />, label: "Gourde d'eau (obligatoire)", desc: "Prévient crampes et syncopes. Boire avant, pendant et après chaque session." },
             ].map((item) => (
               <div key={item.label} style={{
                 display: "flex", alignItems: "center", gap: "8px",
-                padding: "4px 8px", marginBottom: "3px",
+                padding: "3px 8px", marginBottom: "3px",
                 backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0",
               }}>
                 <div style={{ width: "26px", height: "26px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   {item.svg}
                 </div>
-                <span style={{ fontSize: "10px", color: "#374151", fontWeight: "500", flex: 1 }}>{item.label}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "10px", color: "#374151", fontWeight: "600" }}>{item.label}</div>
+                  <div style={{ fontSize: "8.5px", color: "#64748b", lineHeight: 1.3, marginTop: "1px" }}>{item.desc}</div>
+                </div>
                 <CheckIcon />
               </div>
             ))}

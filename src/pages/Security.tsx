@@ -78,19 +78,22 @@ const Security = () => {
                 </p>
                 <ul className="space-y-2">
                   {[
-                    { icon: "🦵", label: "Palmes" },
-                    { icon: "🤿", label: "Masque" },
-                    { icon: "🌊", label: "Tuba" },
-                    { icon: "🩱", label: "Combinaison (néoprène refendu recommandé)" },
-                    { icon: "⚖️", label: "Ceinture de plombs" },
-                    { icon: "💧", label: "Gourde d'eau — obligatoire sur toutes les sorties" },
+                    { icon: "🦵", label: "Palmes", desc: "Propulsion efficace et économique — le mouvement de tout le corps préserve l'oxygène." },
+                    { icon: "🤿", label: "Masque", desc: "Vision sous-marine et espace nasal libre pour l'équilibrage des pressions." },
+                    { icon: "🌊", label: "Tuba", desc: "Ventilation en surface sans effort — préserve la capacité pulmonaire avant la plongée." },
+                    { icon: "🩱", label: "Combinaison (néoprène refendu recommandé)", desc: "Protection thermique contre l'hypothermie — le refendu limite les entrées d'eau." },
+                    { icon: "⚖️", label: "Ceinture de plombs", desc: "Compense la flottabilité de la combi — permet une descente fluide et une neutralité à mi-profondeur." },
+                    { icon: "💧", label: "Gourde d'eau — obligatoire sur toutes les sorties", desc: "L'hydratation prévient crampes et syncopes. Boire avant, pendant et après chaque session." },
                   ].map((item) => (
                     <li
                       key={item.label}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 text-sm"
+                      className="flex items-start gap-3 p-2 rounded-lg bg-muted/50 text-sm"
                     >
-                      <span className="text-base">{item.icon}</span>
-                      <span>{item.label}</span>
+                      <span className="text-base mt-0.5">{item.icon}</span>
+                      <div>
+                        <span className="font-medium">{item.label}</span>
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>
