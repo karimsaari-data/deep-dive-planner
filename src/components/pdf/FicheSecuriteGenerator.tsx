@@ -18,6 +18,7 @@ export const FicheSecuriteGenerator = () => {
 
     try {
       await new Promise((r) => setTimeout(r, 500));
+      await document.fonts.ready;
 
       const pdf = new jsPDF({
         orientation: "portrait",

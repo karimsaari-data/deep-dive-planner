@@ -292,11 +292,14 @@ const SectionCard = ({
       <div style={{
         width: "20px", height: "20px", borderRadius: "50%",
         backgroundColor: "rgba(255,255,255,0.25)",
-        display: "block",
-        textAlign: "center", lineHeight: "20px",
-        fontSize: "11px", fontWeight: "800", color: "white", flexShrink: 0,
+        flexShrink: 0,
+        position: "relative",
       }}>
-        {number}
+        <span style={{
+          position: "absolute", top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          fontSize: "11px", fontWeight: "800", color: "white", lineHeight: 1,
+        }}>{number}</span>
       </div>
       <div>
         <div style={{ fontSize: "12px", fontWeight: "700", color: "white" }}>{title}</div>

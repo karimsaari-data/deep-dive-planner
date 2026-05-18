@@ -81,7 +81,7 @@ const Security = () => {
                     { icon: "🦵", label: "Palmes" },
                     { icon: "🤿", label: "Masque" },
                     { icon: "🌊", label: "Tuba" },
-                    { icon: "🩱", label: "Combinaison (néoprène refendu recommandé)" },
+                    { icon: "🩱", label: "Combinaison néoprène refendu" },
                     { icon: "⚖️", label: "Ceinture de plombs" },
                     { icon: "💧", label: "Gourde d'eau — obligatoire sur toutes les sorties" },
                   ].map((item) => (
