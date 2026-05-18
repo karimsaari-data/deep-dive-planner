@@ -166,18 +166,18 @@ export const PDFPageSecuritePortrait = () => {
               { svg: <IconGourde />, label: "Gourde d'eau (obligatoire)", desc: "Prévient crampes et syncopes. Boire avant, pendant et après chaque session." },
             ].map((item) => (
               <div key={item.label} style={{
-                display: "flex", alignItems: "center", gap: "8px",
-                padding: "3px 8px", marginBottom: "3px",
+                display: "flex", alignItems: "flex-start", gap: "8px",
+                padding: "5px 8px", marginBottom: "3px",
                 backgroundColor: "#f8fafc", borderRadius: "6px", border: "1px solid #e2e8f0",
               }}>
-                <div style={{ width: "26px", height: "26px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ width: "26px", height: "26px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", marginTop: "1px" }}>
                   {item.svg}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: "10px", color: "#374151", fontWeight: "600" }}>{item.label}</div>
-                  <div style={{ fontSize: "8.5px", color: "#64748b", lineHeight: 1.3, marginTop: "1px" }}>{item.desc}</div>
+                  <div style={{ fontSize: "8.5px", color: "#64748b", lineHeight: 1.35, marginTop: "2px" }}>{item.desc}</div>
                 </div>
-                <CheckIcon />
+                <CheckIcon style={{ marginTop: "3px" }} />
               </div>
             ))}
           </div>
@@ -204,8 +204,9 @@ export const PDFPageSecuritePortrait = () => {
               <div>
                 <div style={{ fontSize: "10px", fontWeight: "800", color: "#dc2626", marginBottom: "3px", textTransform: "uppercase" }}>Règle stricte</div>
                 <div style={{ fontSize: "10px", color: "#7f1d1d", lineHeight: 1.5 }}>
-                  En cas de manquement,{" "}
-                  <strong>le refus de sortir en mer sera appliqué immédiatement.</strong>
+                  Tout apnéiste ne disposant pas de la liste exhaustive du matériel,{" "}
+                  ou présentant un équipement en mauvais état,{" "}
+                  <strong>se verra refuser la sortie en mer par l'encadrant.</strong>
                 </div>
               </div>
             </div>
@@ -251,11 +252,11 @@ export const PDFPageSecuritePortrait = () => {
       <div style={{
         border: "1.5px solid #7c3aed30", borderRadius: "10px", overflow: "hidden", flexShrink: 0,
       }}>
-        <div style={{ backgroundColor: "#7c3aed", padding: "7px 14px", display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ backgroundColor: "#7c3aed", padding: "5px 14px", display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "13px" }}>🤝</span>
           <div style={{ fontSize: "12px", fontWeight: "700", color: "white" }}>Mes engagements de binôme</div>
         </div>
-        <div style={{ padding: "10px 12px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "7px" }}>
+        <div style={{ padding: "6px 10px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "5px" }}>
           {[
             { icon: "👁️", text: "Je surveille mon binôme en permanence" },
             { icon: "🚫", text: "Je ne le quitte jamais des yeux en plongée" },
@@ -265,12 +266,12 @@ export const PDFPageSecuritePortrait = () => {
             { icon: "📢", text: "Je donne l'alerte sans hésitation" },
           ].map((rule) => (
             <div key={rule.text} style={{
-              display: "flex", alignItems: "center", gap: "7px",
-              padding: "6px 9px",
+              display: "flex", alignItems: "center", gap: "6px",
+              padding: "4px 8px",
               backgroundColor: "#faf5ff", borderRadius: "6px", border: "1px solid #e9d5ff",
             }}>
-              <span style={{ fontSize: "14px", flexShrink: 0 }}>{rule.icon}</span>
-              <span style={{ fontSize: "10px", color: "#374151" }}>{rule.text}</span>
+              <span style={{ fontSize: "13px", flexShrink: 0 }}>{rule.icon}</span>
+              <span style={{ fontSize: "9.5px", color: "#374151" }}>{rule.text}</span>
             </div>
           ))}
         </div>
