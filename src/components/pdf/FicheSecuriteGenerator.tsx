@@ -30,7 +30,7 @@ export const FicheSecuriteGenerator = () => {
       if (!page) throw new Error("Page not found");
 
       const canvas = await html2canvas(page, {
-        scale: 5,
+        scale: 4,
         useCORS: true,
         allowTaint: true,
         logging: false,
@@ -39,9 +39,9 @@ export const FicheSecuriteGenerator = () => {
         windowHeight: 1123,
       });
 
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
       // A4 portrait: 210mm x 297mm
-      pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+      pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
 
       pdf.save("Fiche_Securite_TeamOxygen.pdf");
       toast.success("Fiche téléchargée !", { id: toastId });
