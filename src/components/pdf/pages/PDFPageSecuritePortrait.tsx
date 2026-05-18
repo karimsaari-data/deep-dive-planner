@@ -161,7 +161,7 @@ export const PDFPageSecuritePortrait = () => {
               { svg: <IconPalmes />, label: "Palmes" },
               { svg: <IconMasque />, label: "Masque" },
               { svg: <IconTuba />, label: "Tuba" },
-              { svg: <IconCombinaison />, label: "Combinaison néoprène refendu" },
+              { svg: <IconCombinaison />, label: "Combinaison (néoprène refendu recommandé)" },
               { svg: <IconCeinture />, label: "Ceinture de plombs" },
               { svg: <IconGourde />, label: "Gourde d'eau (obligatoire)" },
             ].map((item) => (
