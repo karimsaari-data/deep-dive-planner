@@ -73,7 +73,7 @@ const Header = () => {
         </Link>
 
         {user && (
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button
@@ -91,7 +91,7 @@ const Header = () => {
           </nav>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-shrink-0 items-center gap-3">
           {user ? (
             <>
               <Link to="/profile">
@@ -99,8 +99,13 @@ const Header = () => {
                   <User className="h-5 w-5" />
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={signOut} className="rounded-full text-white/70 hover:text-white hover:bg-white/10">
+              <Button
+                variant="ghost"
+                onClick={signOut}
+                className="gap-2 rounded-full text-red-300 hover:bg-red-500/15 hover:text-red-200"
+              >
                 <LogOut className="h-5 w-5" />
+                <span className="hidden lg:inline">Déconnexion</span>
               </Button>
             </>
           ) : (
@@ -114,7 +119,7 @@ const Header = () => {
       {user && (
         <nav
           ref={mobileNavRef}
-          className="flex justify-center gap-1 border-t border-white/5 p-2 md:hidden overflow-x-auto"
+          className="flex justify-center gap-1 border-t border-white/5 p-2 lg:hidden overflow-x-auto"
           style={{ background: "rgba(1,12,28,0.95)" }}
         >
           {navItems.map(({ to, label, icon: Icon }) => (
@@ -132,6 +137,15 @@ const Header = () => {
               </Button>
             </Link>
           ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="gap-1.5 whitespace-nowrap text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200"
+          >
+            <LogOut className="h-4 w-4" />
+            Déconnexion
+          </Button>
         </nav>
       )}
     </header>
