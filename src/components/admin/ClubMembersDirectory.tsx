@@ -178,6 +178,7 @@ const ClubMembersDirectory = () => {
   const [apneaLevelOpen, setApneaLevelOpen] = useState(false);
   const [filterEncadrant, setFilterEncadrant] = useState(false);
   const [filterIncomplete, setFilterIncomplete] = useState(false);
+  const [filterNotRegistered, setFilterNotRegistered] = useState(false);
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
 
   // Identity form data (stored in club_members_directory)
@@ -636,6 +637,11 @@ const ClubMembersDirectory = () => {
         if (isMemberDossierComplete(member.id)) return false;
       }
 
+      // Filter adhérents without an app account only
+      if (filterNotRegistered) {
+        if (isEmailRegistered(member.email)) return false;
+      }
+
       return true;
     }) || [];
 
@@ -676,7 +682,7 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, apneaLevelCodes]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, apneaLevelCodes]);
 
   const getRowClassName = (member: ClubMember) => {
     if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";
@@ -779,6 +785,15 @@ const ClubMembersDirectory = () => {
                 <AlertCircle className="h-4 w-4 mr-1" />
                 Incomplets
               </Button>
+              <Button
+                onClick={() => setFilterNotRegistered(!filterNotRegistered)}
+                variant={filterNotRegistered ? "default" : "outline"}
+                size="sm"
+                title="Filtrer les adhérents sans compte app"
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Non inscrits
+              </Button>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
@@ -820,7 +835,7 @@ const ClubMembersDirectory = () => {
         {membersWithStatus.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 text-sm">
             <Badge variant="secondary" className="text-xs">
-              {(filterEncadrant || filterIncomplete) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
+              {(filterEncadrant || filterIncomplete || filterNotRegistered) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
             </Badge>
             <Badge variant="secondary" className={cn("text-xs", filterEncadrant && "bg-primary text-primary-foreground")}>
               <GraduationCap className="h-3 w-3 mr-1" />
@@ -835,6 +850,14 @@ const ClubMembersDirectory = () => {
             </Badge>
             <Badge variant="secondary" className="text-xs text-green-600">
               {membersWithStatus.filter((m) => isEmailRegistered(m.email)).length} inscrits app
+            </Badge>
+            <Badge
+              variant="secondary"
+              className={cn("text-xs cursor-pointer text-muted-foreground", filterNotRegistered && "bg-primary text-primary-foreground")}
+              onClick={() => setFilterNotRegistered(!filterNotRegistered)}
+            >
+              <Mail className="h-3 w-3 mr-1" />
+              {membersWithStatus.filter((m) => !isEmailRegistered(m.email)).length} non inscrits
             </Badge>
           </div>
         )}
