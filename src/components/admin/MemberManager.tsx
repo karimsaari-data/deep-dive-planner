@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 
 interface Profile {
   id: string;
@@ -107,6 +108,19 @@ const MemberManager = () => {
     },
   });
 
+  const { members: adherents } = useClubMembersDirectory();
+
+  // Inscription progress: how many adhérents (fichier) already have an app account (profile).
+  const registeredEmailSet = new Set(
+    (profiles ?? []).map((p) => p.email?.toLowerCase()).filter(Boolean)
+  );
+  const totalAdherents = adherents?.length ?? 0;
+  const totalComptes = profiles?.length ?? 0;
+  const inscrits = (adherents ?? []).filter((m) =>
+    registeredEmailSet.has(m.email?.toLowerCase())
+  ).length;
+  const progressPct = totalAdherents > 0 ? Math.round((inscrits / totalAdherents) * 100) : 0;
+
   const isUserAdmin = (userId: string) => {
     return userRoles?.some((role) => role.user_id === userId && role.role === "admin");
   };
@@ -126,6 +140,26 @@ const MemberManager = () => {
         <p className="text-sm text-muted-foreground">Gestion des utilisateurs inscrits et de leurs rôles</p>
       </CardHeader>
       <CardContent>
+        {/* Avancement des inscriptions : comptes app vs fichier adhérents */}
+        <div className="mb-4 rounded-lg border border-border bg-muted/30 p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-sm font-medium text-foreground">Avancement des inscriptions</span>
+            <span className="text-sm font-semibold text-primary">
+              {inscrits} / {totalAdherents} adhérents
+            </span>
+          </div>
+          <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{progressPct}% des adhérents ont créé leur compte</span>
+            <span>{totalComptes} comptes app</span>
+          </div>
+        </div>
+
         <div className="mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
