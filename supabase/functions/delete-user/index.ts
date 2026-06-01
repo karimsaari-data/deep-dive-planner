@@ -77,8 +77,34 @@ serve(async (req) => {
       });
     }
 
+    // Cascade-delete all data linked to this member. Tables reference public.profiles
+    // (not auth.users) with NO ACTION, so we must remove child rows explicitly and in
+    // dependency order. Outings and equipment_inventory cascade to their own children.
+    const steps: Array<[string, Promise<{ error: unknown }>]> = [
+      ["reservations", supabaseAdmin.from("reservations").delete().eq("user_id", userId)],
+      ["outings", supabaseAdmin.from("outings").delete().eq("organizer_id", userId)],
+      ["equipment_inventory", supabaseAdmin.from("equipment_inventory").delete().eq("owner_id", userId)],
+      ["equipment_history.created_by", supabaseAdmin.from("equipment_history").delete().eq("created_by", userId)],
+      ["equipment_history.from_user_id", supabaseAdmin.from("equipment_history").delete().eq("from_user_id", userId)],
+      ["equipment_history.to_user_id", supabaseAdmin.from("equipment_history").delete().eq("to_user_id", userId)],
+      ["user_roles", supabaseAdmin.from("user_roles").delete().eq("user_id", userId)],
+      ["profiles", supabaseAdmin.from("profiles").delete().eq("id", userId)],
+    ];
+
+    for (const [name, query] of steps) {
+      const { error } = await query;
+      if (error) throw new Error(`Echec suppression ${name}: ${(error as { message?: string }).message ?? error}`);
+    }
+
+    // Remove the auth account last. Tolerate "user not found" so orphan profiles
+    // (no matching auth.users row) can still be cleaned up without erroring.
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      const msg = (deleteError as { message?: string; status?: number }).message ?? "";
+      const status = (deleteError as { status?: number }).status;
+      const notFound = status === 404 || /not found/i.test(msg);
+      if (!notFound) throw deleteError;
+    }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
