@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight } from "lucide-react";
+import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight, Clock } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -135,6 +135,18 @@ const Reservations = () => {
                               member_status: coInstructorIds.has(p.id) ? "Encadrant" : p.member_status,
                             }));
 
+                            // Split confirmed vs waitlisted
+                            const confirmedParticipants = participantsWithRoles.filter(
+                              (p) => p.status !== "en_attente"
+                            );
+                            const waitlistParticipants = participantsWithRoles
+                              .filter((p) => p.status === "en_attente")
+                              .sort(
+                                (a, b) =>
+                                  new Date(a.created_at ?? 0).getTime() -
+                                  new Date(b.created_at ?? 0).getTime()
+                              );
+
                             // Add co-instructors who have no reservation (not in participants list)
                             const participantIdSet = new Set(participantsWithRoles.map((p) => p.id));
                             const additionalInstructors = (reservation.outing?.co_instructors ?? [])
@@ -147,25 +159,53 @@ const Reservations = () => {
                                 member_status: "Encadrant" as const,
                               }));
 
-                            const allParticipants = [...participantsWithRoles, ...additionalInstructors];
+                            const confirmedAll = [...confirmedParticipants, ...additionalInstructors];
 
-                            if (allParticipants.length === 0) return null;
+                            if (confirmedAll.length === 0 && waitlistParticipants.length === 0) return null;
 
                             return (
-                              <div className="mt-4 pt-3 border-t border-border/50">
-                                <div className="flex items-center gap-2 mb-3">
-                                  <Users className="h-4 w-4 text-primary" />
-                                  <span className="text-sm font-medium text-foreground">
-                                    Participants ({allParticipants.length})
-                                  </span>
-                                </div>
-                                <ParticipantsList
-                                  participants={allParticipants}
-                                  maxVisible={10}
-                                  size="lg"
-                                  showNames
-                                  organizerId={reservation.outing?.organizer_id}
-                                />
+                              <div className="mt-4 pt-3 border-t border-border/50 space-y-4">
+                                {confirmedAll.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Users className="h-4 w-4 text-primary" />
+                                      <span className="text-sm font-medium text-foreground">
+                                        Participants ({confirmedAll.length})
+                                      </span>
+                                    </div>
+                                    <ParticipantsList
+                                      participants={confirmedAll}
+                                      maxVisible={10}
+                                      size="lg"
+                                      showNames
+                                      organizerId={reservation.outing?.organizer_id}
+                                    />
+                                  </div>
+                                )}
+
+                                {waitlistParticipants.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <Clock className="h-4 w-4 text-amber-600" />
+                                      <span className="text-sm font-medium text-foreground">
+                                        Liste d'attente ({waitlistParticipants.length})
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {waitlistParticipants.map((p, index) => (
+                                        <div
+                                          key={p.id}
+                                          className="flex items-center gap-2 text-sm text-muted-foreground"
+                                        >
+                                          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-700">
+                                            {index + 1}
+                                          </span>
+                                          {p.first_name} {p.last_name}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })()}
