@@ -221,7 +221,8 @@ const OutingDetail = () => {
   }
 
   const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") ?? [];
-  const waitlistedReservations = outing.reservations?.filter(r => r.status === "en_attente") ?? [];
+  const waitlistedReservations = (outing.reservations?.filter(r => r.status === "en_attente") ?? [])
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   const cancelledReservations = outing.reservations?.filter(r => r.status === "annulé") ?? [];
 
   const isPast = outingDate < now;
@@ -801,11 +802,13 @@ const OutingDetail = () => {
                 <div className="mt-6">
                   <h4 className="mb-3 text-sm font-medium text-muted-foreground">Liste d'attente ({waitlistedReservations.length})</h4>
                   <div className="space-y-2">
-                    {waitlistedReservations.map((reservation) => {
+                    {waitlistedReservations.map((reservation, index) => {
                       const profile = reservation.profile;
                       return (
                         <div key={reservation.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
+                          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-700">
+                            {index + 1}
+                          </span>
                           {profile?.first_name} {profile?.last_name}
                         </div>
                       );

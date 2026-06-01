@@ -149,8 +149,11 @@ const OutingView = () => {
 
   const waitlistedReservations =
     (participantsQuery.data?.waitlist ??
-      outing.reservations?.filter((r) => r.status === "en_attente") ??
-      []) as any[];
+      (outing.reservations?.filter((r) => r.status === "en_attente") ?? [])
+        .sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )) as any[];
   
   const outingDate = new Date(outing.date_time);
   const now = new Date();
@@ -532,8 +535,9 @@ const OutingView = () => {
                     Liste d'attente ({waitlistedReservations.length})
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {waitlistedReservations.map((reservation) => (
-                      <Badge key={reservation.id} variant="outline">
+                    {waitlistedReservations.map((reservation, index) => (
+                      <Badge key={reservation.id} variant="outline" className="gap-1">
+                        <span className="font-semibold text-amber-700">{index + 1}.</span>
                         {reservation.profile?.first_name}
                       </Badge>
                     ))}

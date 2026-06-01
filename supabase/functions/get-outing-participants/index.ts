@@ -92,11 +92,13 @@ serve(async (req) => {
         status,
         carpool_option,
         carpool_seats,
+        created_at,
         profile:profiles(first_name, last_name, avatar_url)
       `
       )
       .eq("outing_id", outingId)
-      .in("status", ["confirmé", "en_attente"]);
+      .in("status", ["confirmé", "en_attente"])
+      .order("created_at", { ascending: true });
 
     if (resError) {
       console.error("Error fetching reservations:", resError);

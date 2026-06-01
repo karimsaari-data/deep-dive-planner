@@ -221,6 +221,8 @@ export interface OutingParticipant {
   last_name: string;
   avatar_url: string | null;
   member_status: string | null;
+  status?: BookingStatus;
+  created_at?: string;
 }
 
 export const useMyReservations = () => {

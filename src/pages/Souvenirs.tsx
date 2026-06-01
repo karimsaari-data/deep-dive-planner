@@ -63,7 +63,9 @@ const Souvenirs = () => {
           
           return {
             ...outing,
-            presentParticipants: participants ?? [],
+            presentParticipants: (participants ?? []).filter(
+              (p: any) => p.status !== "en_attente"
+            ),
           };
         })
       );
