@@ -39,8 +39,9 @@ const MemberManager = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
+        // Tri par ordre d'inscription sur l'app : les comptes les plus récents en premier.
         .select("*")
-        .order("last_name", { ascending: true });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Profile[];
