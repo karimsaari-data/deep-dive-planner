@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
+import { useMembershipYearlyStatus, getCurrentSeasonYear, getSeasonLabel } from "@/hooks/useMembershipYearlyStatus";
 
 interface Profile {
   id: string;
@@ -109,14 +110,20 @@ const MemberManager = () => {
   });
 
   const { members: adherents } = useClubMembersDirectory();
+  const currentSeason = getCurrentSeasonYear();
+  const { statuses } = useMembershipYearlyStatus(currentSeason);
 
-  // Inscription progress: how many adhérents (fichier) already have an app account (profile).
+  // Inscription progress for the CURRENT season only: count adhérents that have a
+  // membership status for the season (same denominator as the Fichier Adhérents
+  // screen), then how many of them already have an app account (profile, matched by email).
   const registeredEmailSet = new Set(
     (profiles ?? []).map((p) => p.email?.toLowerCase()).filter(Boolean)
   );
-  const totalAdherents = adherents?.length ?? 0;
+  const seasonMemberIds = new Set((statuses ?? []).map((s) => s.member_id));
+  const seasonAdherents = (adherents ?? []).filter((m) => seasonMemberIds.has(m.id));
+  const totalAdherents = seasonAdherents.length;
   const totalComptes = profiles?.length ?? 0;
-  const inscrits = (adherents ?? []).filter((m) =>
+  const inscrits = seasonAdherents.filter((m) =>
     registeredEmailSet.has(m.email?.toLowerCase())
   ).length;
   const progressPct = totalAdherents > 0 ? Math.round((inscrits / totalAdherents) * 100) : 0;
@@ -143,7 +150,7 @@ const MemberManager = () => {
         {/* Avancement des inscriptions : comptes app vs fichier adhérents */}
         <div className="mb-4 rounded-lg border border-border bg-muted/30 p-4">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="text-sm font-medium text-foreground">Avancement des inscriptions</span>
+            <span className="text-sm font-medium text-foreground">Avancement des inscriptions — saison {getSeasonLabel(currentSeason)}</span>
             <span className="text-sm font-semibold text-primary">
               {inscrits} / {totalAdherents} adhérents
             </span>
