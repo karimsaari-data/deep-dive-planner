@@ -59,6 +59,7 @@ export interface Outing {
   dive_mode?: "boat" | "shore" | null;
   boat_id?: string | null;
   confirmed_count?: number; // Real count from SECURITY DEFINER function
+  waitlist_count?: number; // Real waitlist count from SECURITY DEFINER function
   co_instructors?: CoInstructor[];
   organizer?: {
     first_name: string;
@@ -128,6 +129,9 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           const { data: countData } = await supabase
             .rpc('get_outing_confirmed_count', { outing_uuid: outing.id });
 
+          const { data: waitlistData } = await supabase
+            .rpc('get_outing_waitlist_count', { outing_uuid: outing.id });
+
           // Fetch organizer max depths and max participants if organizer has apnea_level
           let maxDepthEaa = null;
           let maxDepthEao = null;
@@ -150,6 +154,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           return {
             ...outing,
             confirmed_count: countData ?? 0,
+            waitlist_count: waitlistData ?? 0,
             organizer_max_depth_eaa: maxDepthEaa,
             organizer_max_depth_eao: maxDepthEao,
             organizer_max_participants: maxParticipants,

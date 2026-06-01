@@ -78,7 +78,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const isRegistered = !!userReservation;
   const isWaitlisted = userReservation?.status === "en_attente";
   const spotsLeft = outing.max_participants - currentParticipants;
-  const waitlistCount = outing.reservations?.filter((r) => r.status === "en_attente").length ?? 0;
+  const waitlistCount = outing.waitlist_count ?? 0;
   const isPOSSLocked = outing.is_poss_locked === true;
 
   const Icon = typeIcons[outing.outing_type];
