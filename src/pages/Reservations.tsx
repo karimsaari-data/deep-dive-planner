@@ -91,9 +91,16 @@ const Reservations = () => {
                               <h3 className="font-semibold text-foreground">
                                 {reservation.outing?.title}
                               </h3>
-                              <Badge variant="secondary" className="mt-1">
-                                {reservation.outing?.outing_type}
-                              </Badge>
+                              <div className="mt-1 flex flex-wrap items-center gap-1">
+                                <Badge variant="secondary">
+                                  {reservation.outing?.outing_type}
+                                </Badge>
+                                {reservation.status === "en_attente" && (
+                                  <Badge variant="outline" className="border-amber-500 text-amber-600">
+                                    Liste d'attente
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                             <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                           </div>
@@ -173,7 +180,9 @@ const Reservations = () => {
                             }}
                             disabled={cancelReservation.isPending}
                           >
-                            Annuler ma réservation
+                            {reservation.status === "en_attente"
+                              ? "Quitter la liste d'attente"
+                              : "Annuler ma réservation"}
                           </Button>
                         </CardContent>
                       </Card>
