@@ -78,6 +78,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const isRegistered = !!userReservation;
   const isWaitlisted = userReservation?.status === "en_attente";
   const spotsLeft = outing.max_participants - currentParticipants;
+  const waitlistCount = outing.reservations?.filter((r) => r.status === "en_attente").length ?? 0;
   const isPOSSLocked = outing.is_poss_locked === true;
 
   const Icon = typeIcons[outing.outing_type];
@@ -254,6 +255,11 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
             {!isFull && (
               <span className="text-xs text-muted-foreground">
                 ({spotsLeft} place{spotsLeft > 1 ? "s" : ""} restante{spotsLeft > 1 ? "s" : ""})
+              </span>
+            )}
+            {isFull && waitlistCount > 0 && (
+              <span className="text-xs font-medium text-amber-600">
+                ({waitlistCount} en liste d'attente)
               </span>
             )}
           </div>
