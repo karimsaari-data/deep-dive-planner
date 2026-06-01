@@ -9,6 +9,7 @@ import { useMyReservations, useCancelReservation } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import ParticipantsList from "@/components/participants/ParticipantsList";
+import { cn } from "@/lib/utils";
 
 const Reservations = () => {
   const { user, loading: authLoading } = useAuth();
@@ -192,17 +193,37 @@ const Reservations = () => {
                                       </span>
                                     </div>
                                     <div className="space-y-2">
-                                      {waitlistParticipants.map((p, index) => (
-                                        <div
-                                          key={p.id}
-                                          className="flex items-center gap-2 text-sm text-muted-foreground"
-                                        >
-                                          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-700">
-                                            {index + 1}
-                                          </span>
-                                          {p.first_name} {p.last_name}
-                                        </div>
-                                      ))}
+                                      {waitlistParticipants.map((p, index) => {
+                                        const isMe = p.id === user?.id;
+                                        return (
+                                          <div
+                                            key={p.id}
+                                            className={cn(
+                                              "flex items-center gap-2 rounded-md px-2 py-1 text-sm",
+                                              isMe
+                                                ? "bg-amber-50 font-semibold text-amber-800 ring-1 ring-amber-300"
+                                                : "text-muted-foreground"
+                                            )}
+                                          >
+                                            <span
+                                              className={cn(
+                                                "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                                                isMe
+                                                  ? "bg-amber-500 text-white"
+                                                  : "bg-amber-100 text-amber-700"
+                                              )}
+                                            >
+                                              {index + 1}
+                                            </span>
+                                            {p.first_name} {p.last_name}
+                                            {isMe && (
+                                              <span className="ml-1 text-xs font-medium text-amber-600">
+                                                (vous)
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 )}
