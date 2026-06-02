@@ -119,33 +119,35 @@ const Header = () => {
       {user && (
         <nav
           ref={mobileNavRef}
-          className="flex justify-center gap-1 border-t border-white/5 p-2 lg:hidden overflow-x-auto"
+          className="border-t border-white/5 p-2 lg:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ background: "rgba(1,12,28,0.95)" }}
         >
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <Link key={to} to={to}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  "gap-1.5 text-xs whitespace-nowrap text-white/70 hover:text-white hover:bg-white/10",
-                  isActive(to) && "bg-white/15 text-white"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </Button>
-            </Link>
-          ))}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={signOut}
-            className="gap-1.5 whitespace-nowrap text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200"
-          >
-            <LogOut className="h-4 w-4" />
-            Déconnexion
-          </Button>
+          <div className="flex w-max mx-auto gap-1">
+            {navItems.map(({ to, label, icon: Icon }) => (
+              <Link key={to} to={to}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "gap-1.5 text-xs whitespace-nowrap text-white/70 hover:text-white hover:bg-white/10",
+                    isActive(to) && "bg-white/15 text-white"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Button>
+              </Link>
+            ))}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={signOut}
+              className="gap-1.5 whitespace-nowrap text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200"
+            >
+              <LogOut className="h-4 w-4" />
+              Déconnexion
+            </Button>
+          </div>
         </nav>
       )}
     </header>
