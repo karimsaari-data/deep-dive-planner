@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Users, Search, Crown, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatFullName } from "@/lib/formatName";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -207,7 +208,7 @@ const MemberManager = () => {
                     </Avatar>
                     <div>
                       <p className="font-medium text-foreground">
-                        {profile.first_name} {profile.last_name}
+                        {formatFullName(profile.first_name, profile.last_name)}
                       </p>
                       <p className="text-xs text-muted-foreground">{profile.email}</p>
                       {profile.member_code && (
@@ -238,7 +239,7 @@ const MemberManager = () => {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Supprimer ce compte ?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Le compte de <strong>{profile.first_name} {profile.last_name}</strong> ({profile.email}) sera définitivement supprimé. Cette action est irréversible.
+                              Le compte de <strong>{formatFullName(profile.first_name, profile.last_name)}</strong> ({profile.email}) sera définitivement supprimé. Cette action est irréversible.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
