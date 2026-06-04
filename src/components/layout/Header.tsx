@@ -77,7 +77,7 @@ const Header = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-md" style={{ background: "rgba(1,12,28,0.85)" }}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-75">
+        <Link to="/" className="flex flex-shrink-0 items-center gap-3 transition-opacity hover:opacity-75">
           <img
             src={logoTeamOxygen}
             alt="My Oxygen"
@@ -88,7 +88,7 @@ const Header = () => {
         </Link>
 
         {user && (
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden flex-1 items-center justify-center gap-1 overflow-hidden lg:flex">
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button
