@@ -26,7 +26,8 @@
       "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__get_project",
       "mcp__11e01d34-7492-4374-ac5a-799abc8513c3__deploy_edge_function",
       "mcp__Supabase__apply_migration",
-      "mcp__Supabase__execute_sql"
+      "mcp__Supabase__execute_sql",
+      "mcp__Supabase__list_projects"
     ]
   }
 }
