@@ -103,18 +103,17 @@ const Header = () => {
               {canTogglePreview && (
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={toggleMemberPreview}
                   title={isMemberPreview ? "Repasser en vue encadrant" : "Simuler vue membre"}
                   className={cn(
-                    "gap-2 text-xs hidden lg:flex",
+                    "rounded-full hidden lg:flex",
                     isMemberPreview
                       ? "text-amber-300 hover:text-amber-200 hover:bg-amber-500/15 ring-1 ring-amber-400/40"
                       : "text-white/40 hover:text-white/70 hover:bg-white/10"
                   )}
                 >
-                  {isMemberPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  {isMemberPreview ? "Vue membre" : "Vue membre"}
+                  {isMemberPreview ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </Button>
               )}
               <Link to="/profile">
