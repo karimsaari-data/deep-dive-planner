@@ -1,595 +1,332 @@
 ﻿# Schéma base de données — Deep Dive Planner
 
-Généré le 2026-06-04 depuis Supabase
-
-
-## apnea_levels
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `code` | text | ❌ |  |
-| `name` | text | ❌ |  |
-| `prerogatives` | text | ✅ |  |
-| `is_instructor` | boolean | ✅ | false |
-| `federation` | text | ✅ |  |
-| `federation_full_name` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ✅ | now() |
-| `profondeur_max_eaa` | integer | ✅ |  |
-| `profondeur_max_eao` | integer | ✅ |  |
-| `max_participants_encadrement` | integer | ✅ |  |
-
-## boats
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `name` | text | ❌ |  |
-| `registration_number` | text | ✅ |  |
-| `capacity` | integer | ❌ | 6 |
-| `pilot_name` | text | ✅ |  |
-| `pilot_phone` | text | ✅ |  |
-| `oxygen_location` | text | ✅ |  |
-| `home_port` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `updated_at` | timestamp with time zone | ❌ | now() |
-
-## calendrier
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `date_id` | date | ❌ |  |
-| `annee` | smallint | ❌ |  |
-| `debut_annee` | date | ❌ |  |
-| `fin_annee` | date | ❌ |  |
-| `annee_label` | text | ❌ |  |
-| `annee_relatif` | smallint | ❌ |  |
-| `trimestre` | smallint | ❌ |  |
-| `trimestre_label` | text | ❌ |  |
-| `trimestre_annee_label` | text | ❌ |  |
-| `trimestre_annee_tri` | integer | ❌ |  |
-| `debut_trimestre` | date | ❌ |  |
-| `fin_trimestre` | date | ❌ |  |
-| `trimestre_relatif` | integer | ❌ |  |
-| `mois` | smallint | ❌ |  |
-| `mois_label` | text | ❌ |  |
-| `mois_court` | text | ❌ |  |
-| `mois_annee_label` | text | ❌ |  |
-| `mois_annee_tri` | integer | ❌ |  |
-| `debut_mois` | date | ❌ |  |
-| `fin_mois` | date | ❌ |  |
-| `jours_dans_mois` | smallint | ❌ |  |
-| `mois_relatif` | integer | ❌ |  |
-| `semaine_iso` | smallint | ❌ |  |
-| `annee_semaine_iso` | smallint | ❌ |  |
-| `semaine_label` | text | ❌ |  |
-| `semaine_annee_label` | text | ❌ |  |
-| `semaine_annee_tri` | integer | ❌ |  |
-| `debut_semaine` | date | ❌ |  |
-| `fin_semaine` | date | ❌ |  |
-| `semaine_relative` | integer | ❌ |  |
-| `jour_mois` | smallint | ❌ |  |
-| `jour_annee` | smallint | ❌ |  |
-| `jour_semaine` | smallint | ❌ |  |
-| `jour_label` | text | ❌ |  |
-| `jour_court` | text | ❌ |  |
-| `jour_lettre` | text | ❌ |  |
-| `est_weekend` | boolean | ❌ |  |
-| `est_semaine` | boolean | ❌ |  |
-| `est_aujourd_hui` | boolean | ❌ |  |
-| `est_passe` | boolean | ❌ |  |
-| `est_futur` | boolean | ❌ |  |
-| `jour_relatif` | integer | ❌ |  |
-| `annee_mois_jour_tri` | integer | ❌ |  |
-| `label_complet` | text | ❌ |  |
-| `saison_id` | integer | ❌ |  |
-
-## carpool_passengers
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `carpool_id` | uuid | ❌ |  |
-| `passenger_id` | uuid | ❌ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-
-## carpools
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `outing_id` | uuid | ❌ |  |
-| `driver_id` | uuid | ❌ |  |
-| `departure_time` | time without time zone | ❌ |  |
-| `available_seats` | integer | ❌ |  |
-| `meeting_point` | text | ❌ |  |
-| `maps_link` | text | ✅ |  |
-| `notes` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `updated_at` | timestamp with time zone | ❌ | now() |
-
-## club_members_directory
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `member_id` | text | ❌ |  |
-| `first_name` | text | ❌ |  |
-| `last_name` | text | ❌ |  |
-| `email` | text | ❌ |  |
-| `phone` | text | ✅ |  |
-| `birth_date` | date | ✅ |  |
-| `address` | text | ✅ |  |
-| `joined_at` | date | ✅ | CURRENT_DATE |
-| `notes` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `updated_at` | timestamp with time zone | ❌ | now() |
-| `emergency_contact_name` | text | ✅ |  |
-| `emergency_contact_phone` | text | ✅ |  |
-| `gender` | text | ✅ |  |
-| `security_docs_url` | text | ✅ |  |
-
-## dim_compte
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `compte_id` | uuid | ❌ |  |
-| `prenom` | text | ✅ |  |
-| `nom` | text | ✅ |  |
-| `nom_complet` | text | ✅ |  |
-| `email` | text | ✅ |  |
-| `role` | text | ✅ | 'member'::text |
-| `code_membre` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ✅ |  |
-
-## dim_equipement
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `inventory_id` | uuid | ❌ |  |
-| `catalog_id` | uuid | ✅ |  |
-| `nom` | text | ✅ |  |
-| `description` | text | ✅ |  |
-| `valeur_estimee` | numeric | ✅ |  |
-| `unique_code` | text | ✅ |  |
-| `statut` | text | ✅ |  |
-| `date_acquisition` | date | ✅ |  |
-| `notes` | text | ✅ |  |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## dim_membre
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `membre_id` | uuid | ❌ |  |
-| `code_membre` | text | ✅ |  |
-| `prenom` | text | ✅ |  |
-| `nom` | text | ✅ |  |
-| `nom_complet` | text | ✅ |  |
-| `email` | text | ✅ |  |
-| `telephone` | text | ✅ |  |
-| `date_naissance` | date | ✅ |  |
-| `age` | integer | ✅ |  |
-| `genre` | text | ✅ |  |
-| `date_adhesion` | timestamp with time zone | ✅ |  |
-| `anciennete_annees` | integer | ✅ |  |
-| `contact_urgence_nom` | text | ✅ |  |
-| `contact_urgence_tel` | text | ✅ |  |
-| `profile_id` | uuid | ✅ |  |
-| `statut_membre` | text | ✅ |  |
-| `niveau_apnee` | text | ✅ |  |
-| `avatar_url` | text | ✅ |  |
-| `a_compte_app` | boolean | ✅ | false |
-| `niveau_apnee_saison_courante` | text | ✅ |  |
-| `est_encadrant_saison_courante` | boolean | ✅ |  |
-| `role_bureau_saison_courante` | text | ✅ |  |
-| `est_membre_actif` | boolean | ✅ | false |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `apnea_level_id` | uuid | ✅ |  |
-| `created_at` | timestamp with time zone | ✅ | now() |
-
-## dim_options_sondage
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `option_id` | text | ❌ |  |
-| `sondage_id` | text | ❌ |  |
-| `option_label` | text | ✅ |  |
-| `nb_votes` | integer | ✅ | 0 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## dim_role
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `role_id` | uuid | ❌ |  |
-| `user_id` | uuid | ✅ |  |
-| `email` | text | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `role_app` | text | ✅ |  |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## dim_saison
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `saison_id` | integer | ❌ |  |
-| `libelle` | text | ❌ |  |
-| `date_debut` | date | ❌ |  |
-| `date_fin` | date | ❌ |  |
-| `est_saison_courante` | boolean | ❌ | false |
-
-## dim_site
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `site_id` | uuid | ❌ |  |
-| `nom` | text | ✅ |  |
-| `adresse` | text | ✅ |  |
-| `type_site` | text | ✅ |  |
-| `latitude` | double precision | ✅ |  |
-| `longitude` | double precision | ✅ |  |
-| `profondeur_max` | numeric | ✅ |  |
-| `commentaires` | text | ✅ |  |
-| `photo_url` | text | ✅ |  |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## dim_sondage
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `sondage_id` | uuid | ❌ |  |
-| `titre` | text | ✅ |  |
-| `options_disponibles` | jsonb | ✅ |  |
-| `choix_multiple` | boolean | ✅ |  |
-| `est_actif` | boolean | ✅ |  |
-| `cree_par` | uuid | ✅ |  |
-| `date_creation` | date | ✅ |  |
-| `date_cloture` | date | ✅ |  |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## dim_waypoint
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `waypoint_id` | uuid | ❌ |  |
-| `site_id` | uuid | ✅ |  |
-| `nom` | text | ✅ |  |
-| `latitude` | double precision | ✅ |  |
-| `longitude` | double precision | ✅ |  |
-| `type_point` | text | ✅ |  |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## equipment_catalog
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `name` | text | ❌ |  |
-| `description` | text | ✅ |  |
-| `photo_url` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `updated_at` | timestamp with time zone | ❌ | now() |
-| `estimated_value` | numeric | ✅ | 0 |
-
-## equipment_history
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `inventory_id` | uuid | ❌ |  |
-| `action_type` | text | ❌ |  |
-| `from_user_id` | uuid | ✅ |  |
-| `to_user_id` | uuid | ✅ |  |
-| `old_status` | USER-DEFINED | ✅ |  |
-| `new_status` | USER-DEFINED | ✅ |  |
-| `notes` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `created_by` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-
-## equipment_inventory
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `catalog_id` | uuid | ❌ |  |
-| `owner_id` | uuid | ❌ |  |
-| `status` | USER-DEFINED | ❌ | 'disponible'::equipment_status |
-| `notes` | text | ✅ |  |
-| `acquired_at` | timestamp with time zone | ❌ | now() |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `updated_at` | timestamp with time zone | ❌ | now() |
-| `photo_url` | text | ✅ |  |
-| `unique_code` | text | ❌ |  |
-
-## fait_adhesion
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `adhesion_id` | uuid | ❌ | gen_random_uuid() |
-| `date_id` | date | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `niveau_apnee` | text | ✅ |  |
-| `role_bureau` | text | ✅ |  |
-| `is_encadrant` | boolean | ✅ |  |
-| `numero_licence` | text | ✅ |  |
-| `cotisation_payee` | integer | ✅ | 0 |
-| `certificat_medical_ok` | integer | ✅ | 0 |
-| `charte_signee` | integer | ✅ | 0 |
-| `assurance_ok` | integer | ✅ | 0 |
-| `membre_valide` | integer | ✅ | 0 |
-| `nb_adhesions` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `saison_id` | integer | ✅ |  |
-| `statut_dossier` | text | ✅ |  |
-
-## fait_co_instructeur
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `co_instructeur_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `sortie_id` | uuid | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `nb_co_instructeurs` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## fait_covoiturage
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `covoiturage_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `sortie_id` | uuid | ✅ |  |
-| `conducteur_id` | uuid | ✅ |  |
-| `places_disponibles` | integer | ✅ |  |
-| `point_rencontre` | text | ✅ |  |
-| `heure_depart` | time without time zone | ✅ |  |
-| `nb_covoiturages` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## fait_mouvement_equipement
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `mouvement_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `equipement_id` | uuid | ✅ |  |
-| `membre_id_source` | uuid | ✅ |  |
-| `membre_id_dest` | uuid | ✅ |  |
-| `type_action` | text | ✅ |  |
-| `ancien_statut` | text | ✅ |  |
-| `nouveau_statut` | text | ✅ |  |
-| `notes` | text | ✅ |  |
-| `nb_mouvements` | integer | ✅ | 1 |
-| `nb_prets` | integer | ✅ | 0 |
-| `nb_retours` | integer | ✅ | 0 |
-| `nb_pertes` | integer | ✅ | 0 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## fait_participation
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `participation_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `site_id` | uuid | ✅ |  |
-| `bateau_id` | uuid | ✅ |  |
-| `sortie_id` | uuid | ✅ |  |
-| `titre_sortie` | text | ✅ |  |
-| `type_sortie` | text | ✅ |  |
-| `mode_plongee` | text | ✅ |  |
-| `capacite_max` | integer | ✅ |  |
-| `heure_mise_eau` | text | ✅ |  |
-| `heure_sortie_eau` | text | ✅ |  |
-| `statut_reservation` | text | ✅ |  |
-| `option_covoiturage` | text | ✅ |  |
-| `present` | integer | ✅ | 0 |
-| `absent` | integer | ✅ | 0 |
-| `nb_inscriptions` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `encadrant_principal` | text | ✅ |  |
-
-## fait_participation_historique
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `participation_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `sortie_id` | uuid | ✅ |  |
-| `titre_sortie` | text | ✅ |  |
-| `type_sortie` | text | ✅ |  |
-| `site_id` | uuid | ✅ |  |
-| `nb_participations` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `encadrant_principal` | text | ✅ |  |
-
-## fait_passager_covoiturage
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `passager_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `covoiturage_id` | uuid | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `nb_passagers` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-
-## fait_vote
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `vote_id` | uuid | ❌ |  |
-| `date_id` | date | ✅ |  |
-| `sondage_id` | uuid | ✅ |  |
-| `membre_id` | uuid | ✅ |  |
-| `options_choisies` | jsonb | ✅ |  |
-| `nb_votes` | integer | ✅ | 1 |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `option_label` | text | ✅ |  |
-
-## historical_outing_participants
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `outing_id` | uuid | ❌ |  |
-| `member_id` | uuid | ❌ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-
-## locations
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `name` | text | ❌ |  |
-| `address` | text | ✅ |  |
-| `type` | text | ✅ |  |
-| `maps_url` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ✅ | now() |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `latitude` | double precision | ✅ |  |
-| `longitude` | double precision | ✅ |  |
-| `photo_url` | text | ✅ |  |
-| `max_depth` | numeric | ✅ |  |
-| `comments` | text | ✅ |  |
-| `satellite_map_url` | text | ✅ |  |
-| `bathymetric_map_url` | text | ✅ |  |
-
-## membership_yearly_status
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `member_id` | uuid | ❌ |  |
-| `season_year` | integer | ❌ |  |
-| `payment_status` | boolean | ❌ | false |
-| `medical_certificate_ok` | boolean | ❌ | false |
-| `buddies_charter_signed` | boolean | ❌ | false |
-| `fsgt_insurance_ok` | boolean | ❌ | false |
-| `created_at` | timestamp with time zone | ❌ | now() |
-| `updated_at` | timestamp with time zone | ❌ | now() |
-| `is_encadrant` | boolean | ❌ | false |
-| `board_role` | text | ✅ |  |
-| `apnea_level` | text | ✅ |  |
-| `license_number` | text | ✅ |  |
-| `date_id` | date | ✅ |  |
-
-## outing_co_instructors
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `outing_id` | uuid | ❌ |  |
-| `user_id` | uuid | ❌ |  |
-| `added_at` | timestamp with time zone | ❌ | now() |
-
-## outings
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `title` | text | ❌ |  |
-| `description` | text | ✅ |  |
-| `date_time` | timestamp with time zone | ❌ |  |
-| `location` | text | ❌ |  |
-| `organizer_id` | uuid | ✅ |  |
-| `outing_type` | USER-DEFINED | ❌ |  |
-| `max_participants` | integer | ❌ | 10 |
-| `created_at` | timestamp with time zone | ✅ | now() |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `end_date` | timestamp with time zone | ✅ |  |
-| `location_id` | uuid | ✅ |  |
-| `session_report` | text | ✅ |  |
-| `reminder_sent` | boolean | ✅ | false |
-| `photos` | ARRAY | ✅ | '{}'::text[] |
-| `is_deleted` | boolean | ❌ | false |
-| `is_archived` | boolean | ❌ | false |
-| `is_staff_only` | boolean | ❌ | false |
-| `dive_mode` | text | ✅ |  |
-| `boat_id` | uuid | ✅ |  |
-| `organizer_member_id` | uuid | ✅ |  |
-| `is_poss_locked` | boolean | ✅ | false |
-| `water_entry_time` | time without time zone | ✅ |  |
-| `water_exit_time` | time without time zone | ✅ |  |
-| `date_id` | date | ✅ |  |
-
-## polls
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `title` | text | ❌ |  |
-| `options` | jsonb | ❌ |  |
-| `allow_multiple` | boolean | ✅ | false |
-| `is_active` | boolean | ✅ | true |
-| `created_by` | uuid | ✅ |  |
-| `created_at` | timestamp with time zone | ✅ | now() |
-| `closes_at` | timestamp with time zone | ✅ |  |
-
-## profiles
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ |  |
-| `first_name` | text | ❌ |  |
-| `last_name` | text | ❌ |  |
-| `email` | text | ❌ |  |
-| `apnea_level` | text | ✅ |  |
-| `specialty` | text | ✅ |  |
-| `created_at` | timestamp with time zone | ✅ | now() |
-| `updated_at` | timestamp with time zone | ✅ | now() |
-| `avatar_url` | text | ✅ |  |
-| `member_status` | USER-DEFINED | ✅ | 'Membre'::member_status |
-| `member_code` | text | ✅ |  |
-| `phone` | text | ✅ |  |
-
-## reservations
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `outing_id` | uuid | ❌ |  |
-| `user_id` | uuid | ❌ |  |
-| `created_at` | timestamp with time zone | ✅ | now() |
-| `status` | USER-DEFINED | ✅ | 'confirmÃ©'::booking_status |
-| `cancelled_at` | timestamp with time zone | ✅ |  |
-| `carpool_option` | USER-DEFINED | ✅ | 'none'::carpool_option |
-| `carpool_seats` | integer | ✅ | 0 |
-| `is_present` | boolean | ✅ | false |
-| `membre_id` | uuid | ✅ |  |
-
-## site_waypoints
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `site_id` | uuid | ❌ |  |
-| `name` | text | ❌ |  |
-| `latitude` | double precision | ❌ |  |
-| `longitude` | double precision | ❌ |  |
-| `point_type` | USER-DEFINED | ❌ |  |
-| `created_at` | timestamp with time zone | ❌ | now() |
-
-## user_roles
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `user_id` | uuid | ❌ |  |
-| `role` | USER-DEFINED | ❌ | 'member'::app_role |
-
-## votes
-
-| Colonne | Type | Nullable | Défaut |
-|---|---|---|---|
-| `id` | uuid | ❌ | gen_random_uuid() |
-| `poll_id` | uuid | ❌ |  |
-| `member_id` | uuid | ❌ |  |
-| `user_id` | uuid | ✅ |  |
-| `selected_options` | jsonb | ❌ |  |
-| `voted_at` | timestamp with time zone | ✅ | now() |
-
+Généré le 2026-06-04 depuis Supabase (projet hyoudezyqbivfthcgpma)
+
+## Architecture
+
+Le modèle suit une architecture **DWH (Data Warehouse)** avec :
+- **Tables sources** : données brutes de l'application (outings, reservations, votes, etc.)
+- **Tables DWH dim_*** : dimensions dénormalisées pour Power BI
+- **Tables DWH fait_*** : tables de faits pour Power BI
+- **Tables référentiel** : données de référence stables (apnea_levels, etc.)
+
+Les tables DWH sont synchronisées via des **triggers PostgreSQL** depuis les tables sources.
+
+---
+
+## Tables Référentiel
+
+### apnea_levels
+Référentiel de tous les niveaux d'apnée reconnus (AIDA, FSGT, FFESSM, PADI, SSI, Molchanovs, Diplômes d'État).
+Utilisé pour valider les niveaux des membres et calculer le statut_dossier.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire |
+| `code` | text | Code court du niveau (ex: "AIDA 2", "FSGT EA2", "BPJEPS") — **clé de jointure avec fait_adhesion.niveau_apnee et dim_options_sondage** |
+| `name` | text | Libellé complet |
+| `prerogatives` | text | Profondeurs et droits d'encadrement |
+| `is_instructor` | boolean | True si niveau encadrant |
+| `federation` | text | Fédération (AIDA, FSGT, FFESSM, PADI, SSI, Molchanovs, Diplôme d'État) |
+| `federation_full_name` | text | Nom complet de la fédération |
+| `profondeur_max_eaa` | integer | Profondeur max en eaux abritées (mètres) |
+| `profondeur_max_eao` | integer | Profondeur max en eaux ouvertes (mètres) |
+| `max_participants_encadrement` | integer | Nb max de participants encadrables |
+
+---
+
+## Tables Sources (application)
+
+### profiles
+Profils utilisateurs connectés à l'application. Lien entre auth Supabase et données membres.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire — correspond à l'id auth Supabase |
+| `first_name` | text | Prénom |
+| `last_name` | text | Nom (à mettre en UPPER pour affichage) |
+| `email` | text | Email de connexion |
+| `apnea_level` | text | Niveau apnée du profil (texte libre, pas forcément aligné avec apnea_levels.code) |
+| `member_status` | text | Statut membre |
+| `member_code` | text | Code membre (ex: M0001) |
+
+### membership_yearly_status
+**Source principale des adhésions.** Une ligne par membre par saison.
+Alimente `fait_adhesion` via trigger `trg_dwh_membership` → `dwh_sync_fait_adhesion()`.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire |
+| `member_id` | uuid | FK → profiles.id |
+| `season_year` | integer | Année de saison (ex: 2026 = saison 2025-2026) |
+| `payment_status` | boolean | Cotisation payée → fait_adhesion.cotisation_payee |
+| `medical_certificate_ok` | boolean | Certificat médical → fait_adhesion.certificat_medical_ok |
+| `buddies_charter_signed` | boolean | Charte signée → fait_adhesion.charte_signee |
+| `fsgt_insurance_ok` | boolean | Assurance FSGT → fait_adhesion.assurance_ok |
+| `is_encadrant` | boolean | Est encadrant cette saison → fait_adhesion.is_encadrant |
+| `board_role` | text | Rôle au bureau (Président, Trésorier...) → fait_adhesion.role_bureau |
+| `apnea_level` | text | Niveau apnée saisi — **sensible à la casse** (doit correspondre exactement à apnea_levels.code) |
+| `license_number` | text | Numéro de licence FSGT |
+| `date_id` | date | Date d'inscription à la saison |
+
+### outings
+**Source des sorties club.** Alimente fait_participation et fait_co_instructeur.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire — FK dans fait_participation.sortie_id |
+| `title` | text | Titre de la sortie |
+| `date_time` | timestamptz | Date et heure de départ |
+| `date_id` | date | Date seule (FK → calendrier.date_id) |
+| `organizer_id` | uuid | FK → profiles.id — **encadrant principal** (NE PAS utiliser organizer_member_id qui est toujours NULL) |
+| `organizer_member_id` | uuid | Toujours NULL — ne pas utiliser |
+| `outing_type` | USER-DEFINED | Type de sortie (Mer, Piscine...) |
+| `location_id` | uuid | FK → locations.id |
+| `boat_id` | uuid | FK → boats.id |
+| `max_participants` | integer | Capacité maximale |
+| `water_entry_time` | time | Heure mise à l'eau |
+| `water_exit_time` | time | Heure sortie de l'eau |
+| `is_deleted` | boolean | Soft delete |
+| `is_archived` | boolean | Archivé |
+
+### reservations
+Inscriptions des membres aux sorties. Alimente fait_participation via trigger `trg_dwh_reservations`.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire |
+| `outing_id` | uuid | FK → outings.id (CASCADE DELETE) |
+| `user_id` | uuid | FK → profiles.id |
+| `membre_id` | uuid | FK → dim_membre.membre_id (dénormalisé) |
+| `status` | USER-DEFINED | Statut (confirmed, waitlist, cancelled...) |
+
+### outing_co_instructors
+Co-instructeurs par sortie. Alimente fait_co_instructeur via trigger `trg_dwh_co_instructeurs`.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire |
+| `outing_id` | uuid | FK → outings.id (CASCADE DELETE) |
+| `user_id` | uuid | FK → profiles.id — **NE PAS utiliser instructor_id qui n'existe pas** |
+
+### historical_outing_participants
+Participants aux sorties historiques (avant le lancement de l'app). Alimente fait_participation_historique.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire |
+| `outing_id` | uuid | FK → outings.id (CASCADE DELETE) |
+| `member_id` | uuid | FK → profiles.id |
+
+### polls
+Sondages créés par les admins. Options stockées en JSONB.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire — correspond à dim_sondage.sondage_id et fait_vote.sondage_id |
+| `title` | text | Titre du sondage |
+| `options` | jsonb | Tableau d'objets [{id: uuid, label: text}] — **les IDs sont les clés dans votes.selected_options** |
+| `allow_multiple` | boolean | Choix multiple autorisé |
+| `is_active` | boolean | Sondage actif |
+| `created_by` | uuid | FK → profiles.id |
+| `closes_at` | timestamptz | Date de clôture (NULL = ouvert) |
+
+### votes
+Votes des membres. Alimente fait_vote. **Relation 1:1 avec dim_membre** (un vote par membre par sondage).
+
+| Colonne | Type | Description |
+|---|---|---|
+| `id` | uuid | Clé primaire |
+| `poll_id` | uuid | FK → polls.id — correspond à fait_vote.sondage_id |
+| `member_id` | uuid | FK → profiles.id |
+| `selected_options` | jsonb | Tableau d'IDs d'options choisies — jointure avec polls.options[].id pour obtenir le libellé |
+
+### carpools / carpool_passengers
+Covoiturages proposés et passagers. Alimentent fait_covoiturage et fait_passager_covoiturage.
+
+---
+
+## Tables DWH Dimensions (Power BI)
+
+### dim_membre
+Dimension principale des membres. **Table centrale du modèle.**
+
+| Colonne | Type | Description |
+|---|---|---|
+| `membre_id` | uuid | Clé primaire — FK dans toutes les tables de faits |
+| `code_membre` | text | Code lisible (M0001, M0002...) |
+| `nom_complet` | text | Prénom + NOM |
+| `prenom` | text | Prénom |
+| `nom` | text | Nom en majuscules |
+| `genre` | text | Genre |
+| `age` | int | Âge calculé |
+| `date_naissance` | date | Date de naissance |
+| `date_adhesion` | date | Date de première adhésion au club |
+| `anciennete_annees` | int | Nombre d'années d'ancienneté (0 = moins d'1 an — **ne pas utiliser seul pour "nouveau membre"**) |
+| `niveau_apnee` | text | Niveau du profil (souvent NULL — utiliser fait_adhesion.niveau_apnee à la place) |
+| `niveau_apnee_saison_courante` | text | Niveau saison courante |
+| `est_encadrant_saison_courante` | boolean | Encadrant cette saison (**partiellement fiable — préférer fait_adhesion.is_encadrant par saison**) |
+| `role_bureau_saison_courante` | text | Rôle au bureau (Président, VP, Trésorier, Secrétaire...) |
+| `est_membre_actif` | boolean | Membre actif (a une adhésion valide) |
+| `a_compte_app` | boolean | A un compte dans l'application |
+| `apnea_level_id` | uuid | FK → apnea_levels.id (**souvent NULL**) |
+| `statut_membre` | text | Statut |
+
+### fait_adhesion
+Faits des adhésions par membre par saison. **Source de vérité pour les dossiers.**
+
+| Colonne | Type | Description |
+|---|---|---|
+| `adhesion_id` | uuid | Clé primaire |
+| `membre_id` | uuid | FK → dim_membre.membre_id |
+| `saison_id` | integer | Année de saison (2026 = saison 2025-2026) — **saison courante = MAX(saison_id)** |
+| `date_id` | date | Date d'adhésion |
+| `niveau_apnee` | text | Niveau déclaré — **sensible à la casse** pour jointure avec apnea_levels.code |
+| `is_encadrant` | boolean | Encadrant cette saison |
+| `role_bureau` | text | Rôle au bureau |
+| `cotisation_payee` | integer | 0/1 |
+| `certificat_medical_ok` | integer | 0/1 |
+| `charte_signee` | integer | 0/1 |
+| `assurance_ok` | integer | 0/1 |
+| `membre_valide` | integer | 0/1 — flag global (**pas toujours fiable, préférer statut_dossier**) |
+| `statut_dossier` | text | **Calculé par trigger** : "Complet" / "Niveau non reconnu" / "Admin incomplet" / "Admin incomplet + Niveau non reconnu" |
+| `nb_adhesions` | integer | Nombre total d'adhésions du membre |
+
+### fait_participation
+Faits des participations aux sorties (saison courante).
+
+| Colonne | Type | Description |
+|---|---|---|
+| `participation_id` | uuid | Clé primaire |
+| `membre_id` | uuid | FK → dim_membre.membre_id |
+| `sortie_id` | uuid | FK → outings.id |
+| `date_id` | date | FK → calendrier.date_id |
+| `encadrant_principal` | text | **Calculé par trigger** : prénom + NOM de l'organisateur (outings.organizer_id → profiles) |
+| `titre_sortie` | text | Titre de la sortie |
+| `type_sortie` | text | Type (Mer, Piscine...) |
+| `site_id` | uuid | FK → dim_site.site_id |
+| `bateau_id` | uuid | FK → boats.id |
+| `statut_reservation` | text | Statut de la réservation |
+| `present` | integer | 0/1 présent |
+| `absent` | integer | 0/1 absent |
+| `nb_inscriptions` | integer | Toujours 1 par ligne |
+| `capacite_max` | integer | Capacité max de la sortie |
+
+### fait_participation_historique
+Participations historiques (avant lancement app). Structure identique à fait_participation sans les champs de réservation.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `participation_id` | uuid | Clé primaire |
+| `membre_id` | uuid | FK → dim_membre.membre_id |
+| `sortie_id` | uuid | FK → outings.id |
+| `date_id` | date | FK → calendrier.date_id |
+| `encadrant_principal` | text | **Calculé par trigger** |
+| `titre_sortie` | text | Titre |
+| `type_sortie` | text | Type |
+| `site_id` | uuid | FK → dim_site.site_id |
+
+### fait_vote
+Votes des membres aux sondages. **Relation 1:1 avec dim_membre** (un vote par membre par sondage).
+
+| Colonne | Type | Description |
+|---|---|---|
+| `vote_id` | uuid | Clé primaire |
+| `membre_id` | uuid | FK → dim_membre.membre_id |
+| `sondage_id` | uuid | FK → dim_sondage.sondage_id |
+| `date_id` | date | Date du vote |
+| `options_choisies` | text | JSON array des IDs d'options choisies (ex: ["uuid1"]) |
+| `option_label` | text | **Calculé par trigger** : libellé(s) des options choisies en clair, séparés par " \| " si multiple |
+| `nb_votes` | integer | Toujours 1 |
+
+### dim_options_sondage
+**Table de synthèse des votes par option.** Créée le 2026-06-04. Pour visuels agrégés (camembert, barres).
+⚠️ Ne pas croiser avec dim_membre — pas de lien direct.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `sondage_id` | text | FK → dim_sondage.sondage_id |
+| `option_id` | text | ID de l'option (UUID depuis polls.options[].id) |
+| `option_label` | text | Libellé de l'option en clair |
+| `nb_votes` | integer | Nombre de membres ayant choisi cette option |
+
+### dim_sondage
+Dimension des sondages.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `sondage_id` | text | Clé primaire |
+| `titre` | text | Titre du sondage |
+| `options_disponibles` | text | Options disponibles |
+| `choix_multiple` | boolean | Choix multiple autorisé |
+| `est_actif` | boolean | Sondage actif |
+| `cree_par` | text | Créateur |
+| `date_creation` | date | Date de création |
+| `date_cloture` | date | Date de clôture (NULL = ouvert) |
+
+### dim_role
+Membres ayant un rôle dans l'application (admin/bureau). **Contient les 10 encadrants + membres du bureau.**
+⚠️ Mélange encadrants et bureau — utiliser avec fait_adhesion.is_encadrant pour distinguer.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `role_id` | uuid | Clé primaire |
+| `membre_id` | uuid | FK → dim_membre.membre_id (peut être NULL pour 1 ligne orpheline) |
+| `user_id` | uuid | FK → profiles.id |
+| `email` | text | Email |
+| `role_app` | text | Rôle dans l'app (toujours "admin" actuellement) |
+
+### dim_saison
+Référentiel des saisons. **Attention : est_saison_courante pointe sur saison_id=2025 (2025-2026) mais les données de fait_adhesion utilisent saison_id=2026.**
+
+| Colonne | Type | Description |
+|---|---|---|
+| `saison_id` | integer | Clé primaire — année de début (ex: 2025 = saison 2025-2026) |
+| `libelle` | text | Libellé (ex: "2025-2026") |
+| `date_debut` | date | 1er septembre de l'année de début |
+| `date_fin` | date | 31 août de l'année suivante |
+| `est_saison_courante` | boolean | ⚠️ Incohérence connue : pointe sur 2025 mais fait_adhesion.saison_id=2026 pour la saison courante. **Utiliser MAXX(ALL(fait_adhesion), saison_id) pour la saison courante en DAX.** |
+
+### calendrier
+Table calendrier enrichie avec 45 colonnes temporelles. Date de référence pour toutes les tables de faits.
+
+| Colonne | Type | Description |
+|---|---|---|
+| `date_id` | date | Clé primaire |
+| `saison_id` | integer | FK → dim_saison.saison_id |
+| `annee` | integer | Année |
+| `mois` | integer | Mois (1-12) |
+| `semaine_iso` | integer | Semaine ISO |
+| `est_weekend` | boolean | Week-end |
+| `est_aujourd_hui` | boolean | Aujourd'hui |
+| `jour_relatif` | integer | Jours par rapport à aujourd'hui |
+| ... | ... | 37 autres colonnes temporelles |
+
+### dim_equipement / fait_mouvement_equipement
+Inventaire et mouvements des équipements du club.
+
+| Colonne clé | Description |
+|---|---|
+| `dim_equipement.inventory_id` | Clé primaire — FK dans fait_mouvement_equipement.equipement_id |
+| `dim_equipement.valeur_estimee` | Valeur en euros |
+| `dim_equipement.statut` | Statut actuel (disponible, prêté, perdu...) |
+| `fait_mouvement_equipement.nb_prets` | Nombre de prêts |
+| `fait_mouvement_equipement.nb_retours` | Nombre de retours |
+| `fait_mouvement_equipement.nb_pertes` | Nombre de pertes |
+
+---
+
+## Notes importantes pour Power BI / DAX
+
+1. **Saison courante en DAX** : utiliser `MAXX(ALL('public fait_adhesion'), 'public fait_adhesion'[saison_id])` — NE PAS utiliser `dim_saison[est_saison_courante]` (incohérence connue)
+2. **Nb Encadrants** : utiliser `fait_adhesion[is_encadrant] = TRUE()` filtré sur saison courante — NE PAS utiliser `dim_membre[est_encadrant_saison_courante]` (partiellement fiable)
+3. **Nouveaux membres** : membres présents en saison courante mais absents des saisons précédentes dans fait_adhesion — NE PAS utiliser `dim_membre[anciennete_annees] = 0`
+4. **Statut dossier** : utiliser `fait_adhesion[statut_dossier]` (calculé par trigger) — NE PAS reconstruire les conditions booléennes manuellement
+5. **Encadrant principal sortie** : `fait_participation[encadrant_principal]` (calculé par trigger depuis outings.organizer_id → profiles) — NE PAS utiliser `outings.organizer_member_id` (toujours NULL)
+6. **Option sondage en clair** : `fait_vote[option_label]` (calculé par trigger) — NE PAS utiliser `fait_vote[options_choisies]` directement (contient des UUIDs)
+7. **Cardinalité fait_vote ↔ dim_membre** : relation 1:1 BothDirections — contrainte Power BI, ne peut pas être changée en OneDirection
+8. **Relations inactives** : `fait_adhesion.date_id → calendrier` et `fait_vote.date_id → calendrier` sont INACTIVES — utiliser `USERELATIONSHIP()` en DAX si analyse temporelle nécessaire
+
+---
+
+*Dernière mise à jour : 2026-06-04*
