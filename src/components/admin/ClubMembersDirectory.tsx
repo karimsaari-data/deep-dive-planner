@@ -311,7 +311,8 @@ const ClubMembersDirectory = () => {
       setIsFormOpen(false);
       resetForm();
     } catch (error) {
-      // Error handled in hook
+      const msg = error instanceof Error ? error.message : "Erreur lors de l'enregistrement";
+      toast.error(msg);
     }
   };
 
