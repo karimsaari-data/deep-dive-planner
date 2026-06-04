@@ -29,7 +29,7 @@ import { toast } from "sonner";
 const outingSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
   description: z.string().max(500).optional(),
-  date: z.date({ required_error: "La date est requise" }),
+  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
   prepDuration: z.number().min(0).max(180),
   sessionDuration: z.number().min(15).max(480),
@@ -343,7 +343,8 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                           disabled={(date) => {
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
-                            return date < today;
+                            const maxDate = new Date("2030-12-31");
+                            return date < today || date > maxDate;
                           }}
                           initialFocus
                           className="pointer-events-auto"

@@ -23,7 +23,7 @@ import { useCreateHistoricalOuting } from "@/hooks/useCreateHistoricalOuting";
 import { cn } from "@/lib/utils";
 
 const historicalOutingSchema = z.object({
-  date: z.date({ required_error: "La date est requise" }),
+  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
   location_id: z.string().optional(),
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères"),
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
