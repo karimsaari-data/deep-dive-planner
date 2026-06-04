@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+﻿import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ const Header = () => {
   const effectiveIsOrganizer = isMemberPreview ? false : isOrganizer;
   const canTogglePreview = realIsEncadrant || isAdmin;
 
-  // Pages accessibles uniquement en vue membre (cachées pour les encadrants)
+  // Pages accessibles uniquement en vue membre (cachÃ©es pour les encadrants)
   const memberOnlyRoutes = ["/souvenirs", "/security"];
   const handleTogglePreview = () => {
     const isLeavingMemberView = isMemberPreview && memberOnlyRoutes.includes(location.pathname);
@@ -37,20 +37,20 @@ const Header = () => {
   const navItems = useMemo(() => {
     const items = [
       { to: "/", label: "Sorties", icon: Waves },
-      { to: "/reservations", label: "Mes Réservations", icon: Calendar },
+      { to: "/reservations", label: "Mes RÃ©servations", icon: Calendar },
     ];
 
     // For encadrants: hide Souvenirs to save space for more important tools
     if (!isEncadrant) {
       items.push({ to: "/souvenirs", label: "Souvenirs", icon: Image });
-      items.push({ to: "/security", label: "Sécurité", icon: Shield });
+      items.push({ to: "/security", label: "SÃ©curitÃ©", icon: Shield });
     }
 
     items.push({ to: "/map", label: "Carte", icon: MapIcon });
-    items.push({ to: "/weather", label: "Météo", icon: CloudSun });
+    items.push({ to: "/weather", label: "MÃ©tÃ©o", icon: CloudSun });
 
     if (isEncadrant) {
-      items.push({ to: "/equipment", label: "Matériel", icon: Package });
+      items.push({ to: "/equipment", label: "MatÃ©riel", icon: Package });
     }
 
     if (effectiveIsOrganizer) {
@@ -136,7 +136,7 @@ const Header = () => {
                 className="gap-2 rounded-full text-red-300 hover:bg-red-500/15 hover:text-red-200"
               >
                 <LogOut className="h-5 w-5" />
-                <span className="hidden lg:inline">Déconnexion</span>
+                <span className="hidden lg:inline">DÃ©connexion</span>
               </Button>
             </>
           ) : (
@@ -176,7 +176,7 @@ const Header = () => {
               className="gap-1.5 whitespace-nowrap text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200"
             >
               <LogOut className="h-4 w-4" />
-              Déconnexion
+              DÃ©connexion
             </Button>
           </div>
         </nav>
@@ -186,3 +186,4 @@ const Header = () => {
 };
 
 export default Header;
+
