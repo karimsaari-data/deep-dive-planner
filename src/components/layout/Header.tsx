@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 
 const Header = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { isAdmin, isOrganizer } = useUserRole();
   const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
@@ -24,6 +25,14 @@ const Header = () => {
   const isEncadrant = isMemberPreview ? false : realIsEncadrant;
   const effectiveIsOrganizer = isMemberPreview ? false : isOrganizer;
   const canTogglePreview = realIsEncadrant || isAdmin;
+
+  // Pages accessibles uniquement en vue membre (cachées pour les encadrants)
+  const memberOnlyRoutes = ["/souvenirs", "/security"];
+  const handleTogglePreview = () => {
+    const isLeavingMemberView = isMemberPreview && memberOnlyRoutes.includes(location.pathname);
+    toggleMemberPreview();
+    if (isLeavingMemberView) navigate("/");
+  };
 
   const navItems = useMemo(() => {
     const items = [
@@ -104,7 +113,7 @@ const Header = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={toggleMemberPreview}
+                  onClick={handleTogglePreview}
                   title={isMemberPreview ? "Repasser en vue encadrant" : "Simuler vue membre"}
                   className={cn(
                     "rounded-full hidden lg:flex",
