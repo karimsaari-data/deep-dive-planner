@@ -1,4 +1,4 @@
-# CLAUDE.md - Deep Dive Planner (MyOxygen)
+﻿# CLAUDE.md - Deep Dive Planner (MyOxygen)
 
 ## Project Overview
 
@@ -108,4 +108,34 @@ VITE_SUPABASE_URL           # Supabase API URL
 - Project was scaffolded with **Lovable AI** -- `lovable-tagger` Vite plugin is present and should remain.
 - The `types.ts` file is auto-generated and nearly 1000 lines. Never edit it manually.
 - Edge functions use Deno imports (URL-based), not npm.
-- Déploiement via **Vercel** (pas Netlify) — chaque merge sur `main` déclenche un déploiement automatique.
+- DÃ©ploiement via **Vercel** (pas Netlify) â€” chaque merge sur `main` dÃ©clenche un dÃ©ploiement automatique.
+
+## Git Workflow — RÈGLES STRICTES (app en production)
+
+⚠️ L'application est en production. Ne jamais pousser directement sur main.
+
+### Process obligatoire pour tout changement
+
+1. **Créer une branche** avec un nom explicite :
+   - ix/description-de-ce-qui-est-corrige
+   - eat/description-de-la-nouvelle-fonctionnalite
+   - chore/description-de-la-tache-technique
+
+2. **Committer sur la branche** (jamais sur main directement)
+
+3. **Créer une PR** vers main avec une description claire de ce qui change et pourquoi
+
+4. **C'est le propriétaire du projet qui merge** — Claude ne merge jamais lui-même sur main
+
+### Commandes type
+```bash
+git checkout -b fix/mon-correctif
+git add <fichiers>
+git commit -m "fix: description courte du correctif"
+git push origin fix/mon-correctif
+# Puis créer la PR sur GitHub
+```
+
+### Déploiement
+- Chaque merge sur main déclenche un déploiement automatique sur **Vercel**
+- Tester sur la preview Vercel de la PR avant de merger si possible
