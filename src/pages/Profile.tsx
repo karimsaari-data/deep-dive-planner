@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { useProfileDirectory } from "@/hooks/useProfileDirectory";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
+  const { isMemberPreview } = useViewMode();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [showQrDialog, setShowQrDialog] = useState(false);
@@ -261,7 +263,7 @@ const Profile = () => {
                   </div>
 
                   {/* QR Code bouton — encadrants avec dossier secu */}
-                  {directoryProfile?.is_encadrant && directoryProfile?.security_docs_url && (
+                  {!isMemberPreview && directoryProfile?.is_encadrant && directoryProfile?.security_docs_url && (
                     <Button
                       type="button"
                       variant="outline"
@@ -286,7 +288,7 @@ const Profile = () => {
                       {profile.member_code}
                     </Badge>
                   )}
-                  {directoryProfile?.is_encadrant && (
+                  {!isMemberPreview && directoryProfile?.is_encadrant && (
                     <Badge className="bg-primary text-primary-foreground flex items-center gap-1">
                       <Shield className="h-3 w-3" />
                       Encadrant
@@ -461,7 +463,7 @@ const Profile = () => {
                   )}
 
                   {/* Dossier sécurité - encadrants uniquement */}
-                  {directoryProfile?.is_encadrant && (
+                  {!isMemberPreview && directoryProfile?.is_encadrant && (
                     <>
                       <Separator />
                       <h4 className="text-sm font-medium flex items-center gap-2">
