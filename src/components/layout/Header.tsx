@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { cn } from "@/lib/utils";
 import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 
@@ -13,11 +14,16 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const { isAdmin, isOrganizer } = useUserRole();
   const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
+  const { isMemberPreview, toggleMemberPreview } = useViewMode();
 
   const mobileNavRef = useRef<HTMLElement | null>(null);
 
   // Determine if user is an encadrant (either from directory or has organizer role)
-  const isEncadrant = isOrganizer || isEncadrantFromDirectory;
+  const realIsEncadrant = isOrganizer || isEncadrantFromDirectory;
+  // In member preview mode, override encadrant/organizer flags for nav display
+  const isEncadrant = isMemberPreview ? false : realIsEncadrant;
+  const effectiveIsOrganizer = isMemberPreview ? false : isOrganizer;
+  const canTogglePreview = realIsEncadrant || isAdmin;
 
   const navItems = useMemo(() => {
     const items = [
@@ -38,7 +44,7 @@ const Header = () => {
       items.push({ to: "/equipment", label: "Matériel", icon: Package });
     }
 
-    if (isOrganizer) {
+    if (effectiveIsOrganizer) {
       items.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
       items.push({ to: "/archives", label: "Archives", icon: FileText });
     }
@@ -50,12 +56,12 @@ const Header = () => {
     }
 
     return items;
-  }, [isOrganizer, isAdmin, isEncadrant]);
+  }, [effectiveIsOrganizer, isAdmin, isEncadrant]);
 
   // Reset mobile nav scroll when user/role changes
   useEffect(() => {
     mobileNavRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [user?.id, isOrganizer, isAdmin, isEncadrant]);
+  }, [user?.id, effectiveIsOrganizer, isAdmin, isEncadrant]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -94,6 +100,23 @@ const Header = () => {
         <div className="flex flex-shrink-0 items-center gap-3">
           {user ? (
             <>
+              {canTogglePreview && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleMemberPreview}
+                  title={isMemberPreview ? "Repasser en vue encadrant" : "Simuler vue membre"}
+                  className={cn(
+                    "gap-2 text-xs hidden lg:flex",
+                    isMemberPreview
+                      ? "text-amber-300 hover:text-amber-200 hover:bg-amber-500/15 ring-1 ring-amber-400/40"
+                      : "text-white/40 hover:text-white/70 hover:bg-white/10"
+                  )}
+                >
+                  {isMemberPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {isMemberPreview ? "Vue membre" : "Vue membre"}
+                </Button>
+              )}
               <Link to="/profile">
                 <Button variant="ghost" size="icon" className="rounded-full text-white/70 hover:text-white hover:bg-white/10">
                   <User className="h-5 w-5" />
