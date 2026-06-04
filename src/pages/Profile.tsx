@@ -127,6 +127,8 @@ const Profile = () => {
       // Update directory profile if exists
       if (directoryProfile) {
         await updateDirectoryProfile.mutateAsync({
+          first_name: formatFirstName(data.first_name),
+          last_name: formatLastName(data.last_name),
           phone: data.phone || null,
           address: data.address || null,
           emergency_contact_name: data.emergency_contact_name || null,
