@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatFirstName, formatLastName } from "@/lib/formatName";
 
 // ClubMember now only contains identity fields (seasonal fields are in membership_yearly_status)
 export interface ClubMember {
@@ -75,8 +76,8 @@ export const useClubMembersDirectory = () => {
       const { data, error } = await supabase
         .from("club_members_directory")
         .insert({
-          first_name: member.first_name,
-          last_name: member.last_name,
+          first_name: formatFirstName(member.first_name),
+          last_name: formatLastName(member.last_name),
           email: member.email,
           phone: member.phone,
           birth_date: member.birth_date,
@@ -110,6 +111,8 @@ export const useClubMembersDirectory = () => {
   // Update member
   const updateMember = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ClubMember> & { id: string }) => {
+      if (updates.first_name) updates.first_name = formatFirstName(updates.first_name);
+      if (updates.last_name) updates.last_name = formatLastName(updates.last_name);
       const { data, error } = await supabase
         .from("club_members_directory")
         .update(updates)
@@ -163,8 +166,8 @@ export const useClubMembersDirectory = () => {
         const { data, error } = await supabase
           .from("club_members_directory")
           .update({
-            first_name: member.first_name,
-            last_name: member.last_name,
+            first_name: formatFirstName(member.first_name),
+            last_name: formatLastName(member.last_name),
             phone: member.phone,
             birth_date: member.birth_date,
             address: member.address,
@@ -185,8 +188,8 @@ export const useClubMembersDirectory = () => {
         const { data, error } = await supabase
           .from("club_members_directory")
           .insert({
-            first_name: member.first_name,
-            last_name: member.last_name,
+            first_name: formatFirstName(member.first_name),
+            last_name: formatLastName(member.last_name),
             email: member.email.toLowerCase(),
             phone: member.phone,
             birth_date: member.birth_date,

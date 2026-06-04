@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { formatFirstName, formatLastName } from "@/lib/formatName";
 
 interface AuthContextType {
   user: User | null;
@@ -55,8 +56,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          first_name: firstName,
-          last_name: lastName,
+          first_name: formatFirstName(firstName),
+          last_name: formatLastName(lastName),
         },
       },
     });
