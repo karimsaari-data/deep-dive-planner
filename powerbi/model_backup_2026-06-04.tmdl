@@ -1,0 +1,6031 @@
+﻿model Model
+	culture: fr-FR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: fr-FR
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+	table \u0027public apnea_levels\u0027
+		lineageTag: 81271682-59bc-4140-b041-323f0b3fe0da
+
+		column id
+			dataType: string
+			lineageTag: 049801c3-bdb1-468d-8b6e-41a8647ecb68
+			summarizeBy: none
+			sourceColumn: id
+
+			annotation SummarizationSetBy = Automatic
+
+		column code
+			dataType: string
+			lineageTag: 5b43bbe5-7de1-46c6-8068-f46acaacd210
+			summarizeBy: none
+			sourceColumn: code
+
+			annotation SummarizationSetBy = Automatic
+
+		column name
+			dataType: string
+			lineageTag: 1603d9be-a845-44a7-8d3e-1058c01b0467
+			summarizeBy: none
+			sourceColumn: name
+
+			annotation SummarizationSetBy = Automatic
+
+		column prerogatives
+			dataType: string
+			lineageTag: fa2a03e2-f7ac-4278-92e9-7d0c858ad78d
+			summarizeBy: none
+			sourceColumn: prerogatives
+
+			annotation SummarizationSetBy = Automatic
+
+		column is_instructor
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: 9a318913-1f77-4ffb-bb28-325654eca753
+			summarizeBy: none
+			sourceColumn: is_instructor
+
+			annotation SummarizationSetBy = Automatic
+
+		column federation
+			dataType: string
+			lineageTag: 9320eb29-25d9-46aa-94c9-1831e5e63824
+			summarizeBy: none
+			sourceColumn: federation
+
+			annotation SummarizationSetBy = Automatic
+
+		column federation_full_name
+			dataType: string
+			lineageTag: a168bda5-5ec9-4e88-96b9-4472be7ba4c6
+			summarizeBy: none
+			sourceColumn: federation_full_name
+
+			annotation SummarizationSetBy = Automatic
+
+		column created_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: dea17a72-599d-49c6-86b8-fcf2be907cee
+			summarizeBy: none
+			sourceColumn: created_at
+
+			variation Variation
+				isDefault
+				relationship: b6c93bf7-ceca-4d3d-8d74-dc0bf60e72f6
+				defaultHierarchy: LocalDateTable_674c2048-c326-4eb1-90a4-08cab1017a52.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column profondeur_max_eaa
+			dataType: int64
+			formatString: 0
+			lineageTag: efba8b49-055d-4aaf-abfa-e004cee3b705
+			summarizeBy: sum
+			sourceColumn: profondeur_max_eaa
+
+			annotation SummarizationSetBy = Automatic
+
+		column profondeur_max_eao
+			dataType: int64
+			formatString: 0
+			lineageTag: b7807b3a-225a-4c79-a685-430d5b47236b
+			summarizeBy: sum
+			sourceColumn: profondeur_max_eao
+
+			annotation SummarizationSetBy = Automatic
+
+		column max_participants_encadrement
+			dataType: int64
+			formatString: 0
+			lineageTag: ac9636b5-28d6-4ef2-b0e6-ccebb3832be4
+			summarizeBy: sum
+			sourceColumn: max_participants_encadrement
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public apnea_levels\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022apnea_levels\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table DateTableTemplate_a2ee0bfc-e485-4a45-8b33-9bfedefb60a8
+		isHidden
+		isPrivate
+		lineageTag: 576a8a73-ac8e-4ef7-99b5-3c51fd8b68dd
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 30b2e2f6-dfbd-44df-81bd-4571e02b221d
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 74605e2c-9702-4a54-b899-bc73c73ddcf3
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a8ca39ba-19ad-4959-9caf-90c1326d91fb
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 9454b72f-5064-4f0c-b16d-f84cb1c2fbbd
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: f41812d8-08f0-46ee-b9bb-cd8b9af7a082
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 0ea14dba-a777-4e41-839b-2667d8364784
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: bdbee5b7-cde2-4f8e-95f8-e4c745a44907
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 2ef4e1ba-0645-45ca-bb58-5a71b4fb5bd5
+
+			level Ann\u00E9e
+				lineageTag: 208c2dda-f71d-48a0-8ff4-ad729850636c
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 25002af6-a09c-49c9-b375-6c4777774d82
+				column: Trimestre
+
+			level Mois
+				lineageTag: 855f3481-d987-4081-bb14-6f67b213537f
+				column: Mois
+
+			level Jour
+				lineageTag: de53c9a7-928f-42c4-baed-ca7913c388b1
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition DateTableTemplate_a2ee0bfc-e485-4a45-8b33-9bfedefb60a8 = calculated
+			mode: import
+			source = Calendar(Date(2015,1,1), Date(2015,1,1))
+
+		annotation __PBI_TemplateDateTable = true
+
+		annotation DefaultItem = DateHierarchy
+
+	table LocalDateTable_674c2048-c326-4eb1-90a4-08cab1017a52
+		isHidden
+		showAsVariationsOnly
+		lineageTag: eb94930c-e694-4248-8277-5213c6623a4d
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: a55a8898-288b-4562-93a1-ffa42b1b6432
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2e5308ff-5de7-4a0e-bb45-b67b4db3ba65
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 3c5d7fd3-4eed-4cf0-8757-53dff02f8ee0
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 9e28b336-52b3-4e1f-b935-632e9d5a0629
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e652eb0a-7fe9-4be4-9f02-bb1b8148a3e3
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 6ca448be-16fd-439c-a340-11c9d46c8e83
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a035fdb1-0652-46f5-a1ad-eeec46bf7546
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 845b94ce-3f12-4e76-89ab-8545f2a91b5e
+
+			level Ann\u00E9e
+				lineageTag: 4abc212e-43b6-4677-90bc-04853bad5352
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 2327e99c-c002-4055-a2f6-ba1cd1516afc
+				column: Trimestre
+
+			level Mois
+				lineageTag: 6b427dd7-81f7-4198-95a0-25e1e2d3426f
+				column: Mois
+
+			level Jour
+				lineageTag: 0b5e47eb-d043-41a6-a3b5-25ef856e21e8
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_674c2048-c326-4eb1-90a4-08cab1017a52 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public apnea_levels\u0027[created_at])), 1, 1), Date(Year(MAX(\u0027public apnea_levels\u0027[created_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public boats\u0027
+		lineageTag: e985834d-6b5a-4055-8b36-3743e8fb7252
+
+		column id
+			dataType: string
+			lineageTag: 48dc0c6f-037a-4458-aa95-fd4e552b3267
+			summarizeBy: none
+			sourceColumn: id
+
+			annotation SummarizationSetBy = Automatic
+
+		column name
+			dataType: string
+			lineageTag: 6c860d3f-1f6c-4a84-8534-529f765f805c
+			summarizeBy: none
+			sourceColumn: name
+
+			annotation SummarizationSetBy = Automatic
+
+		column registration_number
+			dataType: string
+			lineageTag: 1ae98c5d-e3d9-4d78-afc9-bb94bb2735f1
+			summarizeBy: none
+			sourceColumn: registration_number
+
+			annotation SummarizationSetBy = Automatic
+
+		column capacity
+			dataType: int64
+			formatString: 0
+			lineageTag: 41214ea1-176e-409d-86d1-84a3ea45d414
+			summarizeBy: sum
+			sourceColumn: capacity
+
+			annotation SummarizationSetBy = Automatic
+
+		column pilot_name
+			dataType: string
+			lineageTag: 00571ec2-c495-4c9c-b1a3-0c5563aa77a3
+			summarizeBy: none
+			sourceColumn: pilot_name
+
+			annotation SummarizationSetBy = Automatic
+
+		column pilot_phone
+			dataType: string
+			lineageTag: 8bfdc63b-a930-4c66-81db-c68a0eecb1e9
+			summarizeBy: none
+			sourceColumn: pilot_phone
+
+			annotation SummarizationSetBy = Automatic
+
+		column oxygen_location
+			dataType: string
+			lineageTag: 193e4122-555e-4199-a0e4-b7bb8f5d6869
+			summarizeBy: none
+			sourceColumn: oxygen_location
+
+			annotation SummarizationSetBy = Automatic
+
+		column home_port
+			dataType: string
+			lineageTag: 62c13870-1cd9-4e11-8119-e61ba3e08bed
+			summarizeBy: none
+			sourceColumn: home_port
+
+			annotation SummarizationSetBy = Automatic
+
+		column created_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: c4ee9800-c70a-4f79-97a1-cdf6a227b67f
+			summarizeBy: none
+			sourceColumn: created_at
+
+			variation Variation
+				isDefault
+				relationship: 0c36d49b-213c-4baf-a84f-b619654f2b09
+				defaultHierarchy: LocalDateTable_c70ef2f9-b70e-4634-90d2-df966b3a7f54.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: b42f08cd-9b89-49bc-a974-fdefc7781a57
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 4223d952-6803-4057-9f2d-287a883c0a4c
+				defaultHierarchy: LocalDateTable_4b4a9473-bcfb-4291-9512-840db5d6f717.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public boats\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022boats\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_c70ef2f9-b70e-4634-90d2-df966b3a7f54
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 3a3d3525-4fa8-4237-8322-259bbd32a29a
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: fa4ad7e4-83f9-460c-aa6f-28483f12c7df
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 78800fa9-c669-4e62-83c0-f40a4c2f93a3
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 8d77d5fe-b9cf-45d2-9cf6-10124f95a1be
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 529eb434-146b-4e0a-9e7f-d07a814b5823
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: b1ba2be5-fc6e-47ed-8b09-3a576f3ddc84
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 08757f64-1e14-4a1a-90de-dc99073bb74f
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 712eea5a-b9e3-4567-b223-72cc24778e12
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: aa1b7276-b8d4-4acc-ba6c-ec05c27ce1c0
+
+			level Ann\u00E9e
+				lineageTag: 7f4b0353-2a82-4e3d-b905-6b7c6872f5cd
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: f7374adc-2a7c-4751-ad1e-ae8faae5f193
+				column: Trimestre
+
+			level Mois
+				lineageTag: 02159066-7f01-4fc2-93a3-b0daecba300d
+				column: Mois
+
+			level Jour
+				lineageTag: 908084ed-cda6-4a2e-a678-b04e356aaaa2
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_c70ef2f9-b70e-4634-90d2-df966b3a7f54 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public boats\u0027[created_at])), 1, 1), Date(Year(MAX(\u0027public boats\u0027[created_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_4b4a9473-bcfb-4291-9512-840db5d6f717
+		isHidden
+		showAsVariationsOnly
+		lineageTag: a6694a64-0441-43d9-9ef9-686bcf9b3e64
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 5caacd05-107b-43f6-a78d-bc565a9c9259
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: b6ced19e-451b-4fa3-a408-1ece74596935
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: badeeaf9-12ff-4d9b-b71e-cec1c8b0545a
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: bf4a0707-f3ad-4274-afe3-e79ce799c4c4
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 9a36f838-ff5f-40bb-8180-0788b6623461
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 4dccda07-3dc2-4566-8c82-0a5adf3b5bc3
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: c3a9eb4a-7a9c-447d-a141-6afb0bccc600
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 4ab6b86f-3dbb-4c2c-8410-521162fd8e46
+
+			level Ann\u00E9e
+				lineageTag: c86f204a-39db-4d5b-b00f-b60f4322a372
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 2c60d726-131e-4bbe-80ad-8c8f2f5e14bb
+				column: Trimestre
+
+			level Mois
+				lineageTag: eef7d16c-e969-452e-bcbf-47c9690d5669
+				column: Mois
+
+			level Jour
+				lineageTag: b4550bb0-ec23-4789-9b9b-823644accbd6
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_4b4a9473-bcfb-4291-9512-840db5d6f717 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public boats\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public boats\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public calendrier\u0027
+		lineageTag: c8fc5f15-5a78-4b1e-b009-f557f04f9292
+		dataCategory: Time
+
+		column date_id
+			dataType: dateTime
+			isKey
+			formatString: dd/mm/yyyy
+			lineageTag: f72bf4b9-28b4-41ba-bdd0-823c6a571ae6
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+			annotation PBI_FormatHint = {\u0022isDateTimeCustom\u0022:true}
+
+		column annee
+			dataType: int64
+			formatString: 0
+			lineageTag: 82515516-1f59-43da-becc-25c622d141ef
+			summarizeBy: sum
+			sourceColumn: annee
+
+			annotation SummarizationSetBy = Automatic
+
+		column debut_annee
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: b4e09eb4-5830-4ba0-8255-48e8cca3fb94
+			summarizeBy: none
+			sourceColumn: debut_annee
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column fin_annee
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: b352e2f4-8af8-4d3e-8262-0cf538787511
+			summarizeBy: none
+			sourceColumn: fin_annee
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column annee_label
+			dataType: string
+			lineageTag: 9bfed152-cde7-4aa5-8fad-a8de85410524
+			summarizeBy: none
+			sourceColumn: annee_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column annee_relatif
+			dataType: int64
+			formatString: 0
+			lineageTag: b8ebff2c-aeb5-4dec-9616-b4f96fac989f
+			summarizeBy: sum
+			sourceColumn: annee_relatif
+
+			annotation SummarizationSetBy = Automatic
+
+		column trimestre
+			dataType: int64
+			formatString: 0
+			lineageTag: 4c42b10c-6fef-4bec-8eb6-b19f678ee4d0
+			summarizeBy: sum
+			sourceColumn: trimestre
+
+			annotation SummarizationSetBy = Automatic
+
+		column trimestre_label
+			dataType: string
+			lineageTag: 3d9fd78a-082c-41c9-a429-1dddc03b4a6a
+			summarizeBy: none
+			sourceColumn: trimestre_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column trimestre_annee_label
+			dataType: string
+			lineageTag: fb7af996-49f3-4d6c-b5a1-3d7060fc33c7
+			summarizeBy: none
+			sourceColumn: trimestre_annee_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column trimestre_annee_tri
+			dataType: int64
+			formatString: 0
+			lineageTag: aeac1d4e-cc59-4f4f-8475-fa80af5b88f9
+			summarizeBy: sum
+			sourceColumn: trimestre_annee_tri
+
+			annotation SummarizationSetBy = Automatic
+
+		column debut_trimestre
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: c8587e7f-f61f-49ce-8830-38bd25ccaa5f
+			summarizeBy: none
+			sourceColumn: debut_trimestre
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column fin_trimestre
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 1ddf8b42-99f9-4e1a-a361-3fbb5dcabf0f
+			summarizeBy: none
+			sourceColumn: fin_trimestre
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column trimestre_relatif
+			dataType: int64
+			formatString: 0
+			lineageTag: cbaf093b-5838-4c7b-9973-09e5c6baf121
+			summarizeBy: sum
+			sourceColumn: trimestre_relatif
+
+			annotation SummarizationSetBy = Automatic
+
+		column mois
+			dataType: int64
+			formatString: 0
+			lineageTag: 8a28e937-2204-48a5-9bff-44e227b75eb6
+			summarizeBy: sum
+			sourceColumn: mois
+
+			annotation SummarizationSetBy = Automatic
+
+		column mois_label
+			dataType: string
+			lineageTag: db3342e7-eae5-4245-8110-162d883371f9
+			summarizeBy: none
+			sourceColumn: mois_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column mois_court
+			dataType: string
+			lineageTag: 0eb4cd2a-66df-4684-b5ac-a679f1da1a58
+			summarizeBy: none
+			sourceColumn: mois_court
+
+			annotation SummarizationSetBy = Automatic
+
+		column mois_annee_label
+			dataType: string
+			lineageTag: dfaaac62-6ca8-4a6f-bab7-93c21c71f30e
+			summarizeBy: none
+			sourceColumn: mois_annee_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column mois_annee_tri
+			dataType: int64
+			formatString: 0
+			lineageTag: 3a01d3b4-bfc0-459d-a5ee-f362a25f4843
+			summarizeBy: sum
+			sourceColumn: mois_annee_tri
+
+			annotation SummarizationSetBy = Automatic
+
+		column debut_mois
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 1127f6e6-f70c-4868-9e06-7e3de00be245
+			summarizeBy: none
+			sourceColumn: debut_mois
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column fin_mois
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 922bdc0c-c554-40f9-8328-6e716f3e2636
+			summarizeBy: none
+			sourceColumn: fin_mois
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column jours_dans_mois
+			dataType: int64
+			formatString: 0
+			lineageTag: 0e5723fd-cb65-4598-a284-e9930077040b
+			summarizeBy: sum
+			sourceColumn: jours_dans_mois
+
+			annotation SummarizationSetBy = Automatic
+
+		column mois_relatif
+			dataType: int64
+			formatString: 0
+			lineageTag: 8f3e2d14-27ce-4906-a111-712b5543bf89
+			summarizeBy: sum
+			sourceColumn: mois_relatif
+
+			annotation SummarizationSetBy = Automatic
+
+		column semaine_iso
+			dataType: int64
+			formatString: 0
+			lineageTag: 1edd1c38-4f86-4e20-93f5-244c175fccc7
+			summarizeBy: sum
+			sourceColumn: semaine_iso
+
+			annotation SummarizationSetBy = Automatic
+
+		column annee_semaine_iso
+			dataType: int64
+			formatString: 0
+			lineageTag: 7ab7f2bf-d576-4d3d-a37f-7075bab48079
+			summarizeBy: sum
+			sourceColumn: annee_semaine_iso
+
+			annotation SummarizationSetBy = Automatic
+
+		column semaine_label
+			dataType: string
+			lineageTag: eb9870b3-ae22-425a-9f9d-ea06fe722922
+			summarizeBy: none
+			sourceColumn: semaine_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column semaine_annee_label
+			dataType: string
+			lineageTag: 880551dc-33e1-441a-aaec-acc5a6331cb2
+			summarizeBy: none
+			sourceColumn: semaine_annee_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column semaine_annee_tri
+			dataType: int64
+			formatString: 0
+			lineageTag: ff399dc3-f0f2-4af3-8f8f-cd9e027888dc
+			summarizeBy: sum
+			sourceColumn: semaine_annee_tri
+
+			annotation SummarizationSetBy = Automatic
+
+		column debut_semaine
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 1e1e4781-a1b9-481a-b5e4-f0c2c6e8710d
+			summarizeBy: none
+			sourceColumn: debut_semaine
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column fin_semaine
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 6cbb0321-4fe5-4862-9df9-d217fe31e087
+			summarizeBy: none
+			sourceColumn: fin_semaine
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column semaine_relative
+			dataType: int64
+			formatString: 0
+			lineageTag: 6d4da00f-311b-440f-837a-d4e9d1f1b02d
+			summarizeBy: sum
+			sourceColumn: semaine_relative
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_mois
+			dataType: int64
+			formatString: 0
+			lineageTag: 4fc929a3-5745-4ee3-8b4c-4d4a75a28228
+			summarizeBy: sum
+			sourceColumn: jour_mois
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_annee
+			dataType: int64
+			formatString: 0
+			lineageTag: f15021dd-d22e-420e-9070-ce7c6f8c619f
+			summarizeBy: sum
+			sourceColumn: jour_annee
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_semaine
+			dataType: int64
+			formatString: 0
+			lineageTag: a5ea1dc5-3143-4665-a0ca-a936df479c69
+			summarizeBy: sum
+			sourceColumn: jour_semaine
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_label
+			dataType: string
+			lineageTag: e308138d-d240-4172-83ec-2e0e31f257aa
+			summarizeBy: none
+			sourceColumn: jour_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_court
+			dataType: string
+			lineageTag: fd627537-9b5d-4e73-bdda-71e96f44a28c
+			summarizeBy: none
+			sourceColumn: jour_court
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_lettre
+			dataType: string
+			lineageTag: baca2555-b57b-4a57-8317-ec5a609c3d5e
+			summarizeBy: none
+			sourceColumn: jour_lettre
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_weekend
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: c9636e21-2224-4b1d-9f49-80ea613c3811
+			summarizeBy: none
+			sourceColumn: est_weekend
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_semaine
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: b95b2b9e-21ed-4a53-8300-40725081fe02
+			summarizeBy: none
+			sourceColumn: est_semaine
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_aujourd_hui
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: d263f5ba-a293-4f9d-bbf8-2c5d8d95c5ce
+			summarizeBy: none
+			sourceColumn: est_aujourd_hui
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_passe
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: 163330a8-189f-4809-8cb6-59aa71db68b9
+			summarizeBy: none
+			sourceColumn: est_passe
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_futur
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: a51250ee-fa94-47c4-bd5c-b6d62a2e0d0f
+			summarizeBy: none
+			sourceColumn: est_futur
+
+			annotation SummarizationSetBy = Automatic
+
+		column jour_relatif
+			dataType: int64
+			formatString: 0
+			lineageTag: fc8cb17a-d5b6-4d0e-8ec7-0f756d899414
+			summarizeBy: sum
+			sourceColumn: jour_relatif
+
+			annotation SummarizationSetBy = Automatic
+
+		column annee_mois_jour_tri
+			dataType: int64
+			formatString: 0
+			lineageTag: 09e15204-5190-44a5-a676-02b740d743cf
+			summarizeBy: sum
+			sourceColumn: annee_mois_jour_tri
+
+			annotation SummarizationSetBy = Automatic
+
+		column label_complet
+			dataType: string
+			lineageTag: 1bf155ce-cc85-4b1f-9785-d52b1fb6abd4
+			summarizeBy: none
+			sourceColumn: label_complet
+
+			annotation SummarizationSetBy = Automatic
+
+		column saison_id
+			dataType: int64
+			formatString: 0
+			lineageTag: 620056d1-b64f-4494-a90d-d005489a67ae
+			summarizeBy: none
+			sourceColumn: saison_id
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public calendrier\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022calendrier\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table \u0027public dim_equipement\u0027
+		lineageTag: f5e47806-217c-4f2e-9867-b58e79d9c270
+
+		column inventory_id
+			dataType: string
+			lineageTag: 795250af-66f7-4341-9c52-55fc19330ba6
+			summarizeBy: none
+			sourceColumn: inventory_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column catalog_id
+			dataType: string
+			lineageTag: d79ff004-f422-4f45-bb76-5021ec7a260e
+			summarizeBy: none
+			sourceColumn: catalog_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom
+			dataType: string
+			lineageTag: 8334163c-2fbf-4c0e-86ef-a0334268d2c6
+			summarizeBy: none
+			sourceColumn: nom
+
+			annotation SummarizationSetBy = Automatic
+
+		column description
+			dataType: string
+			lineageTag: 59e8d285-1576-4642-abeb-7b69c5de1374
+			summarizeBy: none
+			sourceColumn: description
+
+			annotation SummarizationSetBy = Automatic
+
+		column valeur_estimee
+			dataType: double
+			lineageTag: 5f671c38-79d3-489c-a426-19191c48826f
+			summarizeBy: sum
+			sourceColumn: valeur_estimee
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		column unique_code
+			dataType: string
+			lineageTag: 035c1385-a3e4-42d9-9f50-8ecebb004cde
+			summarizeBy: none
+			sourceColumn: unique_code
+
+			annotation SummarizationSetBy = Automatic
+
+		column statut
+			dataType: string
+			lineageTag: 76c9c708-129a-4245-928f-1360590d82fa
+			summarizeBy: none
+			sourceColumn: statut
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_acquisition
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 441073fa-ed24-477f-9374-ff6b422e92f6
+			summarizeBy: none
+			sourceColumn: date_acquisition
+
+			variation Variation
+				isDefault
+				relationship: 9cceaeca-8a46-4bff-af66-8b5f8d60314a
+				defaultHierarchy: LocalDateTable_e10e15e1-dc69-4036-951a-f687fa313276.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column notes
+			dataType: string
+			lineageTag: a8000a8f-235b-4973-9770-723896aa6a07
+			summarizeBy: none
+			sourceColumn: notes
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 63d6f8a6-2899-434e-9032-78505782fc02
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 8a51fac0-6628-404c-9dcf-f9f190cd7f8f
+				defaultHierarchy: LocalDateTable_aaeaca40-fe14-48dc-a1be-2ddc18c62db4.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_equipement\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_equipement\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_e10e15e1-dc69-4036-951a-f687fa313276
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 72a1481f-6e08-456b-8098-6bb41420a4d3
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 8696ec44-4ee0-4e61-936a-f6a3bdc7157c
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: aab3b4ce-5f99-4cee-8335-08ab302eb953
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: bbd5ff66-2c57-4bb0-ac27-07280883b5f2
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: b3c3fe95-17a3-4506-8108-65be9a45da4c
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 637fb461-a82b-4067-9ffe-fb7813a824bc
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 6c168fe0-63a7-4e93-b741-2bb29b9de95a
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 11fd4412-8c08-4868-9d26-3fff47e7b71a
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: c9c81700-0be4-463b-ab4a-f4170f5a7d96
+
+			level Ann\u00E9e
+				lineageTag: 6ef6bb3e-fbc6-4025-a9e6-9d382851131f
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 28aee95d-3c88-4f58-b6ff-f2b4d3d32df5
+				column: Trimestre
+
+			level Mois
+				lineageTag: 8e3899ed-d18c-4938-8a1c-b17faac90db2
+				column: Mois
+
+			level Jour
+				lineageTag: bd52eff8-fb41-4071-85be-c7c5b7971900
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_e10e15e1-dc69-4036-951a-f687fa313276 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_equipement\u0027[date_acquisition])), 1, 1), Date(Year(MAX(\u0027public dim_equipement\u0027[date_acquisition])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_aaeaca40-fe14-48dc-a1be-2ddc18c62db4
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 727c3b4b-f4c1-4730-82d8-2afc83bc7bf2
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: eb788532-6469-45ee-808b-b251aba0c353
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: f06e84e8-fa64-41b7-8792-35f97e14c2d6
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: d42add9e-4b98-4223-bac7-06163cbe0fe6
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: f9a21387-ece5-4ed1-a9ea-1888f557c719
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 5da4c242-4b47-40da-8c68-1563f604f33c
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 40be41ff-866a-4000-bb79-67be9287e399
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: d9914d8c-bf43-42f0-a28d-b4d7556ceb64
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: eb85b26b-c55a-413a-b5c7-41491d8566c7
+
+			level Ann\u00E9e
+				lineageTag: 5c23db92-b7d4-479b-a728-0a42e8fb01a2
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: f8b117cb-dbdf-4cc8-b0a9-5611a54bb339
+				column: Trimestre
+
+			level Mois
+				lineageTag: eaba032e-ea85-4a67-a6cd-0e1a967b835f
+				column: Mois
+
+			level Jour
+				lineageTag: 1199b78b-3d8c-4f49-a2fe-79960432d347
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_aaeaca40-fe14-48dc-a1be-2ddc18c62db4 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_equipement\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public dim_equipement\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_membre\u0027
+		lineageTag: 1764f819-3d55-4f9a-83fd-01d389e00d54
+
+		column membre_id
+			dataType: string
+			lineageTag: 601e6573-89e6-4250-bfe5-82f22eef77fd
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column code_membre
+			dataType: string
+			lineageTag: bb28bc8b-5d5b-4638-985d-73cf2c08ae3f
+			summarizeBy: none
+			sourceColumn: code_membre
+
+			annotation SummarizationSetBy = Automatic
+
+		column prenom
+			dataType: string
+			lineageTag: 3404a2b5-4b2f-4b1a-bd6d-4cb45e624e28
+			summarizeBy: none
+			sourceColumn: prenom
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom
+			dataType: string
+			lineageTag: 17f3993f-4ba4-498f-b21a-44dfcfcef7bc
+			summarizeBy: none
+			sourceColumn: nom
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom_complet
+			dataType: string
+			lineageTag: 9e43f466-3c10-42c3-8cba-5f3cb2983afc
+			summarizeBy: none
+			sourceColumn: nom_complet
+
+			annotation SummarizationSetBy = Automatic
+
+		column email
+			dataType: string
+			lineageTag: e40811fc-94b6-46f6-b0fb-fac09124b3fc
+			summarizeBy: none
+			sourceColumn: email
+
+			annotation SummarizationSetBy = Automatic
+
+		column telephone
+			dataType: string
+			lineageTag: 6720235b-95aa-49cd-80fb-886dce44215f
+			summarizeBy: none
+			sourceColumn: telephone
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_naissance
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 0c8264cb-6471-4b9a-9553-5d636f630136
+			summarizeBy: none
+			sourceColumn: date_naissance
+
+			variation Variation
+				isDefault
+				relationship: 40a07fd0-87fa-44c1-9292-5beb6ac4c49e
+				defaultHierarchy: LocalDateTable_41308940-2119-44fb-931a-10276e9f48fd.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column age
+			dataType: int64
+			formatString: 0
+			lineageTag: a5d7a5b2-1569-41a6-95f1-cb93a676d065
+			summarizeBy: average
+			sourceColumn: age
+
+			annotation SummarizationSetBy = User
+
+		column genre
+			dataType: string
+			lineageTag: 4459c4e4-2975-41ef-bf9e-d45a164c3acd
+			summarizeBy: none
+			sourceColumn: genre
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_adhesion
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 3689c6e0-87bf-4dec-804d-1de6f1c35ef6
+			summarizeBy: none
+			sourceColumn: date_adhesion
+
+			variation Variation
+				isDefault
+				relationship: 9b222f9f-566c-4f1d-bfb0-abf6f238a9aa
+				defaultHierarchy: LocalDateTable_85996ee3-f096-4e4f-a74a-f3453ec565e5.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column anciennete_annees
+			dataType: int64
+			formatString: 0
+			lineageTag: e55ec58d-a037-454b-b424-f1561a9221ff
+			summarizeBy: sum
+			sourceColumn: anciennete_annees
+
+			annotation SummarizationSetBy = Automatic
+
+		column contact_urgence_nom
+			dataType: string
+			lineageTag: e33b76f8-4483-45ba-aa2f-ac8c9a3be110
+			summarizeBy: none
+			sourceColumn: contact_urgence_nom
+
+			annotation SummarizationSetBy = Automatic
+
+		column contact_urgence_tel
+			dataType: string
+			lineageTag: 76263357-7074-40ae-86ba-77dd8cdb60e7
+			summarizeBy: none
+			sourceColumn: contact_urgence_tel
+
+			annotation SummarizationSetBy = Automatic
+
+		column profile_id
+			dataType: string
+			lineageTag: be80815f-f9b7-43fd-8dba-5cdebac7249a
+			summarizeBy: none
+			sourceColumn: profile_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column statut_membre
+			dataType: string
+			lineageTag: 98f5f9bc-09cb-46b0-8d70-8ccff9dc1e38
+			summarizeBy: none
+			sourceColumn: statut_membre
+
+			annotation SummarizationSetBy = Automatic
+
+		column niveau_apnee
+			dataType: string
+			lineageTag: e1e0325f-5e6e-45f1-b585-b7d4a1d3f1c4
+			summarizeBy: none
+			sourceColumn: niveau_apnee
+
+			annotation SummarizationSetBy = Automatic
+
+		column avatar_url
+			dataType: string
+			lineageTag: d570d96e-77c2-4003-a497-2e563eb4d504
+			summarizeBy: none
+			sourceColumn: avatar_url
+
+			annotation SummarizationSetBy = Automatic
+
+		column a_compte_app
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: f730a9b0-0837-4d7b-9610-5d953aaa7dd7
+			summarizeBy: none
+			sourceColumn: a_compte_app
+
+			annotation SummarizationSetBy = Automatic
+
+		column niveau_apnee_saison_courante
+			dataType: string
+			lineageTag: e6458b8f-680c-4ed7-b9c5-a041e1f86901
+			summarizeBy: none
+			sourceColumn: niveau_apnee_saison_courante
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_encadrant_saison_courante
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: 671cce07-5878-4c31-abf6-5562d8e46665
+			summarizeBy: none
+			sourceColumn: est_encadrant_saison_courante
+
+			annotation SummarizationSetBy = Automatic
+
+		column role_bureau_saison_courante
+			dataType: string
+			lineageTag: b441052b-fbc0-468c-a084-39321c09faf9
+			summarizeBy: none
+			sourceColumn: role_bureau_saison_courante
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_membre_actif
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: eab07ce8-902e-4edb-b251-012688359220
+			summarizeBy: none
+			sourceColumn: est_membre_actif
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 5f917d3b-d436-470d-9504-8a5ff036a604
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: a0121d9e-0569-452b-9f60-eabf2212cfe7
+				defaultHierarchy: LocalDateTable_7aa766dd-47c3-479c-8e94-3c464df2fbd3.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column apnea_level_id
+			dataType: string
+			lineageTag: 1976cb64-5205-470a-8bd6-f4bb58ce90e8
+			summarizeBy: none
+			sourceColumn: apnea_level_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column created_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 2a59f69d-ea58-448c-a6e5-ca2eb3b655fc
+			summarizeBy: none
+			sourceColumn: created_at
+
+			variation Variation
+				isDefault
+				relationship: 85c7223e-84fe-491f-9d81-3d2361fab723
+				defaultHierarchy: LocalDateTable_1fd9a31e-83ec-497b-bf8a-119058e7b51c.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_nouveau_membre
+			type: calculated
+			lineageTag: 5df9a741-c9c2-494e-9d60-392f67e1ac9d
+			summarizeBy: sum
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_membre\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_membre\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_41308940-2119-44fb-931a-10276e9f48fd
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 106c2fe6-d88e-44ba-966f-7a7b1fba9646
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 2e252548-9358-46cd-83d6-7018c3203594
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 416504f8-f0f9-4f42-8224-754d9f6628f4
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2e96619c-30ef-4f9b-8229-50b11aeaaeab
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 239d22d1-03c0-4360-b4c2-6f03f8af6581
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 57b8bd55-fcf4-45ad-b783-454ff0139b70
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 9879730b-6086-4b8c-839d-2a970edd1805
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 4d227e9e-ed6d-4366-991e-9032ea62d01a
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 24b8c535-0fd8-446b-95f7-e6626074b219
+
+			level Ann\u00E9e
+				lineageTag: 86ef1ccc-a94f-45ce-8c4c-35ab5da6c410
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 41469eef-61bb-4528-88ae-ef110c726154
+				column: Trimestre
+
+			level Mois
+				lineageTag: 1a637f1f-1958-4212-a7fd-521b6357313c
+				column: Mois
+
+			level Jour
+				lineageTag: 5ab3cb81-a262-475e-a2a5-da1cf482b52a
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_41308940-2119-44fb-931a-10276e9f48fd = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_membre\u0027[date_naissance])), 1, 1), Date(Year(MAX(\u0027public dim_membre\u0027[date_naissance])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_85996ee3-f096-4e4f-a74a-f3453ec565e5
+		isHidden
+		showAsVariationsOnly
+		lineageTag: e084bafc-da04-4a83-963c-ed77d312a600
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 81485cbe-c5eb-458d-af5c-0bbbbe43366b
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 4d0fadae-bad9-4800-9c17-0ccd9a8b9883
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 4c535de6-78db-4ab9-af8d-355b6bddeebc
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: be9ac189-268c-41ab-be6d-61ef570a4fd8
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 0e564ea8-1941-4408-b96f-b4416f5a4371
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 1bcd1193-3c3a-4b07-abaa-cf4e9420913f
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: fcea4d4c-6d2b-4d14-acf6-7f624c610554
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 18439506-7380-4cb0-8dbb-db41099c6f17
+
+			level Ann\u00E9e
+				lineageTag: dcc5e7c0-0c4d-40ba-b1b6-a9f616dfd2a7
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 565cce5a-452c-4adb-bc56-cafcaa8f0e38
+				column: Trimestre
+
+			level Mois
+				lineageTag: ea1d7c7f-4318-4cd5-a1b8-3cd1a13a59b3
+				column: Mois
+
+			level Jour
+				lineageTag: b6011387-6bde-4b8a-9870-4367e9e09225
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_85996ee3-f096-4e4f-a74a-f3453ec565e5 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_membre\u0027[date_adhesion])), 1, 1), Date(Year(MAX(\u0027public dim_membre\u0027[date_adhesion])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_7aa766dd-47c3-479c-8e94-3c464df2fbd3
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 00b26464-e867-47d8-b566-f7521d55147f
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 3882e9ee-a1e4-46b2-a2e7-12c8a0be5e22
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 11fcdd5d-fbfe-4669-be24-8b52eba96987
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e7b9f01d-684e-48be-bc50-91ef8850794a
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: f606cee2-17c7-440f-9d09-7ba9be3fabcc
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: be62df38-71bf-4779-82ed-a77327fdfec5
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: e7c41468-6cda-420a-84ae-539aa8301d2c
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: b87c24fe-3baa-4afd-877c-f8ccb38ffb4e
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: e52c0215-9a0c-4de5-bf6a-c118f481556a
+
+			level Ann\u00E9e
+				lineageTag: 73102d88-241e-4247-ab4b-fad356774ec4
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 623afcff-1d2c-4abd-8aa7-fb5ebb5da373
+				column: Trimestre
+
+			level Mois
+				lineageTag: ceffc63f-d127-48ad-81c7-e6a6a5897a54
+				column: Mois
+
+			level Jour
+				lineageTag: 14100cd7-a76b-49de-b79a-91a31a1021b0
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_7aa766dd-47c3-479c-8e94-3c464df2fbd3 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_membre\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public dim_membre\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_role\u0027
+		lineageTag: 311ac3ed-57ff-4158-887a-f52728fb9ca6
+
+		column role_id
+			dataType: string
+			lineageTag: a9959ee0-4ca1-4b54-bf57-2b3c0e41054d
+			summarizeBy: none
+			sourceColumn: role_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column user_id
+			dataType: string
+			lineageTag: 91679b48-b89d-44ad-a7b6-9a9ce16ce80b
+			summarizeBy: none
+			sourceColumn: user_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column email
+			dataType: string
+			lineageTag: 95aaf4b8-cb05-4f36-a911-522610899da2
+			summarizeBy: none
+			sourceColumn: email
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_id
+			dataType: string
+			lineageTag: ac608138-4e1b-416e-b8bb-d5f0ffb3b1b5
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column role_app
+			dataType: string
+			lineageTag: ea390128-afb0-4ff1-9014-435368f2dad5
+			summarizeBy: none
+			sourceColumn: role_app
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 014b13db-1cec-47d1-9614-75590ba107cf
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 0db32774-26d4-4957-8a12-c2f990e45d31
+				defaultHierarchy: LocalDateTable_6dade6c6-cf5d-4333-a39e-349a562ff807.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_role\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_role\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_6dade6c6-cf5d-4333-a39e-349a562ff807
+		isHidden
+		showAsVariationsOnly
+		lineageTag: dcc6e9ad-30a2-47a8-8663-4c1afc24dfcf
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: c5ed0e9c-5428-4fe0-9cb3-c93938e9a430
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 15a2fde0-f874-448c-b56c-049c6e6e7d36
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2f77b607-3ad8-4af7-adf9-0576e642eb87
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: aadcc4f3-1518-42ec-ab3b-359d0a2e71c3
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: c5684aef-44ae-4374-8c12-7589c6b516e7
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 8992e41a-823b-4679-8ea8-5af5f3b3143f
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 5bd8f8c6-ebb6-4749-b0b4-172f25c35207
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 0f3078a1-e958-42fd-beff-6d4439de419e
+
+			level Ann\u00E9e
+				lineageTag: ae906c87-fb25-42c4-be41-1109671c4c34
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: cdd75416-e17b-42da-9a05-46e310d85e27
+				column: Trimestre
+
+			level Mois
+				lineageTag: 82bed30f-6e79-417c-86e2-76107508493d
+				column: Mois
+
+			level Jour
+				lineageTag: c5969fa3-fe77-4216-ae91-8a4c74863464
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_6dade6c6-cf5d-4333-a39e-349a562ff807 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_role\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public dim_role\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_saison\u0027
+		lineageTag: bd332df8-bd3a-42ac-99f5-bd46c67ab47d
+
+		column saison_id
+			dataType: int64
+			formatString: 0
+			lineageTag: f74a3db3-14ab-43a9-9e85-85e8ab0cb861
+			summarizeBy: none
+			sourceColumn: saison_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column libelle
+			dataType: string
+			lineageTag: 39fe5de4-8fc2-4b03-a9da-118e76c178cb
+			summarizeBy: none
+			sourceColumn: libelle
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_debut
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: f30fe05d-68b5-455a-b83c-da3b80f8cda2
+			summarizeBy: none
+			sourceColumn: date_debut
+
+			variation Variation
+				isDefault
+				relationship: eaf180cf-8ced-463f-a89d-19bf329a7b74
+				defaultHierarchy: LocalDateTable_239ada7f-5bc8-4660-b2ae-b2b8260a3587.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column date_fin
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: ee15b4cb-cfc7-4e43-a2f4-f2b5b161d1c3
+			summarizeBy: none
+			sourceColumn: date_fin
+
+			variation Variation
+				isDefault
+				relationship: 533361e1-d314-4d49-952e-5bf854f57a5b
+				defaultHierarchy: LocalDateTable_43aea3c6-af08-43bd-a5b0-c56566e4ceb6.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column est_saison_courante
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: 14823e07-2514-43d7-bb60-9959c7bb6425
+			summarizeBy: none
+			sourceColumn: est_saison_courante
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_saison\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_saison\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_239ada7f-5bc8-4660-b2ae-b2b8260a3587
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 0f9c88e1-cdbb-4ffb-82c8-5a4fb511afd5
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 719dacac-8487-4c34-9767-e88eb5384566
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a8b584c7-00b0-452b-8c7c-004255c86860
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 3fca6059-6897-4942-9b74-e678710b4cd2
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: fea003b5-65a9-4d5c-83b6-c928c808390f
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 6cafc14f-534f-469e-8702-93e24c1463fc
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 59de5976-3cd0-4557-91a9-8be5b8c21eb2
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 605794d1-4345-49e7-a44f-ae08e1ec67b8
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: a2ca2cd1-0cff-4cd1-9c4f-09eb7c26d7c6
+
+			level Ann\u00E9e
+				lineageTag: 7474e2d2-7056-4746-a18c-977dc503a4f0
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 9e8cdfa8-0e91-4bef-9f44-920ecf76b7b3
+				column: Trimestre
+
+			level Mois
+				lineageTag: e005a9d0-3efe-4a72-ba4f-a0d45792ef8a
+				column: Mois
+
+			level Jour
+				lineageTag: c8fe9729-a95d-4c15-aad2-1dca5e4b591a
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_239ada7f-5bc8-4660-b2ae-b2b8260a3587 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_saison\u0027[date_debut])), 1, 1), Date(Year(MAX(\u0027public dim_saison\u0027[date_debut])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_43aea3c6-af08-43bd-a5b0-c56566e4ceb6
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 322296f5-f552-41cd-b96e-cac44dbf6e81
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 01b8258a-1917-4106-9d41-ecc1790813d4
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: f2d5cd34-8a62-4355-80fe-83e5dffb6c3f
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 4d945724-4aef-47de-bed3-d71e548e36e0
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 1432e431-b19b-4772-98ca-a0dfa848a438
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a43345cf-6db7-4d22-aee8-3dc68be40d2c
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 0c38110e-c1ee-4621-be37-3ce2cf1bb9ff
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: bb31b72e-0e7b-47bb-a413-4cd8331ae614
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: c5a2af6f-5add-468b-bcc5-74d2e1344830
+
+			level Ann\u00E9e
+				lineageTag: c0395760-cb9e-442e-a8e7-df8ac5c70a03
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 679afb12-1b93-43e8-a518-826982233fdb
+				column: Trimestre
+
+			level Mois
+				lineageTag: 7acc9e9c-05ab-41cf-98c5-26f71b85314d
+				column: Mois
+
+			level Jour
+				lineageTag: dc683650-418a-4647-a1ed-73aee1d685fe
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_43aea3c6-af08-43bd-a5b0-c56566e4ceb6 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_saison\u0027[date_fin])), 1, 1), Date(Year(MAX(\u0027public dim_saison\u0027[date_fin])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_site\u0027
+		lineageTag: a15933a9-494e-489e-88e1-c49cdb7ef2d3
+
+		column site_id
+			dataType: string
+			lineageTag: bc057b1d-3522-4c3b-8051-4d87ac0fea3c
+			summarizeBy: none
+			sourceColumn: site_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom
+			dataType: string
+			lineageTag: eacd4cfe-9ba4-46d7-9359-8b91de23e225
+			summarizeBy: none
+			sourceColumn: nom
+
+			annotation SummarizationSetBy = Automatic
+
+		column adresse
+			dataType: string
+			lineageTag: 3a2b912c-dbd9-43b8-a51b-525376f85dfa
+			summarizeBy: none
+			sourceColumn: adresse
+
+			annotation SummarizationSetBy = Automatic
+
+		column type_site
+			dataType: string
+			lineageTag: e8fcc032-34a0-4ebb-b4c3-e4276b7a7a2d
+			summarizeBy: none
+			sourceColumn: type_site
+
+			annotation SummarizationSetBy = Automatic
+
+		column latitude
+			dataType: double
+			lineageTag: 52945474-cd53-4de4-a2c0-85681e20ec0b
+			summarizeBy: sum
+			sourceColumn: latitude
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		column longitude
+			dataType: double
+			lineageTag: d4e21ce9-3d6f-441e-9894-bd8daf9cb384
+			summarizeBy: sum
+			sourceColumn: longitude
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		column profondeur_max
+			dataType: double
+			lineageTag: fd583776-074c-4ab2-b21f-325f85651c78
+			summarizeBy: sum
+			sourceColumn: profondeur_max
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		column commentaires
+			dataType: string
+			lineageTag: 1ca29d2a-5dd8-4c8c-9622-40c42aab18a0
+			summarizeBy: none
+			sourceColumn: commentaires
+
+			annotation SummarizationSetBy = Automatic
+
+		column photo_url
+			dataType: string
+			lineageTag: 643f9da9-aeef-4f79-b0e5-3a38e2449d1d
+			summarizeBy: none
+			sourceColumn: photo_url
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 7ddb650b-fc54-4a56-8534-badb8572eff6
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: ac55a99b-e5f6-444c-8e6d-635885b8604c
+				defaultHierarchy: LocalDateTable_86fb3bb1-8e3f-43af-9c37-ea8d45ee5056.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_site\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_site\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_86fb3bb1-8e3f-43af-9c37-ea8d45ee5056
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 179e3cf2-abc5-4ab9-984c-71f3e56588e6
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 110969af-6a69-4e8f-a764-1b4b22732c86
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 4a21eb06-5810-4649-a38a-b35856f294f7
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 076f0429-f4b3-4b88-82ad-f1029ce08c92
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 59291b76-3038-451b-8b28-aa9cc89886a2
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e20918cf-75e0-492d-8b41-20d581af5296
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 01d17bd3-7a91-421d-8ff9-f081c74eb509
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 48240464-da4e-4f31-b688-615e08346158
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 9c172d3e-2ed5-477d-bba7-2c8bb0e55c69
+
+			level Ann\u00E9e
+				lineageTag: 26e14587-4545-43eb-9912-23b1fdcde526
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 98260194-9059-4234-a589-cf68194dd45a
+				column: Trimestre
+
+			level Mois
+				lineageTag: da644992-8435-4b15-9071-bf3ee49ef06f
+				column: Mois
+
+			level Jour
+				lineageTag: c998d0e8-c291-424b-81ce-dc0cd5a8c454
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_86fb3bb1-8e3f-43af-9c37-ea8d45ee5056 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_site\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public dim_site\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_sondage\u0027
+		lineageTag: bcaf131f-ef47-4d47-99b7-9fa3b890c1d6
+
+		column sondage_id
+			dataType: string
+			lineageTag: f44ef06b-655b-4a87-8590-e2f2b5dea7cc
+			summarizeBy: none
+			sourceColumn: sondage_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column titre
+			dataType: string
+			lineageTag: e9397261-118c-479d-a337-0db3b2d16318
+			summarizeBy: none
+			sourceColumn: titre
+
+			annotation SummarizationSetBy = Automatic
+
+		column options_disponibles
+			dataType: string
+			lineageTag: 8fe6a2f0-fbf5-42cb-b1af-8d7933bd3cea
+			summarizeBy: none
+			sourceColumn: options_disponibles
+
+			annotation SummarizationSetBy = Automatic
+
+		column choix_multiple
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: 24cd46f9-1cb5-455c-9b1d-9ffcd389e63a
+			summarizeBy: none
+			sourceColumn: choix_multiple
+
+			annotation SummarizationSetBy = Automatic
+
+		column est_actif
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: e7213222-7ca3-447d-9c31-82425ad967bf
+			summarizeBy: none
+			sourceColumn: est_actif
+
+			annotation SummarizationSetBy = Automatic
+
+		column cree_par
+			dataType: string
+			lineageTag: e1690933-3dc1-4f9f-aa96-224e4f410564
+			summarizeBy: none
+			sourceColumn: cree_par
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_creation
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 7e5b390c-14ac-40cc-b2fb-3e6e5872c0b3
+			summarizeBy: none
+			sourceColumn: date_creation
+
+			variation Variation
+				isDefault
+				relationship: 7c8fe850-58c1-4d10-8ef5-d1747931f817
+				defaultHierarchy: LocalDateTable_6c38c5ed-ef83-4fd0-b458-7cb5afed82b4.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column date_cloture
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: b91d92cb-57c5-41bb-9888-e7e6723289f0
+			summarizeBy: none
+			sourceColumn: date_cloture
+
+			variation Variation
+				isDefault
+				relationship: 1526be0b-65ec-4111-89d2-55438e7b6681
+				defaultHierarchy: LocalDateTable_dba79523-a4bd-4aa3-a535-6e81b38371c6.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 346e19c5-f648-4576-aa11-e9486ac9630c
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: b35f2ade-50ee-4a51-991b-d709ee43b4ad
+				defaultHierarchy: LocalDateTable_77970416-a1b1-4c8f-bfaf-501607c44c7a.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_sondage\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_sondage\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_6c38c5ed-ef83-4fd0-b458-7cb5afed82b4
+		isHidden
+		showAsVariationsOnly
+		lineageTag: db143534-3ad6-44e4-b15e-cf7f7beb3792
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: f40266b2-f84b-4970-be27-bb511c6b12ff
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 11c72e9d-d106-4304-8a40-6309dacc2c5b
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: ffecea21-725d-42dd-b94a-e9fbb7cebb86
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 0a5e86c6-c280-41fb-874a-e757c8d34958
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 9db87067-5999-4abd-98e5-cf98b94cc2d5
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 9a2acc60-4ba3-4683-a146-1a56cba7bfe0
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: b29864b1-8efa-4dfb-9025-a5923b314da3
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: e382cd5d-d2af-46bc-8ec2-e946c005d230
+
+			level Ann\u00E9e
+				lineageTag: 38708d6e-f671-4ee0-acc7-263a015e93d4
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: fa8d8f23-e5b4-4c09-a3b7-01ca083bed1e
+				column: Trimestre
+
+			level Mois
+				lineageTag: 2ab3d294-4da7-43e2-b85e-869e629022d4
+				column: Mois
+
+			level Jour
+				lineageTag: aa790235-927c-4a12-8441-50e9d3b5da5d
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_6c38c5ed-ef83-4fd0-b458-7cb5afed82b4 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_sondage\u0027[date_creation])), 1, 1), Date(Year(MAX(\u0027public dim_sondage\u0027[date_creation])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_dba79523-a4bd-4aa3-a535-6e81b38371c6
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 9b77f624-7e6e-4006-b5c8-10e3d62033cb
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 1ac2a748-ceca-49e5-916c-1cc48ac23fed
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2ed93320-9d3a-4c5e-b2bc-30a08ad49995
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 7f4c70b6-f13a-4920-a353-32d544081e81
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 06fd4535-6ec6-489f-b5d2-b4690db323a2
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e33d2bc2-1d66-4f1e-a9b9-020e38da4f0a
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: d8766e26-bd5c-49cd-a55c-d74387301ba2
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 79b52ac3-1244-435b-b51d-206978b8d16a
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 3ab9afc1-d95e-4f55-a710-cd15fa659867
+
+			level Ann\u00E9e
+				lineageTag: eac59a7f-6bc4-4e13-a99d-4211b052d835
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 5ee8d19c-cc87-4da0-8caf-abddbf4faa6f
+				column: Trimestre
+
+			level Mois
+				lineageTag: 4cf1a103-8a6c-4363-bf3c-99201a913978
+				column: Mois
+
+			level Jour
+				lineageTag: 80923099-fae1-455e-8f94-0510819f534d
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_dba79523-a4bd-4aa3-a535-6e81b38371c6 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_sondage\u0027[date_cloture])), 1, 1), Date(Year(MAX(\u0027public dim_sondage\u0027[date_cloture])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table LocalDateTable_77970416-a1b1-4c8f-bfaf-501607c44c7a
+		isHidden
+		showAsVariationsOnly
+		lineageTag: bfdf2f47-835b-4709-b0b9-7685d8851d1c
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: a3d4d018-7d25-49bd-9bf2-88dae5aa6cde
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: ae354d96-2843-444d-b419-8d23514caa82
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 26c36242-8625-430f-8b43-374dd3a25008
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: b71878ca-5f4a-4a61-b388-bdc5f4230629
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: def68c0c-53b8-4c95-a296-2b213c6b8670
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 9c917300-1126-4a9e-b090-683d988cc95c
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: adda0910-3f2e-4eac-9daa-95a2b05ec8a9
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 46e94ff6-be76-4e26-9bc0-be03b2410c29
+
+			level Ann\u00E9e
+				lineageTag: fc9313a3-6645-4cb9-ada2-0bd400ec2180
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 20615c12-9bca-4bdb-8376-4d65d0606640
+				column: Trimestre
+
+			level Mois
+				lineageTag: 035a141b-9e7a-46c2-886c-922509e5e6fc
+				column: Mois
+
+			level Jour
+				lineageTag: edafdb35-16dc-4637-a48f-ec2e50ebccdd
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_77970416-a1b1-4c8f-bfaf-501607c44c7a = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_sondage\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public dim_sondage\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_waypoint\u0027
+		lineageTag: b81e0f68-75e7-43fa-af27-7d34e5019058
+
+		column waypoint_id
+			dataType: string
+			lineageTag: 02b443df-8201-4f28-9e31-4d013515b779
+			summarizeBy: none
+			sourceColumn: waypoint_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column site_id
+			dataType: string
+			lineageTag: 237c78dd-0463-4d58-8811-71f35f2cd5c5
+			summarizeBy: none
+			sourceColumn: site_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom
+			dataType: string
+			lineageTag: 9fdf9bf9-4dcf-4619-87d4-2876412cebe9
+			summarizeBy: none
+			sourceColumn: nom
+
+			annotation SummarizationSetBy = Automatic
+
+		column latitude
+			dataType: double
+			lineageTag: 3a509b0c-865f-43f3-88be-19cdea7eaaf3
+			summarizeBy: sum
+			sourceColumn: latitude
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		column longitude
+			dataType: double
+			lineageTag: 3cbca7a6-e19f-4a28-943d-ef92498b4da4
+			summarizeBy: sum
+			sourceColumn: longitude
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		column type_point
+			dataType: string
+			lineageTag: 7cec0633-7db5-454c-a111-1681c728906c
+			summarizeBy: none
+			sourceColumn: type_point
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 47211604-1d28-41f4-9fdf-8ff72ea8c17e
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: c4a6fa23-0718-4804-b711-9d81e98faeae
+				defaultHierarchy: LocalDateTable_3a62bdd4-1b5e-4219-9daa-197a0fb41f99.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_waypoint\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022dim_waypoint\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_3a62bdd4-1b5e-4219-9daa-197a0fb41f99
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 21fdf457-e940-4467-b00f-7fb830316ac1
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 58c432a6-575f-4be1-8e7e-2ac8d887f9d0
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: d12bce9f-0c00-46a1-a05b-a816b7fbfa92
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 7a90f5ad-e5b8-40d0-92cd-625652f65b82
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 143ef74f-27d7-4666-bc17-8d73cf8f53f0
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2e828e5c-a4fb-4de6-b085-862d06d237cf
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 504ce35f-ce71-4ec5-b3d1-f96bc6fb0ed5
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 9c09929e-462d-4042-a0a0-8bd31bac8f83
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: b6049b73-50c3-40ab-9175-0f81660566b9
+
+			level Ann\u00E9e
+				lineageTag: 33fa038c-0ba1-46d2-927a-103e4b61312c
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 823851ae-b9cf-44f6-97d6-9c81f5cce560
+				column: Trimestre
+
+			level Mois
+				lineageTag: 10b85d5d-2dcc-4562-b80c-c2306dc211f3
+				column: Mois
+
+			level Jour
+				lineageTag: 78e19860-8ed7-495e-afda-60592f4cbacd
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_3a62bdd4-1b5e-4219-9daa-197a0fb41f99 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_waypoint\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public dim_waypoint\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_adhesion\u0027
+		lineageTag: 72db52ab-e46b-4399-90f1-ab6d11e796ed
+
+		column adhesion_id
+			dataType: string
+			lineageTag: e581e16d-c67c-46c0-b55f-98accb3f9da6
+			summarizeBy: none
+			sourceColumn: adhesion_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 4792f997-621b-449e-8225-73b4c211a12d
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column membre_id
+			dataType: string
+			lineageTag: c86af2dd-dd2e-42c3-9f23-a19af30241d2
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column niveau_apnee
+			dataType: string
+			lineageTag: 511145a8-75a2-453f-aefc-a9026c5555c4
+			summarizeBy: none
+			sourceColumn: niveau_apnee
+
+			annotation SummarizationSetBy = Automatic
+
+		column role_bureau
+			dataType: string
+			lineageTag: bf9d57e8-28ef-4ba3-b0a2-035488ccb025
+			summarizeBy: none
+			sourceColumn: role_bureau
+
+			annotation SummarizationSetBy = Automatic
+
+		column is_encadrant
+			dataType: boolean
+			formatString: \u0022\u0022\u0022TRUE\u0022\u0022;\u0022\u0022TRUE\u0022\u0022;\u0022\u0022FALSE\u0022\u0022\u0022
+			lineageTag: 9de82612-3367-42be-94e5-82384bbed848
+			summarizeBy: none
+			sourceColumn: is_encadrant
+
+			annotation SummarizationSetBy = Automatic
+
+		column numero_licence
+			dataType: string
+			lineageTag: a014f6b2-7748-441f-a67d-f9f0531ac376
+			summarizeBy: none
+			sourceColumn: numero_licence
+
+			annotation SummarizationSetBy = Automatic
+
+		column cotisation_payee
+			dataType: int64
+			formatString: 0
+			lineageTag: 292b6373-4d01-4caa-b41f-d3a217277d1b
+			summarizeBy: sum
+			sourceColumn: cotisation_payee
+
+			annotation SummarizationSetBy = Automatic
+
+		column certificat_medical_ok
+			dataType: int64
+			formatString: 0
+			lineageTag: eaf620ab-9c4b-48cb-a40c-26a01ea8b0ab
+			summarizeBy: sum
+			sourceColumn: certificat_medical_ok
+
+			annotation SummarizationSetBy = Automatic
+
+		column charte_signee
+			dataType: int64
+			formatString: 0
+			lineageTag: aa3383f1-00ad-40ad-aeca-9f48326222b4
+			summarizeBy: sum
+			sourceColumn: charte_signee
+
+			annotation SummarizationSetBy = Automatic
+
+		column assurance_ok
+			dataType: int64
+			formatString: 0
+			lineageTag: 7fa9d12b-dfae-4c4c-bc03-3e798bb7833d
+			summarizeBy: sum
+			sourceColumn: assurance_ok
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_valide
+			dataType: int64
+			formatString: 0
+			lineageTag: fec990ff-f1cb-4af2-9f84-548162f859d0
+			summarizeBy: sum
+			sourceColumn: membre_valide
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_adhesions
+			dataType: int64
+			formatString: 0
+			lineageTag: 34331168-6917-4c12-b8a4-6ccaa3264c12
+			summarizeBy: sum
+			sourceColumn: nb_adhesions
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 49192ece-5061-4e59-929d-67fb826f34cd
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 190105d0-b466-44cd-9cd9-187248f1cca3
+				defaultHierarchy: LocalDateTable_aadf16f5-c4a5-4592-b2ab-47af69903e80.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column saison_id
+			dataType: int64
+			formatString: 0
+			lineageTag: 27fc848c-6664-4240-9f37-5463811648a2
+			summarizeBy: none
+			sourceColumn: saison_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column statut_dossier
+			dataType: string
+			lineageTag: 8ade4465-798d-4980-bcff-131b0f836078
+			summarizeBy: none
+			sourceColumn: statut_dossier
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_adhesion\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_adhesion\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_aadf16f5-c4a5-4592-b2ab-47af69903e80
+		isHidden
+		showAsVariationsOnly
+		lineageTag: a4874a24-d2bd-4cb2-826c-1268616e8dc3
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 2bd4110b-b56f-4e89-882b-43585b733d35
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2a50d716-001f-4b57-92a6-0ce8f9235e1d
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 4676d03c-e81c-44a5-bce5-3429990feb95
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 7f751d29-79f0-4c1a-b0c6-b547814827a3
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 429fe328-f2a1-466d-a444-accc7b464e17
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 0110e379-0787-4a95-9c4a-2bce28a02407
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: aefda3f5-572f-4ddf-a1bf-23a9819a7a1a
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: cc0584be-141b-403e-b02e-f9b3aeab05d0
+
+			level Ann\u00E9e
+				lineageTag: 30fb9f06-9ee4-4140-b6af-1d9642bc5fd2
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 6dc04145-ec8d-4a72-9cb2-94060a4b5ce6
+				column: Trimestre
+
+			level Mois
+				lineageTag: 60235338-ac4c-452e-a705-34f7a9941a24
+				column: Mois
+
+			level Jour
+				lineageTag: cd9dbafe-e2d3-4223-8b85-b367bbdb90c4
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_aadf16f5-c4a5-4592-b2ab-47af69903e80 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_adhesion\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_adhesion\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_co_instructeur\u0027
+		lineageTag: ef957a6a-f148-4a5d-ac34-147c7ad20cac
+
+		column co_instructeur_id
+			dataType: string
+			lineageTag: 999c3551-d6d7-4630-8090-a5fdc9e548a1
+			summarizeBy: none
+			sourceColumn: co_instructeur_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: b84f3063-3106-43a7-9e99-0e1c3d43cbc9
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column sortie_id
+			dataType: string
+			lineageTag: 623329e8-b271-4da2-a459-cf37fc99c736
+			summarizeBy: none
+			sourceColumn: sortie_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_id
+			dataType: string
+			lineageTag: 239d5f3f-9b86-4481-b238-bda0b2e51888
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_co_instructeurs
+			dataType: int64
+			formatString: 0
+			lineageTag: d9c4a626-06e4-42db-9612-89d7194464e1
+			summarizeBy: sum
+			sourceColumn: nb_co_instructeurs
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 32e65d9f-f8b3-4c92-aa09-6510d2e85795
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 73334135-e315-46d9-bba6-7a8cea4cbeed
+				defaultHierarchy: LocalDateTable_48b49282-4d73-4c6e-883a-ca13deec6330.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_co_instructeur\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_co_instructeur\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_48b49282-4d73-4c6e-883a-ca13deec6330
+		isHidden
+		showAsVariationsOnly
+		lineageTag: b03acd1b-3b1c-448d-a706-7369c91c8199
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: b4965458-9636-4b07-9d83-1ac4e8969103
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e154853f-b47e-4150-b8d1-42cee6044f06
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a1128133-1508-4932-a418-ee7f14ac56f2
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: eb500e05-2188-4391-ae31-64edc17e2467
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 1088d7d8-239b-4581-86bd-2da55117a04f
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: cc2e71ff-1016-4dea-aa10-69521dc5fcf2
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 82bc3087-9858-45b6-81ba-47bb151434cf
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 1772b494-1c9c-45f9-a49d-fbc3a4e7a20e
+
+			level Ann\u00E9e
+				lineageTag: 673f21d3-9c0a-4dc5-be4f-08320ea831c7
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: efcc7802-c6f4-433f-a61f-f73363647260
+				column: Trimestre
+
+			level Mois
+				lineageTag: 3096d0d7-7b2c-482f-b601-2ad8bcd8cce0
+				column: Mois
+
+			level Jour
+				lineageTag: eb59d531-4587-4dc0-a29b-0d9c78e87956
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_48b49282-4d73-4c6e-883a-ca13deec6330 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_co_instructeur\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_co_instructeur\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_covoiturage\u0027
+		lineageTag: 74f89d62-968e-4532-a816-950f39b2e1c8
+
+		column covoiturage_id
+			dataType: string
+			lineageTag: e97a8a5e-55ef-425f-b2c2-05bd81f3c643
+			summarizeBy: none
+			sourceColumn: covoiturage_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 89ea88f2-16da-4680-970d-6c766ddd0ba0
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column sortie_id
+			dataType: string
+			lineageTag: f236d20f-3f94-4254-af35-e13bf31c964e
+			summarizeBy: none
+			sourceColumn: sortie_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column conducteur_id
+			dataType: string
+			lineageTag: 1858bb2a-cefd-4200-9585-0c8428bc0dfe
+			summarizeBy: none
+			sourceColumn: conducteur_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column places_disponibles
+			dataType: int64
+			formatString: 0
+			lineageTag: adbfd912-1568-413c-a145-b168aac8f3ce
+			summarizeBy: sum
+			sourceColumn: places_disponibles
+
+			annotation SummarizationSetBy = Automatic
+
+		column point_rencontre
+			dataType: string
+			lineageTag: a6a95289-7861-4d4e-8612-ba969ac3f772
+			summarizeBy: none
+			sourceColumn: point_rencontre
+
+			annotation SummarizationSetBy = Automatic
+
+		column heure_depart
+			dataType: dateTime
+			formatString: Long Time
+			lineageTag: 275226d0-1746-4e3d-8eba-df38aede1541
+			summarizeBy: none
+			sourceColumn: heure_depart
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Time
+
+		column nb_covoiturages
+			dataType: int64
+			formatString: 0
+			lineageTag: b72aad8c-8a37-4068-b17f-18dc9124ef98
+			summarizeBy: sum
+			sourceColumn: nb_covoiturages
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 23e03d46-9f02-41de-9169-e949e80135a0
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 66084e25-2bec-4a05-a834-104c4c90da06
+				defaultHierarchy: LocalDateTable_f78caa59-a4b3-424e-adc0-9519bda3400c.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_covoiturage\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_covoiturage\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_f78caa59-a4b3-424e-adc0-9519bda3400c
+		isHidden
+		showAsVariationsOnly
+		lineageTag: df50ec3b-c5b8-4422-8672-333977514acb
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: e0fef159-0ceb-4b35-8961-2e854b98ac6c
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: da1a7ff7-257a-47fa-9935-5afae3c79a13
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: dca93c1a-4f31-41a3-ba21-e697d827d6f7
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 7e319d21-cea1-4fda-bf3a-a135243ac208
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: b36077c2-b681-4d3b-b463-b3022258ddc7
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 7f100dbd-de08-4898-8316-f2cb1d1f5fe4
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a377c5ff-2396-4f3e-ba2e-ddd7d9585d3b
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 4fe821ac-4181-4dc9-83dc-76a4a3e01f8a
+
+			level Ann\u00E9e
+				lineageTag: 1de0547b-5b06-47a9-b0c6-6f71487ea23d
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: d19521ed-b0b6-43b6-86ab-fde2935097fc
+				column: Trimestre
+
+			level Mois
+				lineageTag: 62adfcc6-7b1c-4a7c-9aef-44cdc7d9bd53
+				column: Mois
+
+			level Jour
+				lineageTag: 66c46738-b7d9-4fc6-b878-d8759e2de4a7
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_f78caa59-a4b3-424e-adc0-9519bda3400c = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_covoiturage\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_covoiturage\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_mouvement_equipement\u0027
+		lineageTag: 3e07b4c2-6a05-411a-b09a-061be3ced98c
+
+		column mouvement_id
+			dataType: string
+			lineageTag: fbb940c0-9dd9-43cd-b8e2-4b5aa64c0422
+			summarizeBy: none
+			sourceColumn: mouvement_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: efed59ef-4707-4feb-9cdc-044a6ba9a07c
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column equipement_id
+			dataType: string
+			lineageTag: fbb1eed4-d8f3-4402-95d7-0edd2594cb08
+			summarizeBy: none
+			sourceColumn: equipement_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_id_source
+			dataType: string
+			lineageTag: 3cc09cf5-04a4-48d1-9322-5182606d512b
+			summarizeBy: none
+			sourceColumn: membre_id_source
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_id_dest
+			dataType: string
+			lineageTag: d651f10f-5fd9-483c-b5e1-18a51a6e6ba4
+			summarizeBy: none
+			sourceColumn: membre_id_dest
+
+			annotation SummarizationSetBy = Automatic
+
+		column type_action
+			dataType: string
+			lineageTag: 1e64d83a-69dc-4aca-8cee-7032834ea625
+			summarizeBy: none
+			sourceColumn: type_action
+
+			annotation SummarizationSetBy = Automatic
+
+		column ancien_statut
+			dataType: string
+			lineageTag: 163f4935-8601-4154-aa2f-6003144d3ef4
+			summarizeBy: none
+			sourceColumn: ancien_statut
+
+			annotation SummarizationSetBy = Automatic
+
+		column nouveau_statut
+			dataType: string
+			lineageTag: 391a6a0d-cd56-4635-9ab4-38c83535a97c
+			summarizeBy: none
+			sourceColumn: nouveau_statut
+
+			annotation SummarizationSetBy = Automatic
+
+		column notes
+			dataType: string
+			lineageTag: a283f909-bfb9-41a4-ad11-641c3b8f0d32
+			summarizeBy: none
+			sourceColumn: notes
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_mouvements
+			dataType: int64
+			formatString: 0
+			lineageTag: 77718bb3-e28d-4d17-a47f-dfe2ac7a711b
+			summarizeBy: sum
+			sourceColumn: nb_mouvements
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_prets
+			dataType: int64
+			formatString: 0
+			lineageTag: 9ac20405-e5af-4761-83d8-cc132c39b4d1
+			summarizeBy: sum
+			sourceColumn: nb_prets
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_retours
+			dataType: int64
+			formatString: 0
+			lineageTag: 11f99502-0e54-4192-ac08-b4e04f8e2526
+			summarizeBy: sum
+			sourceColumn: nb_retours
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_pertes
+			dataType: int64
+			formatString: 0
+			lineageTag: 044bb532-37c5-4001-916f-467de99d7a50
+			summarizeBy: sum
+			sourceColumn: nb_pertes
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 588bccd8-4065-4543-8a54-773ec260d511
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 29408f1b-907b-45fe-b7d1-f526cd00f6e6
+				defaultHierarchy: LocalDateTable_70d27d22-491a-4f86-92d6-3e650ac119bd.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_mouvement_equipement\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_mouvement_equipement\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_70d27d22-491a-4f86-92d6-3e650ac119bd
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 83d245bf-8215-459e-b026-cd84481f69e1
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: f6fb6650-91a5-47ee-a8e6-32a9cc08ed75
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 98e7a257-2937-444b-965d-3fa5954bbcb5
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 5491a9d5-c52d-46e6-8ebc-e29d36d521ff
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 2a7c6aa9-b1c3-45ee-a003-76420bf987ab
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 52387f4a-8be1-4147-94ca-fbdcd4c83706
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 02c5c058-d91a-4e5f-b131-b4a4c86d522c
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 1edb9752-8be0-4f95-a46b-245fb472390c
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 3aac8b00-f2fe-4c20-9ff1-5a76cb07c7a0
+
+			level Ann\u00E9e
+				lineageTag: 3ab3fa03-6b24-4d43-822c-5d769b874a26
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 33371127-5fe8-46f7-83db-b91e6b7d43fa
+				column: Trimestre
+
+			level Mois
+				lineageTag: 0d910361-94a9-473a-97c0-75cb711e8e56
+				column: Mois
+
+			level Jour
+				lineageTag: bb52c4ed-5457-486e-aa90-34a56426a9e0
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_70d27d22-491a-4f86-92d6-3e650ac119bd = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_mouvement_equipement\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_mouvement_equipement\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_participation\u0027
+		lineageTag: 1830a9e4-6ed8-4f7b-9f1a-7f290aad7de0
+
+		column participation_id
+			dataType: string
+			lineageTag: 0f2a7dcc-1ff0-4a47-ba52-deac6bf627c6
+			summarizeBy: none
+			sourceColumn: participation_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: d7d4b64d-a023-466d-a480-703f07d9380c
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column membre_id
+			dataType: string
+			lineageTag: 4f5742cd-b7e0-4586-a13b-5ae2bcb77387
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column site_id
+			dataType: string
+			lineageTag: 0bbb5373-5775-4f91-a8d1-9977ddee1d1f
+			summarizeBy: none
+			sourceColumn: site_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column bateau_id
+			dataType: string
+			lineageTag: 203b5117-1885-4884-8cbf-19826ab07778
+			summarizeBy: none
+			sourceColumn: bateau_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column sortie_id
+			dataType: string
+			lineageTag: 20a67f02-c8ea-40b8-a213-2264c9897d87
+			summarizeBy: none
+			sourceColumn: sortie_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column titre_sortie
+			dataType: string
+			lineageTag: c0233051-1cb7-45e9-95c1-36d7676fd9ae
+			summarizeBy: none
+			sourceColumn: titre_sortie
+
+			annotation SummarizationSetBy = Automatic
+
+		column type_sortie
+			dataType: string
+			lineageTag: d38bfa99-baa4-41b5-abfe-f98cc0dfbd8d
+			summarizeBy: none
+			sourceColumn: type_sortie
+
+			annotation SummarizationSetBy = Automatic
+
+		column mode_plongee
+			dataType: string
+			lineageTag: a6166fe4-42bf-4801-9df6-f70f72c4c85b
+			summarizeBy: none
+			sourceColumn: mode_plongee
+
+			annotation SummarizationSetBy = Automatic
+
+		column capacite_max
+			dataType: int64
+			formatString: 0
+			lineageTag: 4e6156e5-aef1-4287-a469-53c6ffe9888b
+			summarizeBy: sum
+			sourceColumn: capacite_max
+
+			annotation SummarizationSetBy = Automatic
+
+		column heure_mise_eau
+			dataType: string
+			lineageTag: 2f8ee3dc-93d5-443b-bcf6-1bb435953b19
+			summarizeBy: none
+			sourceColumn: heure_mise_eau
+
+			annotation SummarizationSetBy = Automatic
+
+		column heure_sortie_eau
+			dataType: string
+			lineageTag: 066b91c5-9e37-4fb4-815a-1a0be7a07be7
+			summarizeBy: none
+			sourceColumn: heure_sortie_eau
+
+			annotation SummarizationSetBy = Automatic
+
+		column statut_reservation
+			dataType: string
+			lineageTag: d014ee01-5382-4149-b627-c2e8343cc1f5
+			summarizeBy: none
+			sourceColumn: statut_reservation
+
+			annotation SummarizationSetBy = Automatic
+
+		column option_covoiturage
+			dataType: string
+			lineageTag: 56c1e911-50ec-4445-90f7-4a2aea18411e
+			summarizeBy: none
+			sourceColumn: option_covoiturage
+
+			annotation SummarizationSetBy = Automatic
+
+		column present
+			dataType: int64
+			formatString: 0
+			lineageTag: 8240da4b-b78d-4407-a7fa-fbe3a550fbcd
+			summarizeBy: sum
+			sourceColumn: present
+
+			annotation SummarizationSetBy = Automatic
+
+		column absent
+			dataType: int64
+			formatString: 0
+			lineageTag: a842fefa-89bd-41ae-bcc1-b47b2a6c82c7
+			summarizeBy: sum
+			sourceColumn: absent
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_inscriptions
+			dataType: int64
+			formatString: 0
+			lineageTag: 5f0bd595-e36b-47fb-97e7-84ba7a715abe
+			summarizeBy: sum
+			sourceColumn: nb_inscriptions
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 5e38bd89-0800-478c-a060-fd010e8fb2ca
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 9b6478c0-7f0f-44f7-8333-c17abfee5983
+				defaultHierarchy: LocalDateTable_a24afff4-2cb6-456f-930b-d51353c9dc6c.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column encadrant_principal
+			dataType: string
+			lineageTag: 4502f97a-f365-476b-8a5f-331adad8460c
+			summarizeBy: none
+			sourceColumn: encadrant_principal
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_participation\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_participation\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_a24afff4-2cb6-456f-930b-d51353c9dc6c
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 630de926-2dd9-4944-99bc-f1be7da28495
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: d141ad24-db27-4d01-8e21-baab8578ccde
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: eb53659f-2ff5-4b23-8d1e-d0d704709037
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 640b47c0-e4f1-4830-870e-a0a16a99d5bb
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: e7b9239f-0530-4569-9a45-10c030f4df85
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: d3ddecf2-ae71-4d29-815f-0672f4513bbd
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: d93e44aa-65b9-4c0c-9a83-80088125de8a
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 28f2196d-f366-40dc-b32d-4dd9cb226628
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 3db3a8a0-ffb1-48eb-9252-5143e2c0f9dd
+
+			level Ann\u00E9e
+				lineageTag: 11ae49b6-d952-4590-9e5b-9271e12c3d4e
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 7f96fa5d-3b8d-4a22-a947-cd7705b33829
+				column: Trimestre
+
+			level Mois
+				lineageTag: d9b1578a-5432-49c1-a33f-896dd84cc1a3
+				column: Mois
+
+			level Jour
+				lineageTag: 5407a527-23ec-489f-85b1-246c40f0f603
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_a24afff4-2cb6-456f-930b-d51353c9dc6c = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_participation\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_participation\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_participation_historique\u0027
+		lineageTag: 92308bb2-f237-4730-b4f5-2bdab2264746
+
+		column participation_id
+			dataType: string
+			lineageTag: 3b5875f1-caec-4b13-bcbd-59c628848f64
+			summarizeBy: none
+			sourceColumn: participation_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: dac9cdfb-5556-4115-bb26-d015cd229216
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column membre_id
+			dataType: string
+			lineageTag: a56ae84b-c22b-4c7c-bdd5-3f449c534a2a
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column sortie_id
+			dataType: string
+			lineageTag: daa56010-6400-43fb-ac1e-dd0b19fdee3a
+			summarizeBy: none
+			sourceColumn: sortie_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column titre_sortie
+			dataType: string
+			lineageTag: b9aa4690-d6a0-4d46-97f1-77276de3eee3
+			summarizeBy: none
+			sourceColumn: titre_sortie
+
+			annotation SummarizationSetBy = Automatic
+
+		column type_sortie
+			dataType: string
+			lineageTag: b04b5e67-0710-425b-b8d1-84c1fd1c90e1
+			summarizeBy: none
+			sourceColumn: type_sortie
+
+			annotation SummarizationSetBy = Automatic
+
+		column site_id
+			dataType: string
+			lineageTag: 1dc62f0b-83ee-4063-8220-f6365cecbdea
+			summarizeBy: none
+			sourceColumn: site_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_participations
+			dataType: int64
+			formatString: 0
+			lineageTag: 44dd0750-849b-4d57-9413-b1e9fe45da88
+			summarizeBy: sum
+			sourceColumn: nb_participations
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 916a324a-5a96-4760-837c-80cb0efb7521
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 9a1192f1-522e-408a-ac2b-6ea99c782d8b
+				defaultHierarchy: LocalDateTable_a255eeb4-d14c-4df5-9760-04e7c65a3d60.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column encadrant_principal
+			dataType: string
+			lineageTag: d9bb7bee-d2ef-428f-a2cd-bf7e22d09d47
+			summarizeBy: none
+			sourceColumn: encadrant_principal
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_participation_historique\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_participation_historique\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_a255eeb4-d14c-4df5-9760-04e7c65a3d60
+		isHidden
+		showAsVariationsOnly
+		lineageTag: ee02a6ce-1875-4b38-be01-7d26e7ffc675
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 51f5a59c-7182-48e5-a6e7-876af85210bb
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 5ad88f9b-be93-4c14-8a0f-6426508c5005
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 47d68150-331e-4cfc-82e6-112d4741b8f8
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 2e8ef246-2650-4d4f-a121-bf8a28c51bed
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e11edc29-1fe6-4493-a2b5-ca47474966f3
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 836e5aca-ed88-44ea-83e9-dc4f51252d70
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: f824f7e7-b256-4849-b3dd-228e56fa3041
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 0a7a3562-1c8d-4105-a9f4-69da938e5e19
+
+			level Ann\u00E9e
+				lineageTag: 17d5363f-675e-4d20-92a2-7369bafc5944
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: b8e191dd-2812-42c9-8e71-c38b3f521fa7
+				column: Trimestre
+
+			level Mois
+				lineageTag: 738af8a2-f92c-4136-b142-b09244b52da3
+				column: Mois
+
+			level Jour
+				lineageTag: 3932e898-f5b1-4e4a-a9cb-892e9425f6b3
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_a255eeb4-d14c-4df5-9760-04e7c65a3d60 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_participation_historique\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_participation_historique\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_passager_covoiturage\u0027
+		lineageTag: 726c44ee-3aaf-48fe-9e89-88672bea2c3c
+
+		column passager_id
+			dataType: string
+			lineageTag: cfff4b0d-b3f0-41c6-9600-b6e7ae6bf779
+			summarizeBy: none
+			sourceColumn: passager_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 7c9a1161-c494-44db-8d09-5f8e907ed009
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column covoiturage_id
+			dataType: string
+			lineageTag: 82461bb7-c26f-4575-8501-a419e3d58d0c
+			summarizeBy: none
+			sourceColumn: covoiturage_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_id
+			dataType: string
+			lineageTag: 91883f2f-2e16-413e-a597-7b846e89e170
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_passagers
+			dataType: int64
+			formatString: 0
+			lineageTag: d0dac1e5-a1be-495c-ab0a-663cc6cb5c9f
+			summarizeBy: sum
+			sourceColumn: nb_passagers
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 3cb935cb-55a7-4807-8382-04a43ae34944
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 128a15e2-ae56-4dc6-849c-e5845d64d799
+				defaultHierarchy: LocalDateTable_9e23c82b-e7bd-4b84-a8d2-cc05981d1a7a.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_passager_covoiturage\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_passager_covoiturage\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_9e23c82b-e7bd-4b84-a8d2-cc05981d1a7a
+		isHidden
+		showAsVariationsOnly
+		lineageTag: ef82c410-986d-49f1-af3b-7cc9bbce0347
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 50ac239b-99c2-4a1d-9ccc-83d62daabd71
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 42766c53-94bb-4b93-964d-646574baab29
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 19d21c60-c109-45bf-b7b1-5cd217fe03d7
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: eecb2fec-245b-49c5-9753-f92ce5606698
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: abf219c7-dcb5-44ad-94eb-2dadf18fc0c8
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: acf5baf5-25c2-4048-857c-f16fc10ef64f
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 5d785b7b-824f-4163-8925-0cbdf83d39e7
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: ee4dbf81-9022-48fe-aeb2-40d92e6fab69
+
+			level Ann\u00E9e
+				lineageTag: b2ec5e35-df05-47e9-af25-8d379ad61b5e
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 842e9c54-d1f2-429c-a635-3081d66411d3
+				column: Trimestre
+
+			level Mois
+				lineageTag: b699e8aa-e60c-4c3c-ba6d-f1a9b1e8ca7b
+				column: Mois
+
+			level Jour
+				lineageTag: f7ca9295-db95-415d-834f-99d557e1ce6d
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_9e23c82b-e7bd-4b84-a8d2-cc05981d1a7a = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_passager_covoiturage\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_passager_covoiturage\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public fait_vote\u0027
+		lineageTag: 203dad4f-de1c-47ee-9719-29ef5064fa06
+
+		column vote_id
+			dataType: string
+			lineageTag: b7aa8303-24f4-4d16-b5e0-b11a9a96277c
+			summarizeBy: none
+			sourceColumn: vote_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column date_id
+			dataType: dateTime
+			formatString: Long Date
+			lineageTag: 291ed751-621f-4445-9189-ecf2a9b4e545
+			summarizeBy: none
+			sourceColumn: date_id
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		column sondage_id
+			dataType: string
+			lineageTag: 00410b85-7844-4af0-9dec-6e2766289fdd
+			summarizeBy: none
+			sourceColumn: sondage_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column membre_id
+			dataType: string
+			lineageTag: 7ab914ad-f6ba-4bad-8adf-3bee1911c40b
+			summarizeBy: none
+			sourceColumn: membre_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column options_choisies
+			dataType: string
+			lineageTag: 875b30f8-dbfb-4857-988d-85fc3e048f7d
+			summarizeBy: none
+			sourceColumn: options_choisies
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_votes
+			dataType: int64
+			formatString: 0
+			lineageTag: a84415a7-038d-46d3-a81b-dcb72e11dfb4
+			summarizeBy: sum
+			sourceColumn: nb_votes
+
+			annotation SummarizationSetBy = Automatic
+
+		column updated_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: a9a53099-020d-41a9-91f8-af1ea0a7070b
+			summarizeBy: none
+			sourceColumn: updated_at
+
+			variation Variation
+				isDefault
+				relationship: 9aaa8845-e215-46bf-a874-166281ab43df
+				defaultHierarchy: LocalDateTable_e2a756f4-8c90-4aa5-a3d1-9006d3ddba53.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		column option_label
+			dataType: string
+			lineageTag: 5fbc8a19-5d5b-4483-846b-a405c6b0a0b5
+			summarizeBy: none
+			sourceColumn: option_label
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public fait_vote\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022),
+					  #\u0022Navigation 1\u0022 = Source{[Schema = \u0022public\u0022, Item = \u0022fait_vote\u0022]}[Data]
+					in
+					  #\u0022Navigation 1\u0022
+
+		annotation PBI_ResultType = Table
+
+		annotation PBI_NavigationStepName = Navigation
+
+	table LocalDateTable_e2a756f4-8c90-4aa5-a3d1-9006d3ddba53
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 8976e83e-9a59-4a45-a637-1eecb0351a65
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 03a2c4aa-f192-47b8-8a41-7671530b4f8d
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: c38488ae-4355-49a8-af94-0d15eca5801c
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2efb8e4f-fe89-4bf9-a54e-1606a6931b97
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: b94a10f3-c255-43f5-ae7b-0d4099f1d4b0
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 1467fdd1-3c8b-47fb-b37c-e95fd2ecebe3
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 2c569d28-155a-45bd-8677-5a209213e2e0
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e5024701-21b7-4f0d-9fa0-38839ac200d4
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: da8126b1-e859-4f8e-bef8-e8418cb7dd9b
+
+			level Ann\u00E9e
+				lineageTag: c3534cb5-b4f6-4248-826d-0993a3da7da3
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 89428cfb-dc6a-48ef-aca1-bd08a88863e8
+				column: Trimestre
+
+			level Mois
+				lineageTag: 4f1e6421-9c12-4710-a87c-7db4aec5293e
+				column: Mois
+
+			level Jour
+				lineageTag: 8924fb71-37e9-4c33-903c-213b8a783b19
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_e2a756f4-8c90-4aa5-a3d1-9006d3ddba53 = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public fait_vote\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_vote\u0027[updated_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table _Mesures
+		lineageTag: 57f04fe2-3dc4-4be5-9465-4f2354cb4075
+
+		measure \u0027Nb Membres Actifs\u0027 = \u0060\u0060\u0060
+				
+				COUNTROWS(
+				    FILTER(\u0027public dim_membre\u0027, 
+				        \u0027public dim_membre\u0027[est_membre_actif] = TRUE())
+				)
+				\u0060\u0060\u0060
+			formatString: 0
+			displayFolder: \uD83D\uDC65 Membres
+			lineageTag: 8c684b3a-16fe-436d-a99a-a75262609da4
+
+		measure \u0027Nb Adh\u00E9sions Saison Courante\u0027 =
+				
+				CALCULATE(
+				    COUNTROWS(\u0027public fait_adhesion\u0027),
+				    \u0027public dim_saison\u0027[est_saison_courante] = TRUE()
+				)
+			formatString: 0
+			displayFolder: \uD83D\uDCCB Adh\u00E9sions
+			lineageTag: af075e17-f6cf-493d-a400-4fcfde9ddc93
+
+		measure \u0027Nb Encadrants\u0027 =
+				
+				CALCULATE(
+				    COUNTROWS(FILTER(\u0027public fait_adhesion\u0027,
+				        \u0027public fait_adhesion\u0027[is_encadrant] = TRUE()
+				    )),
+				    FILTER(\u0027public dim_saison\u0027, \u0027public dim_saison\u0027[est_saison_courante] = TRUE())
+				)
+			formatString: 0
+			displayFolder: \uD83D\uDC65 Membres
+			lineageTag: 9e8463fe-ad13-4935-b4b0-1d8a912e6381
+
+		measure \u0027\u00C2ge Moyen Membres\u0027 =
+				
+				AVERAGE(\u0027public dim_membre\u0027[age])
+			displayFolder: \uD83D\uDC65 Membres
+			lineageTag: f6033ac8-f402-4362-aa10-55ea233bad4a
+
+			annotation PBI_FormatHint = {\u0022isGeneralNumber\u0022:true}
+
+		measure \u0027Nb Nouveaux Membres\u0027 = \u0060\u0060\u0060
+				
+				CALCULATE(
+				    DISTINCTCOUNT(\u0027public fait_adhesion\u0027[membre_id]),
+				    \u0027public fait_adhesion\u0027[saison_id] = 2026,
+				    NOT(\u0027public fait_adhesion\u0027[membre_id] 
+				        IN CALCULATETABLE(
+				            VALUES(\u0027public fait_adhesion\u0027[membre_id]),
+				            \u0027public fait_adhesion\u0027[saison_id] \u003C 2026
+				        )
+				    )
+				)
+				\u0060\u0060\u0060
+			formatString: 0
+			displayFolder: \uD83D\uDC65 Membres
+			lineageTag: 462c2ae2-622c-4be7-ad72-f1c6de906d95
+
+		measure \u0027Taux Dossier Complet\u0027 =
+				
+				VAR saison_courante = MAXX(ALL(\u0027public fait_adhesion\u0027), \u0027public fait_adhesion\u0027[saison_id])
+				VAR adhesions_saison =
+				    FILTER(\u0027public fait_adhesion\u0027, \u0027public fait_adhesion\u0027[saison_id] = saison_courante)
+				RETURN
+				DIVIDE(
+				    COUNTROWS(FILTER(adhesions_saison, \u0027public fait_adhesion\u0027[statut_dossier] = \u0022Complet\u0022)),
+				    COUNTROWS(adhesions_saison)
+				)
+			formatString: 0.0\\ %;-0.0\\ %;0.0\\ %
+			displayFolder: \uD83D\uDCCB Adh\u00E9sions
+			lineageTag: e42d96ad-3350-4c29-8ecf-14700f812a41
+
+		measure \u0027Nb Dossiers Incomplets\u0027 =
+				
+				VAR saison_courante = MAXX(ALL(\u0027public fait_adhesion\u0027), \u0027public fait_adhesion\u0027[saison_id])
+				RETURN
+				COUNTROWS(
+				    FILTER(\u0027public fait_adhesion\u0027,
+				        \u0027public fait_adhesion\u0027[saison_id] = saison_courante
+				        \u0026\u0026 \u0027public fait_adhesion\u0027[statut_dossier] \u003C\u003E \u0022Complet\u0022
+				    )
+				)
+			formatString: 0
+			displayFolder: \uD83D\uDCCB Adh\u00E9sions
+			lineageTag: 849a778b-72ff-4abf-8894-d9249cc48405
+
+		measure \u0027Nb Sorties\u0027 =
+				
+				DISTINCTCOUNT(\u0027public fait_participation\u0027[sortie_id])
+			formatString: 0
+			displayFolder: \uD83E\uDD3F Sorties
+			lineageTag: 3c8f1950-7188-4714-99c6-d2937fed81f8
+
+		measure \u0027Nb Participations\u0027 =
+				
+				SUM(\u0027public fait_participation\u0027[nb_inscriptions])
+			formatString: 0
+			displayFolder: \uD83E\uDD3F Sorties
+			lineageTag: b56a839b-41b3-4a5c-9aa5-41186a216edb
+
+		measure \u0027Choix Sondage\u0027 =
+				
+				COALESCE(
+				    CALCULATE(MAX(\u0027public fait_vote\u0027[option_label])),
+				    \u0022Non r\u00E9pondu\u0022
+				)
+			displayFolder: \uD83D\uDC65 Membres
+			lineageTag: 9f21b6f1-08d9-453d-ad32-f02da9c588b2
+
+		column Vide
+			isHidden
+			lineageTag: 86d54d35-1927-4117-8ffc-3671788df834
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Vide]
+
+			annotation SummarizationSetBy = Automatic
+
+		partition _Mesures = calculated
+			mode: import
+			source = DATATABLE(\u0022Vide\u0022, STRING, {{\u0022\u0022}})
+
+		annotation PBI_Id = 2009e0e5eab944818413ceefda304c77
+
+	table LocalDateTable_1fd9a31e-83ec-497b-bf8a-119058e7b51c
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 35b5c9e2-86e4-4541-9aa1-6304db77ccab
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: 4b1b2bf0-0fff-45e8-be93-1da10478f297
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: a6634e53-57f3-4bd8-879c-a93d7dd0f2d8
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 48a25712-5929-4a6b-9466-fe3a68409968
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: 8a48f821-cd2e-4f6c-95ef-bff6e1be9791
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e24a5367-b594-4692-af3d-d6a8573f0509
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 4b00f95f-7012-454d-97f2-b2cdc84efaf9
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: e0e58f4d-49cb-47a7-9322-31b4211d0c38
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: c5e66483-f45e-4df1-8e29-ae0b08b18de2
+
+			level Ann\u00E9e
+				lineageTag: 0945b8d2-bbc1-4de7-b3d6-0dfc1d8c2780
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: d0fd601a-fd07-4db6-a9e0-ff99c59c012b
+				column: Trimestre
+
+			level Mois
+				lineageTag: cc4593b1-82cc-4a48-aa18-aefbfa8e698c
+				column: Mois
+
+			level Jour
+				lineageTag: cb9dc1f5-46d8-4d60-a07b-aa4ced8ec40c
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_1fd9a31e-83ec-497b-bf8a-119058e7b51c = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_membre\u0027[created_at])), 1, 1), Date(Year(MAX(\u0027public dim_membre\u0027[created_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	table \u0027public dim_options_sondage\u0027
+		lineageTag: f2119647-4123-4352-adcf-be841e072ef6
+
+		column sondage_id
+			dataType: string
+			lineageTag: 830a4160-3046-42f9-b4b0-cea93892d747
+			summarizeBy: none
+			sourceColumn: sondage_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column option_id
+			dataType: string
+			lineageTag: 4a66eb0d-e1d6-4f94-972d-92803f470ca5
+			summarizeBy: none
+			sourceColumn: option_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column option_label
+			dataType: string
+			lineageTag: 69d988cb-94e5-4e8d-b095-eecfb87cc8b6
+			summarizeBy: none
+			sourceColumn: option_label
+
+			annotation SummarizationSetBy = Automatic
+
+		column nb_votes
+			dataType: int64
+			formatString: 0
+			lineageTag: c13c1818-0db8-44de-81ec-4e938326a426
+			summarizeBy: sum
+			sourceColumn: nb_votes
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_options_sondage\u0027 = m
+			mode: import
+			source =
+					let
+					    Source = Value.NativeQuery(PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022), \u0022SELECT sondage_id, option_id, option_label, nb_votes FROM public.dim_options_sondage\u0022, null, [EnableFolding=true])
+					in
+					    Source
+
+		annotation PBI_NavigationStepName = Navigation
+
+		annotation PBI_ResultType = Table
+
+	table \u0027public dim_compte\u0027
+		lineageTag: 368ce022-72f6-44f4-b54c-89feb1a6bad3
+
+		column compte_id
+			dataType: string
+			lineageTag: 6fdc51c5-98c5-4eec-affc-f3c7ca387e05
+			summarizeBy: none
+			sourceColumn: compte_id
+
+			annotation SummarizationSetBy = Automatic
+
+		column prenom
+			dataType: string
+			lineageTag: ff146831-c3b2-44de-a8d4-2eb196cada2d
+			summarizeBy: none
+			sourceColumn: prenom
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom
+			dataType: string
+			lineageTag: e87f811b-e8be-4e6d-85c2-d38efd47c637
+			summarizeBy: none
+			sourceColumn: nom
+
+			annotation SummarizationSetBy = Automatic
+
+		column nom_complet
+			dataType: string
+			lineageTag: c3f606a5-2562-4f23-86d9-d14d2369cdb7
+			summarizeBy: none
+			sourceColumn: nom_complet
+
+			annotation SummarizationSetBy = Automatic
+
+		column email
+			dataType: string
+			lineageTag: 31e958ed-6c7e-4968-84ce-58d1993b2b6a
+			summarizeBy: none
+			sourceColumn: email
+
+			annotation SummarizationSetBy = Automatic
+
+		column role
+			dataType: string
+			lineageTag: 0841208b-b808-40ce-8ee5-f33e00238995
+			summarizeBy: none
+			sourceColumn: role
+
+			annotation SummarizationSetBy = Automatic
+
+		column code_membre
+			dataType: string
+			lineageTag: e000646d-1873-46a2-ab65-6bbdbb4f07d8
+			summarizeBy: none
+			sourceColumn: code_membre
+
+			annotation SummarizationSetBy = Automatic
+
+		column created_at
+			dataType: dateTime
+			formatString: General Date
+			lineageTag: 11f6e987-4391-4035-b976-202f23c5283e
+			summarizeBy: none
+			sourceColumn: created_at
+
+			variation Variation
+				isDefault
+				relationship: d520e0ba-b026-4161-9e67-66da6c0b36a6
+				defaultHierarchy: LocalDateTable_01db7999-7a7f-419c-ba12-c17ffae9b98b.\u0027Hi\u00E9rarchie de dates\u0027
+
+			annotation SummarizationSetBy = Automatic
+
+		partition \u0027public dim_compte\u0027 = m
+			mode: import
+			source =
+					let
+					  Source = Value.NativeQuery(PostgreSQL.Database(\u0022db.hyoudezyqbivfthcgpma.supabase.co\u0022, \u0022postgres\u0022), \u0022SELECT compte_id, prenom, nom, nom_complet, email, role, code_membre, created_at FROM public.dim_compte\u0022, null, [EnableFolding=true])
+					in
+					  Source
+
+		annotation PBI_NavigationStepName = Navigation
+
+		annotation PBI_ResultType = Table
+
+	table LocalDateTable_01db7999-7a7f-419c-ba12-c17ffae9b98b
+		isHidden
+		showAsVariationsOnly
+		lineageTag: 62f7e810-0409-483c-8d5a-4d3e9ff5b34f
+
+		column Date
+			dataType: dateTime
+			isHidden
+			formatString: General Date
+			lineageTag: a29f4d36-8f5a-4d3f-8ea3-915b9b0d61e0
+			dataCategory: PaddedDateTableDates
+			summarizeBy: none
+			isNameInferred
+			sourceColumn: [Date]
+
+			annotation SummarizationSetBy = User
+
+		column Ann\u00E9e = YEAR([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: bb965c3e-289f-439b-88c9-d0ef319d17c2
+			dataCategory: Years
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Year
+
+		column NoMois = MONTH([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: eddda211-4dc2-4eac-bbad-ae49e06df212
+			dataCategory: MonthOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = MonthNumber
+
+		column Mois = FORMAT([Date], \u0022MMMM\u0022)
+			dataType: string
+			isHidden
+			lineageTag: d4a4674b-6151-4c8c-b78a-f1542ff11118
+			dataCategory: Months
+			summarizeBy: none
+			sortByColumn: NoMois
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Month
+
+		column NoTrimestre = INT(([NoMois] \u002B 2) / 3)
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: ff7838d2-a58f-4504-a7be-0ac1fcdb3da9
+			dataCategory: QuarterOfYear
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = QuarterNumber
+
+		column Trimestre = \u0022Trim \u0022 \u0026 [NoTrimestre]
+			dataType: string
+			isHidden
+			lineageTag: 6c078ca5-9db2-4460-9f05-26782fa0db7f
+			dataCategory: Quarters
+			summarizeBy: none
+			sortByColumn: NoTrimestre
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Quarter
+
+		column Jour = DAY([Date])
+			dataType: int64
+			isHidden
+			formatString: 0
+			lineageTag: 2eaf4789-5762-43f0-962a-16fe91c763a6
+			dataCategory: DayOfMonth
+			summarizeBy: none
+
+			annotation SummarizationSetBy = User
+
+			annotation TemplateId = Day
+
+		hierarchy \u0027Hi\u00E9rarchie de dates\u0027
+			lineageTag: 8b845150-205c-4bc9-9f19-8cd681ea7b90
+
+			level Ann\u00E9e
+				lineageTag: 396c821e-691a-4926-847a-a88871d1ecb9
+				column: Ann\u00E9e
+
+			level Trimestre
+				lineageTag: 2096b0bc-a814-40ae-89f6-c01c2b2e23ac
+				column: Trimestre
+
+			level Mois
+				lineageTag: c6d92635-ea9d-4169-9874-ee9c7cfce022
+				column: Mois
+
+			level Jour
+				lineageTag: f114d107-38bf-4140-ab6e-e78ae5c9538f
+				column: Jour
+
+			annotation TemplateId = DateHierarchy
+
+		partition LocalDateTable_01db7999-7a7f-419c-ba12-c17ffae9b98b = calculated
+			mode: import
+			source = Calendar(Date(Year(MIN(\u0027public dim_compte\u0027[created_at])), 1, 1), Date(Year(MAX(\u0027public dim_compte\u0027[created_at])), 12, 31))
+
+		annotation __PBI_LocalDateTable = true
+
+	relationship b6c93bf7-ceca-4d3d-8d74-dc0bf60e72f6
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public apnea_levels\u0027.created_at
+		toColumn: LocalDateTable_674c2048-c326-4eb1-90a4-08cab1017a52.Date
+
+	relationship 0c36d49b-213c-4baf-a84f-b619654f2b09
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public boats\u0027.created_at
+		toColumn: LocalDateTable_c70ef2f9-b70e-4634-90d2-df966b3a7f54.Date
+
+	relationship 4223d952-6803-4057-9f2d-287a883c0a4c
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public boats\u0027.updated_at
+		toColumn: LocalDateTable_4b4a9473-bcfb-4291-9512-840db5d6f717.Date
+
+	relationship 9cceaeca-8a46-4bff-af66-8b5f8d60314a
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_equipement\u0027.date_acquisition
+		toColumn: LocalDateTable_e10e15e1-dc69-4036-951a-f687fa313276.Date
+
+	relationship 8a51fac0-6628-404c-9dcf-f9f190cd7f8f
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_equipement\u0027.updated_at
+		toColumn: LocalDateTable_aaeaca40-fe14-48dc-a1be-2ddc18c62db4.Date
+
+	relationship 40a07fd0-87fa-44c1-9292-5beb6ac4c49e
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_membre\u0027.date_naissance
+		toColumn: LocalDateTable_41308940-2119-44fb-931a-10276e9f48fd.Date
+
+	relationship 9b222f9f-566c-4f1d-bfb0-abf6f238a9aa
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_membre\u0027.date_adhesion
+		toColumn: LocalDateTable_85996ee3-f096-4e4f-a74a-f3453ec565e5.Date
+
+	relationship a0121d9e-0569-452b-9f60-eabf2212cfe7
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_membre\u0027.updated_at
+		toColumn: LocalDateTable_7aa766dd-47c3-479c-8e94-3c464df2fbd3.Date
+
+	relationship 0db32774-26d4-4957-8a12-c2f990e45d31
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_role\u0027.updated_at
+		toColumn: LocalDateTable_6dade6c6-cf5d-4333-a39e-349a562ff807.Date
+
+	relationship eaf180cf-8ced-463f-a89d-19bf329a7b74
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_saison\u0027.date_debut
+		toColumn: LocalDateTable_239ada7f-5bc8-4660-b2ae-b2b8260a3587.Date
+
+	relationship 533361e1-d314-4d49-952e-5bf854f57a5b
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_saison\u0027.date_fin
+		toColumn: LocalDateTable_43aea3c6-af08-43bd-a5b0-c56566e4ceb6.Date
+
+	relationship ac55a99b-e5f6-444c-8e6d-635885b8604c
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_site\u0027.updated_at
+		toColumn: LocalDateTable_86fb3bb1-8e3f-43af-9c37-ea8d45ee5056.Date
+
+	relationship 7c8fe850-58c1-4d10-8ef5-d1747931f817
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_sondage\u0027.date_creation
+		toColumn: LocalDateTable_6c38c5ed-ef83-4fd0-b458-7cb5afed82b4.Date
+
+	relationship 1526be0b-65ec-4111-89d2-55438e7b6681
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_sondage\u0027.date_cloture
+		toColumn: LocalDateTable_dba79523-a4bd-4aa3-a535-6e81b38371c6.Date
+
+	relationship b35f2ade-50ee-4a51-991b-d709ee43b4ad
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_sondage\u0027.updated_at
+		toColumn: LocalDateTable_77970416-a1b1-4c8f-bfaf-501607c44c7a.Date
+
+	relationship c4a6fa23-0718-4804-b711-9d81e98faeae
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_waypoint\u0027.updated_at
+		toColumn: LocalDateTable_3a62bdd4-1b5e-4219-9daa-197a0fb41f99.Date
+
+	relationship 190105d0-b466-44cd-9cd9-187248f1cca3
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_adhesion\u0027.updated_at
+		toColumn: LocalDateTable_aadf16f5-c4a5-4592-b2ab-47af69903e80.Date
+
+	relationship 73334135-e315-46d9-bba6-7a8cea4cbeed
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_co_instructeur\u0027.updated_at
+		toColumn: LocalDateTable_48b49282-4d73-4c6e-883a-ca13deec6330.Date
+
+	relationship 66084e25-2bec-4a05-a834-104c4c90da06
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_covoiturage\u0027.updated_at
+		toColumn: LocalDateTable_f78caa59-a4b3-424e-adc0-9519bda3400c.Date
+
+	relationship 29408f1b-907b-45fe-b7d1-f526cd00f6e6
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_mouvement_equipement\u0027.updated_at
+		toColumn: LocalDateTable_70d27d22-491a-4f86-92d6-3e650ac119bd.Date
+
+	relationship 9b6478c0-7f0f-44f7-8333-c17abfee5983
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_participation\u0027.updated_at
+		toColumn: LocalDateTable_a24afff4-2cb6-456f-930b-d51353c9dc6c.Date
+
+	relationship 9a1192f1-522e-408a-ac2b-6ea99c782d8b
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_participation_historique\u0027.updated_at
+		toColumn: LocalDateTable_a255eeb4-d14c-4df5-9760-04e7c65a3d60.Date
+
+	relationship 128a15e2-ae56-4dc6-849c-e5845d64d799
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_passager_covoiturage\u0027.updated_at
+		toColumn: LocalDateTable_9e23c82b-e7bd-4b84-a8d2-cc05981d1a7a.Date
+
+	relationship 9aaa8845-e215-46bf-a874-166281ab43df
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public fait_vote\u0027.updated_at
+		toColumn: LocalDateTable_e2a756f4-8c90-4aa5-a3d1-9006d3ddba53.Date
+
+	relationship AutoDetected_8b81ed29-2241-415f-84e6-2f9042c0f4fd
+		fromColumn: \u0027public calendrier\u0027.saison_id
+		toColumn: \u0027public dim_saison\u0027.saison_id
+
+	relationship AutoDetected_f6a03665-d2ff-4e30-959c-5eeff0c9c455
+		fromColumn: \u0027public dim_role\u0027.membre_id
+		toColumn: \u0027public dim_membre\u0027.membre_id
+
+	relationship AutoDetected_81ac4be0-5f35-40d7-92d6-c9aa10b36020
+		fromColumn: \u0027public fait_adhesion\u0027.membre_id
+		toColumn: \u0027public dim_membre\u0027.membre_id
+
+	relationship AutoDetected_9bbb323e-279f-4b70-8fe7-c15fb7ac65ec
+		fromColumn: \u0027public fait_co_instructeur\u0027.membre_id
+		toColumn: \u0027public dim_membre\u0027.membre_id
+
+	relationship AutoDetected_3dcdb667-336f-48b8-9b20-f9dcd389d0ea
+		fromColumn: \u0027public fait_participation\u0027.membre_id
+		toColumn: \u0027public dim_membre\u0027.membre_id
+
+	relationship AutoDetected_35b1d715-5552-4022-834f-6aef01a21dea
+		crossFilteringBehavior: bothDirections
+		fromCardinality: one
+		fromColumn: \u0027public fait_vote\u0027.membre_id
+		toColumn: \u0027public dim_membre\u0027.membre_id
+
+	relationship AutoDetected_0dbceae4-706d-4483-94d6-034fdec6818b
+		fromColumn: \u0027public fait_participation\u0027.site_id
+		toColumn: \u0027public dim_site\u0027.site_id
+
+	relationship AutoDetected_bae3b921-8e53-4219-84c0-5b50dc2c6e12
+		fromColumn: \u0027public fait_vote\u0027.sondage_id
+		toColumn: \u0027public dim_sondage\u0027.sondage_id
+
+	relationship b6211fa1-795c-9a73-fd81-f43c39e1052c
+		fromColumn: \u0027public fait_participation\u0027.bateau_id
+		toColumn: \u0027public boats\u0027.id
+
+	relationship 5ceff44f-3734-e099-e09f-d15e2d43238b
+		fromColumn: \u0027public dim_membre\u0027.apnea_level_id
+		toColumn: \u0027public apnea_levels\u0027.id
+
+	relationship 20097572-6de4-89fe-86a1-5c0711aea777
+		fromColumn: \u0027public fait_co_instructeur\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship 0c3c82eb-c89c-39a4-0c4c-148f87c2ebb1
+		isActive: false
+		fromColumn: \u0027public fait_adhesion\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship 444022a3-2582-c9f0-4faa-f5b25f6edc2b
+		fromColumn: \u0027public fait_participation\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship 5a6ddd99-b8e6-45b6-8630-37c2491bf7a8
+		isActive: false
+		fromColumn: \u0027public fait_vote\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship a17db492-4fe8-fd23-dce4-5720f968e5c6
+		fromColumn: \u0027public fait_participation_historique\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship 75988eb9-b97e-19b4-17f1-3ddbb3fb4711
+		fromColumn: \u0027public fait_participation_historique\u0027.membre_id
+		toColumn: \u0027public dim_membre\u0027.membre_id
+
+	relationship 6deab19a-e8b9-e1b8-f5d2-7f5924c753e2
+		fromColumn: \u0027public fait_mouvement_equipement\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship 465fca66-e8f1-555e-6726-f7e6b7a63057
+		fromColumn: \u0027public fait_passager_covoiturage\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship 75543006-bdff-a8c1-727e-3ffa38499e33
+		fromColumn: \u0027public fait_covoiturage\u0027.date_id
+		toColumn: \u0027public calendrier\u0027.date_id
+
+	relationship f3887c5a-9163-bdf3-89e7-8b086e696df6
+		fromColumn: \u0027public dim_waypoint\u0027.site_id
+		toColumn: \u0027public dim_site\u0027.site_id
+
+	relationship e365776a-8b5b-4273-402c-7ea2ae2aa0f9
+		fromColumn: \u0027public fait_mouvement_equipement\u0027.equipement_id
+		toColumn: \u0027public dim_equipement\u0027.inventory_id
+
+	relationship 85c7223e-84fe-491f-9d81-3d2361fab723
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_membre\u0027.created_at
+		toColumn: LocalDateTable_1fd9a31e-83ec-497b-bf8a-119058e7b51c.Date
+
+	relationship AutoDetected_9bb8ad87-c7ad-46fa-9149-94944a8bc1ca
+		fromColumn: \u0027public fait_adhesion\u0027.saison_id
+		toColumn: \u0027public dim_saison\u0027.saison_id
+
+	relationship AutoDetected_b1c104ab-40d7-4f8b-bd9c-68ad5a6e908a
+		fromColumn: \u0027public dim_options_sondage\u0027.sondage_id
+		toColumn: \u0027public dim_sondage\u0027.sondage_id
+
+	relationship AutoDetected_36305dbe-a55c-4a9c-8d19-d22eed756db4
+		isActive: false
+		fromColumn: \u0027public fait_vote\u0027.option_label
+		toColumn: \u0027public dim_options_sondage\u0027.option_label
+
+	relationship d520e0ba-b026-4161-9e67-66da6c0b36a6
+		joinOnDateBehavior: datePartOnly
+		fromColumn: \u0027public dim_compte\u0027.created_at
+		toColumn: LocalDateTable_01db7999-7a7f-419c-ba12-c17ffae9b98b.Date
+
+	cultureInfo fr-FR
+
+	annotation __PBI_TimeIntelligenceEnabled = 1
+
+	annotation PBI_QueryOrder = [\u0022public apnea_levels\u0022,\u0022public boats\u0022,\u0022public calendrier\u0022,\u0022public dim_equipement\u0022,\u0022public dim_membre\u0022,\u0022public dim_role\u0022,\u0022public dim_saison\u0022,\u0022public dim_site\u0022,\u0022public dim_sondage\u0022,\u0022public dim_waypoint\u0022,\u0022public fait_adhesion\u0022,\u0022public fait_co_instructeur\u0022,\u0022public fait_covoiturage\u0022,\u0022public fait_mouvement_equipement\u0022,\u0022public fait_participation\u0022,\u0022public fait_participation_historique\u0022,\u0022public fait_passager_covoiturage\u0022,\u0022public fait_vote\u0022,\u0022public dim_options_sondage\u0022,\u0022public dim_compte\u0022]
+
+	annotation PBI_ProTooling = [\u0022MCP-PBIModeling\u0022]
+
+
