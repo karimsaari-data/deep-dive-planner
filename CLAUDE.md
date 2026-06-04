@@ -14,7 +14,7 @@ Club management application for **Team Oxygen**, an eco-friendly diving and free
 - **Maps:** Leaflet
 - **Charts:** Recharts
 - **PDF:** jsPDF + html2canvas
-- **Deployment:** Netlify
+- **Deployment:** Vercel
 
 ## Commands
 
@@ -108,4 +108,4 @@ VITE_SUPABASE_URL           # Supabase API URL
 - Project was scaffolded with **Lovable AI** -- `lovable-tagger` Vite plugin is present and should remain.
 - The `types.ts` file is auto-generated and nearly 1000 lines. Never edit it manually.
 - Edge functions use Deno imports (URL-based), not npm.
-- Netlify handles SPA routing via `[[redirects]]` in `netlify.toml`.
+- Déploiement via **Vercel** (pas Netlify) — chaque merge sur `main` déclenche un déploiement automatique.

@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 const editOutingSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
   description: z.string().max(500).optional(),
-  date: z.date({ required_error: "La date est requise" }),
+  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
   waterEntryTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
@@ -213,6 +213,7 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                             field.onChange(date);
                             setIsDateOpen(false);
                           }}
+                          disabled={(date) => date > new Date("2030-12-31")}
                           initialFocus
                           className="pointer-events-auto"
                         />
