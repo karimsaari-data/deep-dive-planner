@@ -18,6 +18,7 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 import { useProfileDirectory } from "@/hooks/useProfileDirectory";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatFirstName, formatLastName } from "@/lib/formatName";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
@@ -115,8 +116,8 @@ const Profile = () => {
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          first_name: data.first_name,
-          last_name: data.last_name,
+          first_name: formatFirstName(data.first_name),
+          last_name: formatLastName(data.last_name),
           phone: normalizedPhone,
         })
         .eq("id", user.id);
