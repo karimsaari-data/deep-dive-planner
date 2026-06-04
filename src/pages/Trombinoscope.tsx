@@ -60,18 +60,18 @@ const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
     <Dialog open={!!member} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              {member.avatar_url && <AvatarImage src={member.avatar_url} />}
-              <AvatarFallback className={`${getAvatarColor(member.first_name + member.last_name)} text-foreground font-semibold`}>
+          <div className="flex flex-col items-center gap-3 pt-2">
+            <Avatar className="h-28 w-28">
+              {member.avatar_url && <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />}
+              <AvatarFallback className={`${getAvatarColor(member.first_name + member.last_name)} text-foreground font-bold text-3xl`}>
                 {getInitials(member.first_name, member.last_name)}
               </AvatarFallback>
             </Avatar>
-            <div className="text-left leading-tight">
+            <DialogTitle className="text-center leading-tight">
               <p className="font-semibold">{formatFirstName(member.first_name)}</p>
               <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
-            </div>
-          </DialogTitle>
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
         <div className="flex gap-3 pt-2 justify-center">
