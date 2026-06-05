@@ -487,36 +487,33 @@ export const useCreateOuting = () => {
       dive_mode?: "boat" | "shore";
       boat_id?: string;
     }) => {
-      // Extract carpool options before creating the outing
-      const { carpool_option, carpool_seats, ...outingData } = outing;
-      
-      // Create the outing
-      const { data: newOuting, error } = await supabase
-        .from("outings")
-        .insert(outingData)
-        .select("id")
-        .single();
-      
+      if (!outing.organizer_id) throw new Error("Utilisateur non connecté");
+
+      const { data: outingId, error } = await supabase.rpc(
+        "create_outing_with_organizer",
+        {
+          p_title: outing.title,
+          p_description: outing.description ?? null,
+          p_date_time: outing.date_time,
+          p_end_date: outing.end_date ?? null,
+          p_water_entry_time: outing.water_entry_time ?? null,
+          p_water_exit_time: outing.water_exit_time ?? null,
+          p_location: outing.location,
+          p_location_id: outing.location_id ?? null,
+          p_outing_type: outing.outing_type,
+          p_max_participants: outing.max_participants,
+          p_organizer_id: outing.organizer_id,
+          p_is_staff_only: outing.is_staff_only ?? false,
+          p_carpool_option: outing.carpool_option ?? "none",
+          p_carpool_seats: outing.carpool_seats ?? 1,
+          p_dive_mode: outing.dive_mode ?? null,
+          p_boat_id: outing.boat_id ?? null,
+        }
+      );
+
       if (error) throw error;
 
-      // Auto-register the organizer with their carpool preference
-      if (outing.organizer_id && newOuting) {
-        const { error: reservationError } = await supabase
-          .from("reservations")
-          .insert({
-            outing_id: newOuting.id,
-            user_id: outing.organizer_id,
-            status: "confirmé",
-            carpool_option: carpool_option || "none",
-            carpool_seats: carpool_option === "driver" ? (carpool_seats || 1) : 0,
-          });
-
-        if (reservationError) {
-          console.error("Error auto-registering organizer:", reservationError);
-        }
-      }
-
-      return newOuting;
+      return { id: outingId as string };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
