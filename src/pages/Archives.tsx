@@ -529,7 +529,14 @@ const Archives = () => {
                                       <Badge variant="outline" className="text-xs">Sortie historique</Badge>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                      {outing.historicalMembers.map((member: any) => {
+                                      {[...outing.historicalMembers].sort((a: any, b: any) => {
+                                        const rankOf = (m: any) => {
+                                          if (outing.organizerMemberId && m.id === outing.organizerMemberId) return 0;
+                                          if (outing.co_instructors?.some((ci: any) => ci.profile?.first_name === m.first_name && ci.profile?.last_name === m.last_name)) return 1;
+                                          return 2;
+                                        };
+                                        return rankOf(a) - rankOf(b);
+                                      }).map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
                                         const isOrganizer = outing.organizerMemberId && member.id === outing.organizerMemberId;
                                         const isCoInstructor = outing.co_instructors?.some(
@@ -551,8 +558,8 @@ const Archives = () => {
                                         } else if (isCoInstructor) {
                                           badgeText = "Co-encadrant";
                                           badgeVariant = "outline";
-                                          cardStyle = "border-cyan-500/50 bg-cyan-500/10 ring-1 ring-cyan-400/30";
-                                          avatarStyle = "bg-cyan-500/20 text-cyan-700";
+                                          cardStyle = "border-primary bg-primary/15 ring-2 ring-primary/30";
+                                          avatarStyle = "bg-primary text-primary-foreground";
                                         }
                                         
                                         return (
