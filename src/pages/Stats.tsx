@@ -136,7 +136,7 @@ const Stats = () => {
 
   // Fetch organizer monthly stats
   const { data: organizerMonthly, isLoading: organizersLoading } = useQuery({
-    queryKey: ["organizer-monthly", selectedYear],
+    queryKey: ["organizer-monthly-rpc", selectedYear],
     queryFn: async () => {
       // Fetch all encadrants (to include those with 0 outings)
       const { data: profiles, error: profilesError } = await supabase
