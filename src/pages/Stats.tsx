@@ -49,7 +49,7 @@ const Stats = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // Generate available years from 2025 to current year + 1
   const currentYear = new Date().getFullYear();
@@ -159,7 +159,7 @@ const Stats = () => {
       // Use SQL RPC for reliable stats (organizer + co-instructor, regular + historical)
       const { data: rows, error: rpcError } = await supabase
         .rpc("get_encadrant_monthly_stats", { p_year: selectedYear });
-      if (rpcError) throw rpcError;
+if (rpcError) throw rpcError;
 
       (rows ?? []).forEach((row: { profile_id: string; encadrant_name: string; month_index: number; outing_count: number }) => {
         if (!organizerMap.has(row.profile_id)) {
