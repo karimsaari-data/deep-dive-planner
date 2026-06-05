@@ -1,6 +1,6 @@
 ﻿# Schéma base de données — Deep Dive Planner
 
-Généré le 2026-06-04 depuis Supabase (projet hyoudezyqbivfthcgpma)
+Généré le 2026-06-04 — mis à jour le 2026-06-05 depuis Supabase (projet hyoudezyqbivfthcgpma)
 
 ## Architecture
 
@@ -11,6 +11,34 @@ Le modèle suit une architecture **DWH (Data Warehouse)** avec :
 - **Tables référentiel** : données de référence stables (apnea_levels, etc.)
 
 Les tables DWH sont synchronisées via des **triggers PostgreSQL** depuis les tables sources.
+
+### Liste complète des triggers DWH
+
+| Table source | Trigger(s) DWH |
+|--------------|----------------|
+| `carpool_passengers` | `trg_dwh_carpool_passengers` |
+| `carpools` | `trg_dwh_carpools` |
+| `club_members_directory` | `trg_dwh_cmd` |
+| `equipment_history` | `trg_dwh_equipment_history` |
+| `equipment_inventory` | `trg_dwh_equipment_inventory` |
+| `historical_outing_participants` | `trg_dwh_hist_participants` |
+| `locations` | `trg_dwh_locations` |
+| `membership_yearly_status` | `trg_dwh_membership`, `trg_dwh_mys`, `trg_dwh_mys_membre` |
+| `outing_co_instructors` | `trg_dwh_co_instructeurs` |
+| `outings` | `trg_dwh_outings_participation` |
+| `polls` | `trg_dwh_options_sondage_polls`, `trg_dwh_polls` |
+| `profiles` | `trg_dwh_profiles` |
+| `reservations` | `trg_dwh_reservations` |
+| `site_waypoints` | `trg_dwh_waypoints` |
+| `user_roles` | `trg_dwh_user_roles` |
+| `votes` | `trg_dwh_options_sondage_votes`, `trg_dwh_votes` |
+
+> ⚠️ Certains triggers sont cassés (colonnes manquantes dans les tables DWH cibles). Si un INSERT/UPDATE échoue avec `column "xxx" of relation "dim_yyy" does not exist`, désactiver le trigger le temps de l'opération :
+> ```sql
+> ALTER TABLE <table> DISABLE TRIGGER <trigger>;
+> -- opération
+> ALTER TABLE <table> ENABLE TRIGGER <trigger>;
+> ```
 
 ---
 
