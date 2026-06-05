@@ -139,3 +139,20 @@ git push origin fix/mon-correctif
 ### Déploiement
 - Chaque merge sur main déclenche un déploiement automatique sur **Vercel**
 - Tester sur la preview Vercel de la PR avant de merger si possible
+
+## Triggers DWH (datawarehouse externe)
+
+Des triggers synchronisent certaines tables vers un DWH PowerBI. Leurs fonctions sont parfois **cassées** (colonnes manquantes). Si un INSERT/UPDATE échoue avec une erreur `column "xxx" of relation "dim_yyy" does not exist`, désactiver le trigger le temps de l'opération :
+
+```sql
+ALTER TABLE <table> DISABLE TRIGGER <trigger>;
+-- opération ici
+ALTER TABLE <table> ENABLE TRIGGER <trigger>;
+```
+
+### Triggers DWH connus par table
+
+| Table | Trigger DWH |
+|-------|-------------|
+| `reservations` | `trg_dwh_reservations` |
+| `locations` | `trg_dwh_locations` |
