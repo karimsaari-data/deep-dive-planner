@@ -151,25 +151,22 @@ const Stats = () => {
 
       if (error) throw error;
 
-      // Filter regular outings with at least 2 present participants
-      // Historical outings (is_archived) validated by historical_outing_participants count instead
+      // Filter outings with at least 2 participants (reservations or historical_outing_participants)
       const validOutings: any[] = [];
       for (const outing of outings || []) {
-        if (outing.is_archived) {
-          const { count } = await supabase
-            .from("historical_outing_participants")
-            .select("*", { count: "exact", head: true })
-            .eq("outing_id", outing.id);
-          if ((count || 0) >= 2) validOutings.push(outing);
-        } else {
-          const { count } = await supabase
+        const [{ count: resCount }, { count: histCount }] = await Promise.all([
+          supabase
             .from("reservations")
             .select("*", { count: "exact", head: true })
             .eq("outing_id", outing.id)
             .eq("status", "confirmé")
-            .eq("is_present", true);
-          if ((count || 0) >= 2) validOutings.push(outing);
-        }
+            .eq("is_present", true),
+          supabase
+            .from("historical_outing_participants")
+            .select("*", { count: "exact", head: true })
+            .eq("outing_id", outing.id),
+        ]);
+        if ((resCount || 0) + (histCount || 0) >= 2) validOutings.push(outing);
       }
 
       // Fetch co-instructors for all valid outings
