@@ -150,11 +150,23 @@ ALTER TABLE <table> DISABLE TRIGGER <trigger>;
 ALTER TABLE <table> ENABLE TRIGGER <trigger>;
 ```
 
-### Triggers DWH connus par table
+### Triggers DWH — liste complète
 
-| Table | Trigger DWH | Table DWH cible |
-|-------|-------------|-----------------|
-| `reservations` | `trg_dwh_reservations` | `fait_participation` |
-| `locations` | `trg_dwh_locations` | `dim_site` |
-| `outing_co_instructors` | `trg_dwh_co_instructeurs` | `fait_co_instructeur` |
-| `membership_yearly_status` | `trg_dwh_membership` | `fait_adhesion` |
+| Table source | Trigger(s) DWH |
+|--------------|----------------|
+| `carpool_passengers` | `trg_dwh_carpool_passengers` |
+| `carpools` | `trg_dwh_carpools` |
+| `club_members_directory` | `trg_dwh_cmd` |
+| `equipment_history` | `trg_dwh_equipment_history` |
+| `equipment_inventory` | `trg_dwh_equipment_inventory` |
+| `historical_outing_participants` | `trg_dwh_hist_participants` |
+| `locations` | `trg_dwh_locations` |
+| `membership_yearly_status` | `trg_dwh_membership`, `trg_dwh_mys`, `trg_dwh_mys_membre` |
+| `outing_co_instructors` | `trg_dwh_co_instructeurs` |
+| `outings` | `trg_dwh_outings_participation` |
+| `polls` | `trg_dwh_options_sondage_polls`, `trg_dwh_polls` |
+| `profiles` | `trg_dwh_profiles` |
+| `reservations` | `trg_dwh_reservations` |
+| `site_waypoints` | `trg_dwh_waypoints` |
+| `user_roles` | `trg_dwh_user_roles` |
+| `votes` | `trg_dwh_options_sondage_votes`, `trg_dwh_votes` |
