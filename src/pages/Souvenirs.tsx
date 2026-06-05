@@ -21,57 +21,86 @@ const Souvenirs = () => {
     queryKey: ["past-outings-souvenirs", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const now = new Date().toISOString();
-      
-      // First get the user's past reservations where they were present
-      const { data: myReservations, error: resError } = await supabase
+
+      // 1. Sorties régulières : reservations is_present = true
+      const { data: myReservations } = await supabase
         .from("reservations")
         .select(`
           outing_id,
           outing:outings(
-            id,
-            title,
-            outing_type,
-            date_time,
-            location,
-            photos,
-            is_deleted,
+            id, title, outing_type, date_time, location, photos, is_deleted, is_archived,
             location_details:locations(name)
           )
         `)
         .eq("user_id", user.id)
         .eq("status", "confirmé")
         .eq("is_present", true);
-      
-      if (resError) throw resError;
-      
-      // Filter to past outings only
-      const pastOutingsData = myReservations
-        ?.filter(r => 
-          r.outing && 
-          !r.outing.is_deleted && 
-          new Date(r.outing.date_time) < new Date(now)
-        )
-        .map(r => r.outing) ?? [];
-      
-      // Fetch participants for each outing using SECURITY DEFINER function
+
+      const regularOutings = (myReservations ?? [])
+        .filter(r => r.outing && !r.outing.is_deleted && !r.outing.is_archived && new Date(r.outing.date_time) < new Date(now))
+        .map(r => ({ ...r.outing, isHistorical: false }));
+
+      // 2. Sorties historiques : historical_outing_participants via email -> club_members_directory
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", user.id)
+        .single();
+
+      let historicalOutings: any[] = [];
+      if (profile?.email) {
+        const { data: member } = await supabase
+          .from("club_members_directory")
+          .select("id")
+          .ilike("email", profile.email)
+          .maybeSingle();
+
+        if (member?.id) {
+          const { data: histParts } = await supabase
+            .from("historical_outing_participants")
+            .select(`
+              outing:outings(
+                id, title, outing_type, date_time, location, photos, is_deleted, is_archived,
+                location_details:locations(name)
+              )
+            `)
+            .eq("member_id", member.id);
+
+          historicalOutings = (histParts ?? [])
+            .filter(h => h.outing && !h.outing.is_deleted && h.outing.is_archived)
+            .map(h => ({ ...h.outing, isHistorical: true }));
+        }
+      }
+
+      // 3. Merge, dédupliquer, enrichir avec participants
+      const allOutings = [...regularOutings, ...historicalOutings]
+        .filter((o, i, arr) => arr.findIndex(x => x.id === o.id) === i);
+
       const outingsWithParticipants = await Promise.all(
-        pastOutingsData.map(async (outing: any) => {
-          const { data: participants } = await supabase
-            .rpc('get_outing_participants', { outing_uuid: outing.id });
-          
-          return {
-            ...outing,
-            presentParticipants: (participants ?? []).filter(
-              (p: any) => p.status !== "en_attente"
-            ),
-          };
+        allOutings.map(async (outing: any) => {
+          if (outing.isHistorical) {
+            const { data: histMembers } = await supabase
+              .from("historical_outing_participants")
+              .select("member:club_members_directory(id, first_name, last_name)")
+              .eq("outing_id", outing.id);
+            return {
+              ...outing,
+              presentParticipants: (histMembers ?? []).map((h: any) => h.member).filter(Boolean),
+            };
+          } else {
+            const { data: participants } = await supabase
+              .rpc("get_outing_participants", { outing_uuid: outing.id });
+            return {
+              ...outing,
+              presentParticipants: (participants ?? []).filter((p: any) => p.status !== "en_attente"),
+            };
+          }
         })
       );
-      
-      // Sort by date descending
-      return outingsWithParticipants.sort((a, b) => 
+
+      return outingsWithParticipants.sort((a, b) =>
         new Date(b.date_time).getTime() - new Date(a.date_time).getTime()
       );
     },

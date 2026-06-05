@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X } from "lucide-react";
+import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X, Pencil } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +14,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import imageCompression from "browser-image-compression";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import EditHistoricalOutingDialog from "@/components/outings/EditHistoricalOutingDialog";
 
 const Archives = () => {
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ const Archives = () => {
   const [uploadingOutingId, setUploadingOutingId] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [reportDraft, setReportDraft] = useState<string>("");
+  const [editingHistoricalOuting, setEditingHistoricalOuting] = useState<any | null>(null);
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
 
   const currentYear = new Date().getFullYear();
@@ -174,12 +177,17 @@ const Archives = () => {
     
     try {
       for (const file of Array.from(files).slice(0, 4)) {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+        });
         const fileExt = file.name.split(".").pop();
         const fileName = `${outingId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("outings_gallery")
-          .upload(fileName, file);
+          .upload(fileName, compressed);
           
         if (uploadError) throw uploadError;
         
@@ -472,6 +480,16 @@ const Archives = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        {outing.isHistorical && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingHistoricalOuting(outing)}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
+                        )}
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="ocean" size="sm">
@@ -702,21 +720,30 @@ const Archives = () => {
                       </div>
                     </div>
 
+                    {/* Photo thumbnails */}
+                    {outing.photos && outing.photos.length > 0 && (
+                      <div className="flex gap-2 mb-3">
+                        {outing.photos.map((photo: string, idx: number) => (
+                          <div key={idx} className="h-16 w-24 rounded-md overflow-hidden flex-shrink-0 bg-muted">
+                            <img
+                              src={photo}
+                              alt={`Photo ${idx + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Quick stats */}
                     <div className="flex flex-wrap gap-4 text-sm">
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        {outing.isHistorical 
+                        {outing.isHistorical
                           ? `${outing.totalParticipantCount} présents`
                           : `${outing.presentParticipants.length}/${outing.confirmedParticipants.length} présents`
                         }
                       </span>
-                      {outing.photos && outing.photos.length > 0 && (
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                          <Image className="h-4 w-4" />
-                          {outing.photos.length} photo(s)
-                        </span>
-                      )}
                       {outing.session_report && (
                         <Badge variant="outline" className="text-xs">
                           <FileText className="h-3 w-3 mr-1" />
@@ -731,6 +758,14 @@ const Archives = () => {
           )}
         </div>
       </section>
+
+      {editingHistoricalOuting && (
+        <EditHistoricalOutingDialog
+          outing={editingHistoricalOuting}
+          open={!!editingHistoricalOuting}
+          onOpenChange={(open) => { if (!open) setEditingHistoricalOuting(null); }}
+        />
+      )}
     </Layout>
   );
 };

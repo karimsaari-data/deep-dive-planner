@@ -12,6 +12,8 @@ interface HistoricalOutingData {
   outing_type: OutingType;
   organizer_id: string | null; // Profile ID (for outings table) - null if encadrant has no app account
   organizer_member_id: string; // club_members_directory ID (for historical participants)
+  co_instructor_member_id?: string | null; // club_members_directory ID
+  co_instructor_profile_id?: string | null; // profiles ID if they have an app account
   participant_member_ids: string[]; // IDs from club_members_directory
 }
 
@@ -50,12 +52,23 @@ export const useCreateHistoricalOuting = () => {
       if (outingError) throw outingError;
       if (!newOuting) throw new Error("Failed to create outing");
 
-      // 2. Create historical_outing_participants entries
+      // 2. Insert co-instructor into outing_co_instructors if they have a profile
+      if (data.co_instructor_profile_id) {
+        const { error: coError } = await supabase
+          .from("outing_co_instructors")
+          .insert({ outing_id: newOuting.id, user_id: data.co_instructor_profile_id });
+        if (coError) console.error("Error adding co-instructor:", coError);
+      }
+
+      // 3. Create historical_outing_participants entries
       // These are linked to club_members_directory, NOT to profiles
-      // Always include the organizer as a participant
+      // Always include the organizer and co-instructor as participants
       const allParticipantIds = new Set(data.participant_member_ids);
       if (data.organizer_member_id) {
         allParticipantIds.add(data.organizer_member_id);
+      }
+      if (data.co_instructor_member_id) {
+        allParticipantIds.add(data.co_instructor_member_id);
       }
       
       if (allParticipantIds.size > 0) {

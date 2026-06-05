@@ -46,6 +46,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
+  const [coInstructorMemberId, setCoInstructorMemberId] = useState<string>("");
 
   // Fetch encadrants from membership_yearly_status joined with club_members_directory
   const { data: encadrants } = useQuery({
@@ -197,6 +198,14 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
     // Generate a title based on type and location
     const title = `${data.outing_type} - ${data.location}`;
 
+    let coInstructorProfileId: string | null = null;
+    if (coInstructorMemberId) {
+      const coEncadrant = encadrants?.find((e) => e.id === coInstructorMemberId);
+      if (coEncadrant?.email) {
+        coInstructorProfileId = emailToProfileIdMap.get(coEncadrant.email.toLowerCase()) ?? null;
+      }
+    }
+
     await createHistoricalOuting.mutateAsync({
       title,
       date_time: startDateTime.toISOString(),
@@ -204,7 +213,9 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
       location_id: data.location_id || undefined,
       outing_type: data.outing_type,
       organizer_id: organizerProfileId,
-      organizer_member_id: data.organizer_id, // club_members_directory ID
+      organizer_member_id: data.organizer_id,
+      co_instructor_member_id: coInstructorMemberId || null,
+      co_instructor_profile_id: coInstructorProfileId,
       participant_member_ids: Array.from(selectedMemberIds),
     });
 
@@ -212,6 +223,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
     form.reset();
     setSelectedMemberIds(new Set());
     setSearchQuery("");
+    setCoInstructorMemberId("");
     onOpenChange(false);
   };
 
@@ -371,6 +383,29 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
                 </FormItem>
               )}
             />
+
+            {/* Co-instructor */}
+            <div className="space-y-2">
+              <FormLabel>Co-encadrant (optionnel)</FormLabel>
+              <Select
+                value={coInstructorMemberId}
+                onValueChange={(val) => setCoInstructorMemberId(val === "none" ? "" : val)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun co-encadrant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucun</SelectItem>
+                  {encadrants
+                    ?.filter((e) => e.id !== form.watch("organizer_id"))
+                    .map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.first_name} {e.last_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Members selection section */}
             <div className="flex flex-col border rounded-lg overflow-hidden min-h-[200px] max-h-[40vh]">
