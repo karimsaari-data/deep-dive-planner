@@ -3726,14 +3726,6 @@
 	table \u0027public fait_co_instructeur\u0027
 		lineageTag: ef957a6a-f148-4a5d-ac34-147c7ad20cac
 
-		column co_instructeur_id
-			dataType: string
-			lineageTag: 999c3551-d6d7-4630-8090-a5fdc9e548a1
-			summarizeBy: none
-			sourceColumn: co_instructeur_id
-
-			annotation SummarizationSetBy = Automatic
-
 		column date_id
 			dataType: dateTime
 			formatString: Long Date
@@ -3758,15 +3750,6 @@
 			lineageTag: 239d5f3f-9b86-4481-b238-bda0b2e51888
 			summarizeBy: none
 			sourceColumn: membre_id
-
-			annotation SummarizationSetBy = Automatic
-
-		column nb_co_instructeurs
-			dataType: int64
-			formatString: 0
-			lineageTag: d9c4a626-06e4-42db-9612-89d7194464e1
-			summarizeBy: sum
-			sourceColumn: nb_co_instructeurs
 
 			annotation SummarizationSetBy = Automatic
 
