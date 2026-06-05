@@ -125,7 +125,7 @@ VITE_SUPABASE_URL           # Supabase API URL
 
 3. **Créer une PR** vers main avec une description claire de ce qui change et pourquoi
 
-4. **C'est le propriétaire du projet qui merge** — Claude ne merge jamais lui-même sur main
+4. **Claude merge directement** après avoir créé la PR — pas besoin d'intervention manuelle
 
 ### Commandes type
 ```bash
