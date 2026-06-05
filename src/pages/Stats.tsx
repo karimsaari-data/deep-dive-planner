@@ -143,7 +143,7 @@ const Stats = () => {
 
       const { data: outings, error } = await supabase
         .from("outings")
-        .select("id, organizer_id, date_time, title")
+        .select("id, organizer_id, date_time, title, is_archived")
         .gte("date_time", startOfYear)
         .lte("date_time", endOfYear)
         .lt("date_time", new Date().toISOString())
@@ -151,20 +151,35 @@ const Stats = () => {
 
       if (error) throw error;
 
-      // Filter outings with at least 2 present participants
+      // Filter regular outings with at least 2 present participants
+      // Historical outings (is_archived) validated by historical_outing_participants count instead
       const validOutings: any[] = [];
       for (const outing of outings || []) {
-        const { count } = await supabase
-          .from("reservations")
-          .select("*", { count: "exact", head: true })
-          .eq("outing_id", outing.id)
-          .eq("status", "confirmé")
-          .eq("is_present", true);
-
-        if ((count || 0) >= 2) {
-          validOutings.push(outing);
+        if (outing.is_archived) {
+          const { count } = await supabase
+            .from("historical_outing_participants")
+            .select("*", { count: "exact", head: true })
+            .eq("outing_id", outing.id);
+          if ((count || 0) >= 2) validOutings.push(outing);
+        } else {
+          const { count } = await supabase
+            .from("reservations")
+            .select("*", { count: "exact", head: true })
+            .eq("outing_id", outing.id)
+            .eq("status", "confirmé")
+            .eq("is_present", true);
+          if ((count || 0) >= 2) validOutings.push(outing);
         }
       }
+
+      // Fetch co-instructors for all valid outings
+      const validOutingIds = validOutings.map(o => o.id);
+      const { data: coInstructors } = validOutingIds.length > 0
+        ? await supabase
+            .from("outing_co_instructors")
+            .select("outing_id, user_id")
+            .in("outing_id", validOutingIds)
+        : { data: [] };
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -177,7 +192,7 @@ const Stats = () => {
 
       // Group by organizer and month
       const organizerMap = new Map<string, OrganizerMonthly>();
-      
+
       // Initialize all encadrants
       profiles?.forEach(p => {
         organizerMap.set(p.id, {
@@ -188,20 +203,29 @@ const Stats = () => {
         });
       });
 
-      validOutings.forEach((o: any) => {
-        const organizerId = o.organizer_id;
-        if (!organizerMap.has(organizerId)) {
-          organizerMap.set(organizerId, {
-            id: organizerId,
-            name: profileMap.get(organizerId) || "Inconnu",
+      const creditOuting = (profileId: string, dateTime: string) => {
+        if (!organizerMap.has(profileId)) {
+          organizerMap.set(profileId, {
+            id: profileId,
+            name: profileMap.get(profileId) || "Inconnu",
             months: Array(12).fill(0),
             total: 0
           });
         }
-        const organizer = organizerMap.get(organizerId)!;
-        const month = new Date(o.date_time).getMonth();
-        organizer.months[month]++;
-        organizer.total++;
+        const entry = organizerMap.get(profileId)!;
+        entry.months[new Date(dateTime).getMonth()]++;
+        entry.total++;
+      };
+
+      validOutings.forEach((o: any) => {
+        // Credit organizer
+        creditOuting(o.organizer_id, o.date_time);
+        // Credit co-instructor(s)
+        coInstructors?.filter(ci => ci.outing_id === o.id).forEach(ci => {
+          if (ci.user_id !== o.organizer_id) {
+            creditOuting(ci.user_id, o.date_time);
+          }
+        });
       });
 
       return Array.from(organizerMap.values()).sort((a, b) => b.total - a.total);
