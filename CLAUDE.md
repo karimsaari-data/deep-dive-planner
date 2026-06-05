@@ -152,7 +152,9 @@ ALTER TABLE <table> ENABLE TRIGGER <trigger>;
 
 ### Triggers DWH connus par table
 
-| Table | Trigger DWH |
-|-------|-------------|
-| `reservations` | `trg_dwh_reservations` |
-| `locations` | `trg_dwh_locations` |
+| Table | Trigger DWH | Table DWH cible |
+|-------|-------------|-----------------|
+| `reservations` | `trg_dwh_reservations` | `fait_participation` |
+| `locations` | `trg_dwh_locations` | `dim_site` |
+| `outing_co_instructors` | `trg_dwh_co_instructeurs` | `fait_co_instructeur` |
+| `membership_yearly_status` | `trg_dwh_membership` | `fait_adhesion` |
