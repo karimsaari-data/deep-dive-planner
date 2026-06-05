@@ -171,12 +171,14 @@ const Stats = () => {
 
       // Fetch co-instructors for all valid outings
       const validOutingIds = validOutings.map(o => o.id);
-      const { data: coInstructors } = validOutingIds.length > 0
-        ? await supabase
-            .from("outing_co_instructors")
-            .select("outing_id, user_id")
-            .in("outing_id", validOutingIds)
-        : { data: [] };
+      let coInstructors: { outing_id: string; user_id: string }[] = [];
+      if (validOutingIds.length > 0) {
+        const { data: coData } = await supabase
+          .from("outing_co_instructors")
+          .select("outing_id, user_id")
+          .in("outing_id", validOutingIds);
+        coInstructors = coData ?? [];
+      }
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -218,7 +220,7 @@ const Stats = () => {
         // Credit organizer
         creditOuting(o.organizer_id, o.date_time);
         // Credit co-instructor(s)
-        coInstructors?.filter(ci => ci.outing_id === o.id).forEach(ci => {
+        coInstructors.filter(ci => ci.outing_id === o.id).forEach(ci => {
           if (ci.user_id !== o.organizer_id) {
             creditOuting(ci.user_id, o.date_time);
           }
