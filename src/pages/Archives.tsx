@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X } from "lucide-react";
+import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X, Pencil } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import EditHistoricalOutingDialog from "@/components/outings/EditHistoricalOutingDialog";
 
 const Archives = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const Archives = () => {
   const [uploadingOutingId, setUploadingOutingId] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [reportDraft, setReportDraft] = useState<string>("");
+  const [editingHistoricalOuting, setEditingHistoricalOuting] = useState<any | null>(null);
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
 
   const currentYear = new Date().getFullYear();
@@ -472,6 +474,16 @@ const Archives = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        {outing.isHistorical && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingHistoricalOuting(outing)}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
+                        )}
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="ocean" size="sm">
@@ -731,6 +743,14 @@ const Archives = () => {
           )}
         </div>
       </section>
+
+      {editingHistoricalOuting && (
+        <EditHistoricalOutingDialog
+          outing={editingHistoricalOuting}
+          open={!!editingHistoricalOuting}
+          onOpenChange={(open) => { if (!open) setEditingHistoricalOuting(null); }}
+        />
+      )}
     </Layout>
   );
 };
