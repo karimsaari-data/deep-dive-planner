@@ -54,6 +54,7 @@ const Archives = () => {
           is_archived,
           organizer_member_id,
           organizer:profiles!outings_organizer_id_fkey(id, first_name, last_name),
+          co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
           location_details:locations(name),
           reservations(
             id,
@@ -475,6 +476,11 @@ const Archives = () => {
                           {outing.displayedOrganizer && (
                             <span className="ml-4">
                               Encadrant: {outing.displayedOrganizer.first_name} {outing.displayedOrganizer.last_name}
+                            </span>
+                          )}
+                          {outing.co_instructors?.length > 0 && (
+                            <span className="ml-2">
+                              · Co-encadrant: {outing.co_instructors[0].profile.first_name} {outing.co_instructors[0].profile.last_name}
                             </span>
                           )}
                         </div>
