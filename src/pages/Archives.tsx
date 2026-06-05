@@ -333,25 +333,33 @@ const Archives = () => {
       outing.location.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
     
-    // Apply encadrant filter
+    // Apply encadrant filter (organizer or co-instructor)
     if (selectedEncadrant !== "all") {
-      const organizerName = outing.displayedOrganizer 
+      const organizerName = outing.displayedOrganizer
         ? `${outing.displayedOrganizer.first_name} ${outing.displayedOrganizer.last_name}`
         : "";
-      if (organizerName !== selectedEncadrant) return false;
+      const isCoInstructor = outing.co_instructors?.some(
+        (ci: any) => ci.profile &&
+          `${ci.profile.first_name} ${ci.profile.last_name}` === selectedEncadrant
+      );
+      if (organizerName !== selectedEncadrant && !isCoInstructor) return false;
     }
     
     return true;
   }) ?? [];
 
-  // Extract unique encadrants from all outings (before filtering) for the filter dropdown
+  // Extract unique encadrants from all outings (organizers + co-instructors)
   const uniqueEncadrants = Array.from(
-    new Set(
-      pastOutings
+    new Set([
+      ...(pastOutings
         ?.filter(o => o.totalParticipantCount > 0 && o.displayedOrganizer)
         .map(o => `${o.displayedOrganizer.first_name} ${o.displayedOrganizer.last_name}`)
-        .filter(Boolean) ?? []
-    )
+        .filter(Boolean) ?? []),
+      ...(pastOutings
+        ?.flatMap(o => o.co_instructors ?? [])
+        .filter((ci: any) => ci.profile)
+        .map((ci: any) => `${ci.profile.first_name} ${ci.profile.last_name}`) ?? []),
+    ])
   ).sort();
 
   // For historical outings: all participants are considered present
