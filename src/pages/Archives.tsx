@@ -531,20 +531,28 @@ const Archives = () => {
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                       {outing.historicalMembers.map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
-                                        // Identify organizer and encadrants
                                         const isOrganizer = outing.organizerMemberId && member.id === outing.organizerMemberId;
-                                        
-                                        // Determine badge text and styles
+                                        const isCoInstructor = outing.co_instructors?.some(
+                                          (ci: any) => ci.profile &&
+                                            ci.profile.first_name === member.first_name &&
+                                            ci.profile.last_name === member.last_name
+                                        );
+
                                         let badgeText = "Présent";
                                         let badgeVariant: "default" | "secondary" | "outline" = "default";
                                         let cardStyle = "border-emerald-500/50 bg-emerald-500/10";
                                         let avatarStyle = "bg-primary/10 text-primary";
-                                        
+
                                         if (isOrganizer) {
                                           badgeText = "Organisateur";
                                           badgeVariant = "outline";
                                           cardStyle = "border-primary bg-primary/15 ring-2 ring-primary/30";
                                           avatarStyle = "bg-primary text-primary-foreground";
+                                        } else if (isCoInstructor) {
+                                          badgeText = "Co-encadrant";
+                                          badgeVariant = "outline";
+                                          cardStyle = "border-cyan-500/50 bg-cyan-500/10 ring-1 ring-cyan-400/30";
+                                          avatarStyle = "bg-cyan-500/20 text-cyan-700";
                                         }
                                         
                                         return (

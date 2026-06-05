@@ -57,7 +57,7 @@ export const useCreateHistoricalOuting = () => {
         const { error: coError } = await supabase
           .from("outing_co_instructors")
           .insert({ outing_id: newOuting.id, user_id: data.co_instructor_profile_id });
-        if (coError) console.error("Error adding co-instructor:", coError);
+        if (coError) throw coError;
       }
 
       // 3. Create historical_outing_participants entries

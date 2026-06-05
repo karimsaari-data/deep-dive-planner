@@ -186,11 +186,13 @@ const EditHistoricalOutingDialog = ({ outing, open, onOpenChange }: Props) => {
       }
 
       // 3. Update co-instructor in outing_co_instructors
-      await supabase.from("outing_co_instructors").delete().eq("outing_id", outing.id);
+      const { error: deleteCoError } = await supabase.from("outing_co_instructors").delete().eq("outing_id", outing.id);
+      if (deleteCoError) throw deleteCoError;
       if (coInstructorProfileId) {
-        await supabase
+        const { error: insertCoError } = await supabase
           .from("outing_co_instructors")
           .insert({ outing_id: outing.id, user_id: coInstructorProfileId });
+        if (insertCoError) throw insertCoError;
       }
     },
     onSuccess: () => {
