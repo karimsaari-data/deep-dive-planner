@@ -159,9 +159,11 @@ const Stats = () => {
       // Use SQL RPC for reliable stats (organizer + co-instructor, regular + historical)
       const { data: rows, error: rpcError } = await supabase
         .rpc("get_encadrant_monthly_stats", { p_year: selectedYear });
-if (rpcError) throw rpcError;
+      console.log("[STATS DEBUG]", { year: selectedYear, rows: JSON.stringify(rows), rpcError });
+      if (rpcError) throw rpcError;
 
       (rows ?? []).forEach((row: { profile_id: string; encadrant_name: string; month_index: number; outing_count: number }) => {
+        console.log("[STATS ROW]", JSON.stringify(row), "count:", Number(row.outing_count));
         if (!organizerMap.has(row.profile_id)) {
           organizerMap.set(row.profile_id, {
             id: row.profile_id,
