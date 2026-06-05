@@ -138,61 +138,15 @@ const Stats = () => {
   const { data: organizerMonthly, isLoading: organizersLoading } = useQuery({
     queryKey: ["organizer-monthly", selectedYear],
     queryFn: async () => {
-      const startOfYear = `${selectedYear}-01-01T00:00:00`;
-      const endOfYear = `${selectedYear}-12-31T23:59:59`;
-
-      const { data: outings, error } = await supabase
-        .from("outings")
-        .select("id, organizer_id, date_time, title, is_archived")
-        .gte("date_time", startOfYear)
-        .lte("date_time", endOfYear)
-        .lt("date_time", new Date().toISOString())
-        .not("organizer_id", "is", null);
-
-      if (error) throw error;
-
-      // Filter outings with at least 2 participants (reservations or historical_outing_participants)
-      const validOutings: any[] = [];
-      for (const outing of outings || []) {
-        const [{ count: resCount }, { count: histCount }] = await Promise.all([
-          supabase
-            .from("reservations")
-            .select("*", { count: "exact", head: true })
-            .eq("outing_id", outing.id)
-            .eq("status", "confirmé")
-            .eq("is_present", true),
-          supabase
-            .from("historical_outing_participants")
-            .select("*", { count: "exact", head: true })
-            .eq("outing_id", outing.id),
-        ]);
-        if ((resCount || 0) + (histCount || 0) >= 2) validOutings.push(outing);
-      }
-
-      // Fetch co-instructors for all valid outings
-      const validOutingIds = validOutings.map(o => o.id);
-      let coInstructors: { outing_id: string; user_id: string }[] = [];
-      if (validOutingIds.length > 0) {
-        const { data: coData } = await supabase
-          .from("outing_co_instructors")
-          .select("outing_id, user_id")
-          .in("outing_id", validOutingIds);
-        coInstructors = coData ?? [];
-      }
-
+      // Fetch all encadrants (to include those with 0 outings)
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
         .eq("member_status", "Encadrant");
-
       if (profilesError) throw profilesError;
 
-      const profileMap = new Map(profiles?.map(p => [p.id, formatFullName(p.first_name, p.last_name)]));
-
-      // Group by organizer and month
+      // Initialize map with all encadrants
       const organizerMap = new Map<string, OrganizerMonthly>();
-
-      // Initialize all encadrants
       profiles?.forEach(p => {
         organizerMap.set(p.id, {
           id: p.id,
@@ -202,29 +156,23 @@ const Stats = () => {
         });
       });
 
-      const creditOuting = (profileId: string, dateTime: string) => {
-        if (!organizerMap.has(profileId)) {
-          organizerMap.set(profileId, {
-            id: profileId,
-            name: profileMap.get(profileId) || "Inconnu",
+      // Use SQL RPC for reliable stats (organizer + co-instructor, regular + historical)
+      const { data: rows, error: rpcError } = await supabase
+        .rpc("get_encadrant_monthly_stats", { p_year: selectedYear });
+      if (rpcError) throw rpcError;
+
+      (rows ?? []).forEach((row: { profile_id: string; encadrant_name: string; month_index: number; outing_count: number }) => {
+        if (!organizerMap.has(row.profile_id)) {
+          organizerMap.set(row.profile_id, {
+            id: row.profile_id,
+            name: row.encadrant_name,
             months: Array(12).fill(0),
             total: 0
           });
         }
-        const entry = organizerMap.get(profileId)!;
-        entry.months[new Date(dateTime).getMonth()]++;
-        entry.total++;
-      };
-
-      validOutings.forEach((o: any) => {
-        // Credit organizer
-        creditOuting(o.organizer_id, o.date_time);
-        // Credit co-instructor(s)
-        coInstructors.filter(ci => ci.outing_id === o.id).forEach(ci => {
-          if (ci.user_id !== o.organizer_id) {
-            creditOuting(ci.user_id, o.date_time);
-          }
-        });
+        const entry = organizerMap.get(row.profile_id)!;
+        entry.months[row.month_index] += Number(row.outing_count);
+        entry.total += Number(row.outing_count);
       });
 
       return Array.from(organizerMap.values()).sort((a, b) => b.total - a.total);
