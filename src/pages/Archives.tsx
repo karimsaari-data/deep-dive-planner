@@ -714,21 +714,30 @@ const Archives = () => {
                       </div>
                     </div>
 
+                    {/* Photo thumbnails */}
+                    {outing.photos && outing.photos.length > 0 && (
+                      <div className="flex gap-2 mb-3">
+                        {outing.photos.map((photo: string, idx: number) => (
+                          <div key={idx} className="h-16 w-24 rounded-md overflow-hidden flex-shrink-0 bg-muted">
+                            <img
+                              src={photo}
+                              alt={`Photo ${idx + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Quick stats */}
                     <div className="flex flex-wrap gap-4 text-sm">
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        {outing.isHistorical 
+                        {outing.isHistorical
                           ? `${outing.totalParticipantCount} présents`
                           : `${outing.presentParticipants.length}/${outing.confirmedParticipants.length} présents`
                         }
                       </span>
-                      {outing.photos && outing.photos.length > 0 && (
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                          <Image className="h-4 w-4" />
-                          {outing.photos.length} photo(s)
-                        </span>
-                      )}
                       {outing.session_report && (
                         <Badge variant="outline" className="text-xs">
                           <FileText className="h-3 w-3 mr-1" />
