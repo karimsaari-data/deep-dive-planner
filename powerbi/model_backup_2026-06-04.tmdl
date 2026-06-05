@@ -436,12 +436,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: b42f08cd-9b89-49bc-a974-fdefc7781a57
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -1209,12 +1209,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 63d6f8a6-2899-434e-9032-78505782fc02
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -1672,12 +1672,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 5f917d3b-d436-470d-9504-8a5ff036a604
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -2119,12 +2119,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 014b13db-1cec-47d1-9614-75590ba107cf
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -2649,12 +2649,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 7ddb650b-fc54-4a56-8534-badb8572eff6
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -2877,12 +2877,12 @@
 
 			annotation UnderlyingDateTimeDataType = Date
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 346e19c5-f648-4576-aa11-e9486ac9630c
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -3305,12 +3305,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 47211604-1d28-41f4-9fdf-8ff72ea8c17e
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -3563,12 +3563,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 49192ece-5061-4e59-929d-67fb826f34cd
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -3753,12 +3753,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 32e65d9f-f8b3-4c92-aa09-6510d2e85795
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -3890,7 +3890,7 @@
 
 		partition LocalDateTable_48b49282-4d73-4c6e-883a-ca13deec6330 = calculated
 			mode: import
-			source = Calendar(Date(Year(MIN(\u0027public fait_co_instructeur\u0027[updated_at])), 1, 1), Date(Year(MAX(\u0027public fait_co_instructeur\u0027[updated_at])), 12, 31))
+			source = Calendar(Date(Year(MIN(\u0027public fait_co_instructeur\u0027[created_at])), 1, 1), Date(Year(MAX(\u0027public fait_co_instructeur\u0027[created_at])), 12, 31))
 
 		annotation __PBI_LocalDateTable = true
 
@@ -3969,12 +3969,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 23e03d46-9f02-41de-9169-e949e80135a0
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -4224,12 +4224,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 588bccd8-4065-4543-8a54-773ec260d511
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -4511,12 +4511,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 5e38bd89-0800-478c-a060-fd010e8fb2ca
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -4733,12 +4733,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 916a324a-5a96-4760-837c-80cb0efb7521
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -4931,12 +4931,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: 3cb935cb-55a7-4807-8382-04a43ae34944
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -5129,12 +5129,12 @@
 
 			annotation SummarizationSetBy = Automatic
 
-		column updated_at
+		column created_at
 			dataType: dateTime
 			formatString: General Date
 			lineageTag: a9a53099-020d-41a9-91f8-af1ea0a7070b
 			summarizeBy: none
-			sourceColumn: updated_at
+			sourceColumn: created_at
 
 			variation Variation
 				isDefault
@@ -5859,7 +5859,7 @@
 
 	relationship 73334135-e315-46d9-bba6-7a8cea4cbeed
 		joinOnDateBehavior: datePartOnly
-		fromColumn: \u0027public fait_co_instructeur\u0027.updated_at
+		fromColumn: \u0027public fait_co_instructeur\u0027.created_at
 		toColumn: LocalDateTable_48b49282-4d73-4c6e-883a-ca13deec6330.Date
 
 	relationship 66084e25-2bec-4a05-a834-104c4c90da06
