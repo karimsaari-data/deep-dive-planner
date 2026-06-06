@@ -597,7 +597,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
           <TabsTrigger value="demographics">Démographie</TabsTrigger>
           <TabsTrigger value="members">Participation</TabsTrigger>
