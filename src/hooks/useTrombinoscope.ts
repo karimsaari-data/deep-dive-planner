@@ -24,12 +24,13 @@ export interface FishLevel {
 }
 
 export const FISH_LEVELS: FishLevel[] = [
-  { name: "Inactif",   min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",   label: "text-gray-500",   bg: "bg-gray-100"   },
-  { name: "Girelle",   min: 1,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",   label: "text-cyan-600",   bg: "bg-cyan-50"    },
-  { name: "Rouget",    min: 4,  ring: "ring-orange-400",  shadow: "shadow-orange-400/40", label: "text-orange-600", bg: "bg-orange-50"  },
-  { name: "Dorade",    min: 9,  ring: "ring-yellow-400",  shadow: "shadow-yellow-400/40", label: "text-yellow-700", bg: "bg-yellow-50"  },
-  { name: "Barracuda", min: 16, ring: "ring-violet-500",  shadow: "shadow-violet-500/40", label: "text-violet-700", bg: "bg-violet-50"  },
-  { name: "Mérou",     min: 25, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",  label: "text-amber-700",  bg: "bg-amber-50"   },
+  { name: "Inactif",    min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",   label: "text-gray-500",   bg: "bg-gray-100"   },
+  { name: "Castagnole", min: 1,  ring: "ring-slate-400",   shadow: "shadow-slate-400/40",  label: "text-slate-600",  bg: "bg-slate-100"  },
+  { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",   label: "text-cyan-600",   bg: "bg-cyan-50"    },
+  { name: "Rouget",     min: 8,  ring: "ring-orange-400",  shadow: "shadow-orange-400/40", label: "text-orange-600", bg: "bg-orange-50"  },
+  { name: "Dorade",     min: 13, ring: "ring-yellow-400",  shadow: "shadow-yellow-400/40", label: "text-yellow-700", bg: "bg-yellow-50"  },
+  { name: "Barracuda",  min: 20, ring: "ring-violet-500",  shadow: "shadow-violet-500/40", label: "text-violet-700", bg: "bg-violet-50"  },
+  { name: "Mérou",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",  label: "text-amber-700",  bg: "bg-amber-50"   },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
