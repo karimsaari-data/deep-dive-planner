@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X } from "lucide-react";
 import Layout from "@/components/layout/Layout";
+import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -472,6 +473,9 @@ const Archives = () => {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        {!outing.isHistorical && (isOrganizer || isAdmin) && (
+                          <EditOutingDialog outing={outing} />
+                        )}
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button variant="ocean" size="sm">
@@ -703,10 +707,10 @@ const Archives = () => {
                     </div>
 
                     {/* Quick stats */}
-                    <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex flex-wrap gap-4 text-sm mb-3">
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        {outing.isHistorical 
+                        {outing.isHistorical
                           ? `${outing.totalParticipantCount} présents`
                           : `${outing.presentParticipants.length}/${outing.confirmedParticipants.length} présents`
                         }
@@ -724,6 +728,21 @@ const Archives = () => {
                         </Badge>
                       )}
                     </div>
+
+                    {/* Photo preview */}
+                    {outing.photos && outing.photos.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-1">
+                        {outing.photos.slice(0, 4).map((photo: string, idx: number) => (
+                          <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted">
+                            <img
+                              src={photo}
+                              alt={`Photo ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
