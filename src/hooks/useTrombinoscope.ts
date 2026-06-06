@@ -31,7 +31,7 @@ export const FISH_LEVELS: FishLevel[] = [
   { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500"  },
   { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500" },
   { name: "Barracuda",  min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500"     },
-  { name: "Mérou",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400"   },
+  { name: "MÃ©rou",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400"   },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
@@ -74,7 +74,7 @@ const getTechnicalWeight = (apneaLevel: string | null): number => {
   if (
     levelLower.includes("mef2") ||
     levelLower.includes("instructeur") ||
-    levelLower.includes("encadrant apnée de niveau 2")
+    levelLower.includes("encadrant apnÃ©e de niveau 2")
   ) {
     return 2;
   }
@@ -82,7 +82,7 @@ const getTechnicalWeight = (apneaLevel: string | null): number => {
   if (
     levelLower.includes("mef1") ||
     levelLower.includes("moniteur") ||
-    levelLower.includes("encadrant apnée de niveau 1")
+    levelLower.includes("encadrant apnÃ©e de niveau 1")
   ) {
     return 3;
   }
@@ -112,17 +112,17 @@ export const useTrombinoscope = () => {
       const endOfYear = `${currentYear}-12-31T23:59:59`;
       const nowIso = new Date().toISOString();
 
-      // Presences from regular reservations (user_id → profiles.email)
+      // Presences from regular reservations (user_id â profiles.email)
       const { data: reservationPresences } = await supabase
         .from("reservations")
         .select("user_id, outing:outings!inner(date_time)")
-        .eq("status", "confirmé")
+        .eq("status", "confirmÃ©")
         .eq("is_present", true)
         .gte("outing.date_time", startOfYear)
         .lte("outing.date_time", endOfYear)
         .lt("outing.date_time", nowIso);
 
-      // Profiles to map user_id → email
+      // Profiles to map user_id â email
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, email");
@@ -165,12 +165,12 @@ export const useTrombinoscope = () => {
 
       // Hierarchical weights for board roles
       const roleWeights: Record<string, number> = {
-        Président: 1,
-        "Vice-Président": 2,
-        Trésorier: 3,
-        Secrétaire: 4,
-        "Trésorier Adjoint": 5,
-        "Secrétaire Adjoint": 6,
+        PrÃ©sident: 1,
+        "Vice-PrÃ©sident": 2,
+        TrÃ©sorier: 3,
+        SecrÃ©taire: 4,
+        "TrÃ©sorier Adjoint": 5,
+        "SecrÃ©taire Adjoint": 6,
         "Membre du bureau": 7,
       };
 
@@ -208,7 +208,10 @@ export const useTrombinoscope = () => {
       // Membres: everyone else (not bureau, not encadrant)
       const membres = allMembers
         .filter((m) => !bureauIds.has(m.id) && !encadrantIds.has(m.id))
-        .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
+        .sort((a, b) => {
+          if (b.outings_count !== a.outings_count) return b.outings_count - a.outings_count;
+          return a.last_name.localeCompare(b.last_name, "fr");
+        });
 
       return { bureau, encadrants, membres, total: allMembers.length };
     },
