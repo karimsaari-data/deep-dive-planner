@@ -19,6 +19,7 @@ import { useProfileDirectory } from "@/hooks/useProfileDirectory";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
+import { getFishLevel, FISH_LEVELS } from "@/hooks/useTrombinoscope";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
@@ -77,6 +78,53 @@ const Profile = () => {
 
   // Fetch directory profile (club_members_directory)
   const { directoryProfile, isLoading: directoryLoading, updateDirectoryProfile } = useProfileDirectory(user?.email);
+
+  // Fetch current year outing count for fish level
+  const { data: outingsCount = 0 } = useQuery({
+    queryKey: ["profile-outings-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const year = new Date().getFullYear();
+      const startOfYear = `${year}-01-01T00:00:00`;
+      const endOfYear = `${year}-12-31T23:59:59`;
+      const nowIso = new Date().toISOString();
+
+      // Regular reservations
+      const { count: reservCount } = await supabase
+        .from("reservations")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "confirmé")
+        .eq("is_present", true)
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", nowIso);
+
+      // Historical participants matched by email
+      const email = user.email?.toLowerCase();
+      let histCount = 0;
+      if (email) {
+        const { data: memberRow } = await supabase
+          .from("club_members_directory")
+          .select("id")
+          .eq("email", email)
+          .maybeSingle();
+        if (memberRow) {
+          const { count } = await supabase
+            .from("historical_outing_participants")
+            .select("outing_id, outing:outings!inner(date_time)", { count: "exact", head: true })
+            .eq("member_id", memberRow.id)
+            .gte("outing.date_time", startOfYear)
+            .lte("outing.date_time", endOfYear)
+            .lt("outing.date_time", nowIso);
+          histCount = count || 0;
+        }
+      }
+
+      return (reservCount || 0) + histCount;
+    },
+    enabled: !!user,
+  });
 
   const form = useForm<ProfileData>({
     resolver: zodResolver(profileSchema),
@@ -299,6 +347,46 @@ const Profile = () => {
                   )}
                 </div>
               </div>
+
+              {/* Fish level card */}
+              {(() => {
+                const fish = getFishLevel(outingsCount);
+                const fishIdx = FISH_LEVELS.indexOf(fish);
+                const next = FISH_LEVELS[fishIdx + 1] ?? null;
+                const toNext = next ? next.min - outingsCount : 0;
+                const progress = next
+                  ? Math.round(((outingsCount - fish.min) / (next.min - fish.min)) * 100)
+                  : 100;
+                return (
+                  <div className={`mb-6 rounded-xl border p-4 ${fish.bg}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Mon niveau {new Date().getFullYear()}</p>
+                        <p className={`text-xl font-bold ${fish.label}`}>{fish.name}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-3xl font-black ${fish.label}`}>{outingsCount}</p>
+                        <p className="text-xs text-muted-foreground">sortie{outingsCount !== 1 ? "s" : ""}</p>
+                      </div>
+                    </div>
+                    {next ? (
+                      <>
+                        <div className="w-full bg-white/60 rounded-full h-2 mb-1.5">
+                          <div
+                            className={`h-2 rounded-full transition-all ${fish.ring.replace("ring-", "bg-")}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Encore <strong>{toNext} sortie{toNext !== 1 ? "s" : ""}</strong> pour atteindre <span className={`font-semibold ${fish.label}`}>{next.name}</span>
+                        </p>
+                      </>
+                    ) : (
+                      <p className={`text-xs font-semibold ${fish.label}`}>🏆 Niveau maximum atteint !</p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Read-only info from directory */}
               {directoryProfile && (
