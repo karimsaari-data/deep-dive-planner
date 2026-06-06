@@ -373,7 +373,7 @@ const Profile = () => {
                       <>
                         <div className="w-full bg-white/60 rounded-full h-2 mb-1.5">
                           <div
-                            className={`h-2 rounded-full transition-all ${fish.ring.replace("ring-", "bg-")}`}
+                            className={`h-2 rounded-full transition-all ${fish.dot}`}
                             style={{ width: `${progress}%` }}
                           />
                         </div>

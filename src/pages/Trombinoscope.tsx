@@ -351,7 +351,7 @@ const Trombinoscope = () => {
           <div className="flex flex-wrap gap-3">
             {FISH_LEVELS.map((level) => (
               <div key={level.name} className="flex items-center gap-1.5">
-                <span className={`h-3 w-3 rounded-full border-2 ${level.ring.replace("ring-", "border-")}`} />
+                <span className={`h-3.5 w-3.5 rounded-full ${level.dot}`} />
                 <span className={`text-xs font-medium ${level.label}`}>{level.name}</span>
                 <span className="text-[10px] text-muted-foreground">
                   {level.min === 0 ? "0" : level.name === "Mérou" ? `${level.min}+` : `${level.min}–${FISH_LEVELS[FISH_LEVELS.indexOf(level) + 1].min - 1}`}

@@ -21,16 +21,17 @@ export interface FishLevel {
   shadow: string;     // Tailwind shadow color class
   label: string;      // color for badge text
   bg: string;         // badge bg
+  dot: string;        // filled dot color for legend
 }
 
 export const FISH_LEVELS: FishLevel[] = [
-  { name: "Inactif",    min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",   label: "text-gray-500",   bg: "bg-gray-100"   },
-  { name: "Castagnole", min: 1,  ring: "ring-slate-400",   shadow: "shadow-slate-400/40",  label: "text-slate-600",  bg: "bg-slate-100"  },
-  { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",   label: "text-cyan-600",   bg: "bg-cyan-50"    },
-  { name: "Rouget",     min: 8,  ring: "ring-orange-400",  shadow: "shadow-orange-400/40", label: "text-orange-600", bg: "bg-orange-50"  },
-  { name: "Poulpe",     min: 13, ring: "ring-purple-400",  shadow: "shadow-purple-400/40", label: "text-purple-700", bg: "bg-purple-50"  },
-  { name: "Barracuda",  min: 20, ring: "ring-violet-500",  shadow: "shadow-violet-500/40", label: "text-violet-700", bg: "bg-violet-50"  },
-  { name: "Mérou",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",  label: "text-amber-700",  bg: "bg-amber-50"   },
+  { name: "Inactif",    min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",    label: "text-gray-500",    bg: "bg-gray-100",    dot: "bg-gray-300"    },
+  { name: "Castagnole", min: 1,  ring: "ring-blue-400",    shadow: "shadow-blue-400/40",    label: "text-blue-600",    bg: "bg-blue-50",     dot: "bg-blue-400"    },
+  { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",    label: "text-cyan-600",    bg: "bg-cyan-50",     dot: "bg-cyan-400"    },
+  { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500"  },
+  { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500" },
+  { name: "Barracuda",  min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500"     },
+  { name: "Mérou",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400"   },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
