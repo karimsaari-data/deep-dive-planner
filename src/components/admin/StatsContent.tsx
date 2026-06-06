@@ -385,6 +385,29 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         });
       });
 
+      // Helper to credit an outing to an encadrant by email key
+      const creditOuting = (emailKey: string, dateTime: string) => {
+        const encadrant = emailToEncadrantMap.get(emailKey);
+        if (!encadrant) return;
+
+        if (!organizerMap.has(emailKey)) {
+          organizerMap.set(emailKey, {
+            id: encadrant.id,
+            name: formatFullName(encadrant.first_name, encadrant.last_name),
+            months: Array(12).fill(0),
+            total: 0,
+          });
+        }
+
+        const entry = organizerMap.get(emailKey)!;
+        const month = new Date(dateTime).getMonth();
+        entry.months[month]++;
+        entry.total++;
+      };
+
+      // Track which (outingId, emailKey) pairs have already been credited to avoid double-counting
+      const credited = new Set<string>();
+
       validOutings.forEach((o: any) => {
         const isHistorical = historicalOutingIds.has(o.id);
 
@@ -398,25 +421,41 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
           emailKey = organizerProfile?.email?.toLowerCase() || "";
         }
 
-        if (!emailKey) return;
-
-        const encadrant = emailToEncadrantMap.get(emailKey);
-        if (!encadrant) return;
-
-        if (!organizerMap.has(emailKey)) {
-          organizerMap.set(emailKey, {
-            id: encadrant.id,
-            name: formatFullName(encadrant.first_name, encadrant.last_name),
-            months: Array(12).fill(0),
-            total: 0,
-          });
+        if (emailKey) {
+          const key = `${o.id}:${emailKey}`;
+          if (!credited.has(key)) {
+            credited.add(key);
+            creditOuting(emailKey, o.date_time);
+          }
         }
-
-        const organizer = organizerMap.get(emailKey)!;
-        const month = new Date(o.date_time).getMonth();
-        organizer.months[month]++;
-        organizer.total++;
       });
+
+      // Also credit co-instructors from outing_co_instructors for non-historical outings
+      const validNonHistoricalIds = validOutings
+        .filter((o: any) => !historicalOutingIds.has(o.id))
+        .map((o: any) => o.id);
+
+      if (validNonHistoricalIds.length > 0) {
+        const { data: coInstructors } = await supabase
+          .from("outing_co_instructors")
+          .select("outing_id, user_id")
+          .in("outing_id", validNonHistoricalIds);
+
+        const profileById = new Map(profiles?.map((p) => [p.id, p]) || []);
+
+        coInstructors?.forEach((ci: any) => {
+          const profile = profileById.get(ci.user_id);
+          if (!profile?.email) return;
+          const emailKey = profile.email.toLowerCase();
+          const outing = validOutings.find((o: any) => o.id === ci.outing_id);
+          if (!outing) return;
+          const key = `${ci.outing_id}:${emailKey}`;
+          if (!credited.has(key)) {
+            credited.add(key);
+            creditOuting(emailKey, outing.date_time);
+          }
+        });
+      }
 
       return Array.from(organizerMap.values()).sort((a, b) => b.total - a.total);
     },
