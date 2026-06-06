@@ -3,9 +3,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X } from "lucide-react";
+import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X, Pencil } from "lucide-react";
 import Layout from "@/components/layout/Layout";
-import EditOutingDialog from "@/components/outings/EditOutingDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,10 +14,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import imageCompression from "browser-image-compression";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import EditHistoricalOutingDialog from "@/components/outings/EditHistoricalOutingDialog";
 
 const Archives = () => {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ const Archives = () => {
   const [uploadingOutingId, setUploadingOutingId] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [reportDraft, setReportDraft] = useState<string>("");
+  const [editingHistoricalOuting, setEditingHistoricalOuting] = useState<any | null>(null);
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
 
   const currentYear = new Date().getFullYear();
@@ -52,6 +54,7 @@ const Archives = () => {
           is_archived,
           organizer_member_id,
           organizer:profiles!outings_organizer_id_fkey(id, first_name, last_name),
+          co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
           location_details:locations(name),
           reservations(
             id,
@@ -175,12 +178,17 @@ const Archives = () => {
     
     try {
       for (const file of Array.from(files).slice(0, 4)) {
+        const compressed = await imageCompression(file, {
+          maxSizeMB: 0.5,
+          maxWidthOrHeight: 1200,
+          useWebWorker: true,
+        });
         const fileExt = file.name.split(".").pop();
         const fileName = `${outingId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("outings_gallery")
-          .upload(fileName, file);
+          .upload(fileName, compressed);
           
         if (uploadError) throw uploadError;
         
@@ -325,25 +333,33 @@ const Archives = () => {
       outing.location.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
     
-    // Apply encadrant filter
+    // Apply encadrant filter (organizer or co-instructor)
     if (selectedEncadrant !== "all") {
-      const organizerName = outing.displayedOrganizer 
+      const organizerName = outing.displayedOrganizer
         ? `${outing.displayedOrganizer.first_name} ${outing.displayedOrganizer.last_name}`
         : "";
-      if (organizerName !== selectedEncadrant) return false;
+      const isCoInstructor = outing.co_instructors?.some(
+        (ci: any) => ci.profile &&
+          `${ci.profile.first_name} ${ci.profile.last_name}` === selectedEncadrant
+      );
+      if (organizerName !== selectedEncadrant && !isCoInstructor) return false;
     }
     
     return true;
   }) ?? [];
 
-  // Extract unique encadrants from all outings (before filtering) for the filter dropdown
+  // Extract unique encadrants from all outings (organizers + co-instructors)
   const uniqueEncadrants = Array.from(
-    new Set(
-      pastOutings
+    new Set([
+      ...(pastOutings
         ?.filter(o => o.totalParticipantCount > 0 && o.displayedOrganizer)
         .map(o => `${o.displayedOrganizer.first_name} ${o.displayedOrganizer.last_name}`)
-        .filter(Boolean) ?? []
-    )
+        .filter(Boolean) ?? []),
+      ...(pastOutings
+        ?.flatMap(o => o.co_instructors ?? [])
+        .filter((ci: any) => ci.profile)
+        .map((ci: any) => `${ci.profile.first_name} ${ci.profile.last_name}`) ?? []),
+    ])
   ).sort();
 
   // For historical outings: all participants are considered present
@@ -451,7 +467,7 @@ const Archives = () => {
           ) : (
             <div className="space-y-4">
               {filteredOutings.map((outing) => (
-                <Card key={outing.id} className="shadow-card animate-fade-in overflow-hidden">
+                <Card key={outing.id} className="shadow-card animate-fade-in">
                   <CardContent className="p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                       <div>
@@ -470,11 +486,23 @@ const Archives = () => {
                               Encadrant: {outing.displayedOrganizer.first_name} {outing.displayedOrganizer.last_name}
                             </span>
                           )}
+                          {outing.co_instructors?.length > 0 && (
+                            <span className="ml-2">
+                              · Co-encadrant: {outing.co_instructors[0].profile.first_name} {outing.co_instructors[0].profile.last_name}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        {!outing.isHistorical && (isOrganizer || isAdmin) && (
-                          <EditOutingDialog outing={outing} />
+                        {outing.isHistorical && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingHistoricalOuting(outing)}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Modifier
+                          </Button>
                         )}
                         <Dialog>
                           <DialogTrigger asChild>
@@ -509,19 +537,34 @@ const Archives = () => {
                                       <Badge variant="outline" className="text-xs">Sortie historique</Badge>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                      {outing.historicalMembers.map((member: any) => {
+                                      {[...outing.historicalMembers].sort((a: any, b: any) => {
+                                        const rankOf = (m: any) => {
+                                          if (outing.organizerMemberId && m.id === outing.organizerMemberId) return 0;
+                                          if (outing.co_instructors?.some((ci: any) => ci.profile?.first_name === m.first_name && ci.profile?.last_name === m.last_name)) return 1;
+                                          return 2;
+                                        };
+                                        return rankOf(a) - rankOf(b);
+                                      }).map((member: any) => {
                                         const initials = `${member?.first_name?.[0] ?? ""}${member?.last_name?.[0] ?? ""}`;
-                                        // Identify organizer and encadrants
                                         const isOrganizer = outing.organizerMemberId && member.id === outing.organizerMemberId;
-                                        
-                                        // Determine badge text and styles
+                                        const isCoInstructor = outing.co_instructors?.some(
+                                          (ci: any) => ci.profile &&
+                                            ci.profile.first_name === member.first_name &&
+                                            ci.profile.last_name === member.last_name
+                                        );
+
                                         let badgeText = "Présent";
                                         let badgeVariant: "default" | "secondary" | "outline" = "default";
                                         let cardStyle = "border-emerald-500/50 bg-emerald-500/10";
                                         let avatarStyle = "bg-primary/10 text-primary";
-                                        
+
                                         if (isOrganizer) {
                                           badgeText = "Organisateur";
+                                          badgeVariant = "outline";
+                                          cardStyle = "border-primary bg-primary/15 ring-2 ring-primary/30";
+                                          avatarStyle = "bg-primary text-primary-foreground";
+                                        } else if (isCoInstructor) {
+                                          badgeText = "Co-encadrant";
                                           badgeVariant = "outline";
                                           cardStyle = "border-primary bg-primary/15 ring-2 ring-primary/30";
                                           avatarStyle = "bg-primary text-primary-foreground";
@@ -706,8 +749,23 @@ const Archives = () => {
                       </div>
                     </div>
 
+                    {/* Photo thumbnails */}
+                    {outing.photos && outing.photos.length > 0 && (
+                      <div className="flex gap-2 mb-3">
+                        {outing.photos.map((photo: string, idx: number) => (
+                          <div key={idx} className="h-16 w-24 rounded-md overflow-hidden flex-shrink-0 bg-muted">
+                            <img
+                              src={photo}
+                              alt={`Photo ${idx + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Quick stats */}
-                    <div className="flex flex-wrap gap-4 text-sm mb-3">
+                    <div className="flex flex-wrap gap-4 text-sm">
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <Users className="h-4 w-4" />
                         {outing.isHistorical
@@ -715,12 +773,6 @@ const Archives = () => {
                           : `${outing.presentParticipants.length}/${outing.confirmedParticipants.length} présents`
                         }
                       </span>
-                      {outing.photos && outing.photos.length > 0 && (
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                          <Image className="h-4 w-4" />
-                          {outing.photos.length} photo(s)
-                        </span>
-                      )}
                       {outing.session_report && (
                         <Badge variant="outline" className="text-xs">
                           <FileText className="h-3 w-3 mr-1" />
@@ -728,21 +780,6 @@ const Archives = () => {
                         </Badge>
                       )}
                     </div>
-
-                    {/* Photo preview */}
-                    {outing.photos && outing.photos.length > 0 && (
-                      <div className="grid grid-cols-4 gap-2 mt-1">
-                        {outing.photos.slice(0, 4).map((photo: string, idx: number) => (
-                          <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted min-w-0">
-                            <img
-                              src={photo}
-                              alt={`Photo ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -750,6 +787,14 @@ const Archives = () => {
           )}
         </div>
       </section>
+
+      {editingHistoricalOuting && (
+        <EditHistoricalOutingDialog
+          outing={editingHistoricalOuting}
+          open={!!editingHistoricalOuting}
+          onOpenChange={(open) => { if (!open) setEditingHistoricalOuting(null); }}
+        />
+      )}
     </Layout>
   );
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,15 +27,15 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const outingSchema = z.object({
-  title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
-  description: z.string().max(500).optional(),
-  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
+  title: z.string().min(3, "Le titre doit faire au moins 3 caractÃ¨res").max(100),
+  description: z.string().max(1000).optional(),
+  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dÃ©passer le 31/12/2030"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
   prepDuration: z.number().min(0).max(180),
   sessionDuration: z.number().min(15).max(480),
   location_id: z.string().optional(),
-  location: z.string().min(3, "Le lieu doit faire au moins 3 caractères").max(200),
-  outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
+  location: z.string().min(3, "Le lieu doit faire au moins 3 caractÃ¨res").max(200),
+  outing_type: z.enum(["Fosse", "Mer", "Piscine", "Ã‰tang", "DÃ©pollution"]),
   max_participants: z.number().min(1).max(100),
   is_staff_only: z.boolean().default(false),
   carpool_option: z.enum(["none", "driver", "passenger"]).default("none"),
@@ -46,8 +46,8 @@ const outingSchema = z.object({
 
 type OutingFormData = z.infer<typeof outingSchema>;
 
-// Types de sorties en milieu naturel (où le choix bateau/bord est pertinent)
-const NATURAL_ENVIRONMENT_TYPES: OutingType[] = ["Mer", "Étang", "Dépollution"];
+// Types de sorties en milieu naturel (oÃ¹ le choix bateau/bord est pertinent)
+const NATURAL_ENVIRONMENT_TYPES: OutingType[] = ["Mer", "Ã‰tang", "DÃ©pollution"];
 
 interface CreateOutingFormProps {
   prefilledLocationId?: string;
@@ -252,7 +252,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
     try {
       await navigator.clipboard.writeText(getShareLink());
       setLinkCopied(true);
-      toast.success("Lien copié !");
+      toast.success("Lien copiÃ© !");
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
       toast.error("Impossible de copier le lien");
@@ -270,7 +270,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Plus className="h-5 w-5 text-primary" />
-          Créer une nouvelle sortie
+          CrÃ©er une nouvelle sortie
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -298,7 +298,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                   <FormLabel>Description (optionnel)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Détails de la sortie..."
+                      placeholder="DÃ©tails de la sortie..."
                       className="resize-none"
                       {...field}
                     />
@@ -371,7 +371,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               />
             </div>
 
-            {/* Durées calculées */}
+            {/* DurÃ©es calculÃ©es */}
             <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
               <FormField
                 control={form.control}
@@ -380,8 +380,8 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <div>
-                        <FormLabel>Préparation</FormLabel>
-                        <p className="text-xs text-muted-foreground">Échauffement, équipement, briefing</p>
+                        <FormLabel>PrÃ©paration</FormLabel>
+                        <p className="text-xs text-muted-foreground">Ã‰chauffement, Ã©quipement, briefing</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -419,7 +419,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                     <div className="flex items-center justify-between">
                       <div>
                         <FormLabel>Session dans l'eau</FormLabel>
-                        <p className="text-xs text-muted-foreground">Durée de la session d'apnée</p>
+                        <p className="text-xs text-muted-foreground">DurÃ©e de la session d'apnÃ©e</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Button
@@ -449,10 +449,10 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 )}
               />
 
-              {/* Récapitulatif calculé */}
+              {/* RÃ©capitulatif calculÃ© */}
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Mise à l'eau</p>
+                  <p className="text-xs text-muted-foreground">Mise Ã  l'eau</p>
                   <p className="font-semibold text-primary">{waterEntryTime}</p>
                 </div>
                 <div className="text-center">
@@ -533,15 +533,15 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un type" />
+                          <SelectValue placeholder="SÃ©lectionner un type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Mer">Mer</SelectItem>
                         <SelectItem value="Piscine">Piscine</SelectItem>
-                        <SelectItem value="Dépollution">Dépollution</SelectItem>
+                        <SelectItem value="DÃ©pollution">DÃ©pollution</SelectItem>
                         <SelectItem value="Fosse">Fosse</SelectItem>
-                        <SelectItem value="Étang">Étang</SelectItem>
+                        <SelectItem value="Ã‰tang">Ã‰tang</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -588,7 +588,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                     </FormControl>
                     {userApneaLevel && maxParticipantsLimit < 100 && (
                       <FormDescription className="text-xs text-muted-foreground">
-                        Limité à {maxParticipantsLimit} participants pour votre niveau ({userApneaLevel})
+                        LimitÃ© Ã  {maxParticipantsLimit} participants pour votre niveau ({userApneaLevel})
                       </FormDescription>
                     )}
                     <FormMessage />
@@ -624,7 +624,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Pas de covoiturage</SelectItem>
-                          <SelectItem value="driver">Je peux véhiculer des personnes</SelectItem>
+                          <SelectItem value="driver">Je peux vÃ©hiculer des personnes</SelectItem>
                           <SelectItem value="passenger">Je cherche une place</SelectItem>
                         </SelectContent>
                       </Select>
@@ -668,7 +668,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-4">
                 <div className="flex items-center gap-2">
                   <Ship className="h-5 w-5 text-primary" />
-                  <span className="font-medium">Mode de départ</span>
+                  <span className="font-medium">Mode de dÃ©part</span>
                 </div>
                 
                 <FormField
@@ -691,14 +691,14 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                             <RadioGroupItem value="boat" id="dive-boat" />
                             <Label htmlFor="dive-boat" className="flex items-center gap-2 cursor-pointer">
                               <Ship className="h-4 w-4" />
-                              Départ Bateau
+                              DÃ©part Bateau
                             </Label>
                           </div>
                           <div className="flex items-center space-x-3">
                             <RadioGroupItem value="shore" id="dive-shore" />
                             <Label htmlFor="dive-shore" className="flex items-center gap-2 cursor-pointer">
                               <Footprints className="h-4 w-4" />
-                              Départ du Bord
+                              DÃ©part du Bord
                             </Label>
                           </div>
                         </RadioGroup>
@@ -718,7 +718,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                         <Select onValueChange={field.onChange} value={field.value || ""}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner un bateau" />
+                              <SelectValue placeholder="SÃ©lectionner un bateau" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -737,7 +737,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
 
                 {diveMode === "shore" && (
                   <p className="text-sm text-muted-foreground">
-                    Les points de sécurité du site seront utilisés.
+                    Les points de sÃ©curitÃ© du site seront utilisÃ©s.
                   </p>
                 )}
               </div>
@@ -752,10 +752,10 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                   <div className="space-y-0.5">
                     <FormLabel className="flex items-center gap-2 text-base">
                       <ShieldAlert className="h-4 w-4 text-warning" />
-                      Sortie réservée encadrants
+                      Sortie rÃ©servÃ©e encadrants
                     </FormLabel>
                     <FormDescription>
-                      Cette sortie sera invisible pour les membres élèves
+                      Cette sortie sera invisible pour les membres Ã©lÃ¨ves
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -774,7 +774,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               className="w-full"
               disabled={createOuting.isPending}
             >
-              {createOuting.isPending ? "Création..." : "Créer la sortie"}
+              {createOuting.isPending ? "CrÃ©ation..." : "CrÃ©er la sortie"}
             </Button>
           </form>
         </Form>
@@ -786,7 +786,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Share2 className="h-5 w-5 text-primary" />
-              Sortie créée !
+              Sortie crÃ©Ã©e !
             </DialogTitle>
             <DialogDescription>
               Partagez le lien de cette sortie sur WhatsApp ou par email.
@@ -821,3 +821,5 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
 };
 
 export default CreateOutingForm;
+
+
