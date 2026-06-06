@@ -430,16 +430,14 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         }
       });
 
-      // Also credit co-instructors from outing_co_instructors for non-historical outings
-      const validNonHistoricalIds = validOutings
-        .filter((o: any) => !historicalOutingIds.has(o.id))
-        .map((o: any) => o.id);
+      // Also credit co-instructors from outing_co_instructors for all valid outings
+      const validOutingIds = validOutings.map((o: any) => o.id);
 
-      if (validNonHistoricalIds.length > 0) {
+      if (validOutingIds.length > 0) {
         const { data: coInstructors } = await supabase
           .from("outing_co_instructors")
           .select("outing_id, user_id")
-          .in("outing_id", validNonHistoricalIds);
+          .in("outing_id", validOutingIds);
 
         const profileById = new Map(profiles?.map((p) => [p.id, p]) || []);
 
