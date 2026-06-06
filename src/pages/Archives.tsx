@@ -731,16 +731,18 @@ const Archives = () => {
 
                     {/* Photo preview */}
                     {outing.photos && outing.photos.length > 0 && (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-1">
-                        {outing.photos.slice(0, 4).map((photo: string, idx: number) => (
-                          <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted">
-                            <img
-                              src={photo}
-                              alt={`Photo ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
+                      <div className="w-full overflow-hidden">
+                        <div className="grid grid-cols-4 gap-2 mt-1">
+                          {outing.photos.slice(0, 4).map((photo: string, idx: number) => (
+                            <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted min-w-0">
+                              <img
+                                src={photo}
+                                alt={`Photo ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </CardContent>
