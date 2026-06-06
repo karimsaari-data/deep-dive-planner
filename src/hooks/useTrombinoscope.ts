@@ -11,7 +11,33 @@ export interface TrombiMember {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
+  outings_count: number;
 }
+
+export interface FishLevel {
+  name: string;
+  min: number;
+  ring: string;       // Tailwind ring color class
+  shadow: string;     // Tailwind shadow color class
+  label: string;      // color for badge text
+  bg: string;         // badge bg
+}
+
+export const FISH_LEVELS: FishLevel[] = [
+  { name: "Inactif",   min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",   label: "text-gray-500",   bg: "bg-gray-100"   },
+  { name: "Rouget",    min: 1,  ring: "ring-orange-400",  shadow: "shadow-orange-400/40", label: "text-orange-600", bg: "bg-orange-50"  },
+  { name: "Girelle",   min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",   label: "text-cyan-600",   bg: "bg-cyan-50"    },
+  { name: "Sarde",     min: 9,  ring: "ring-blue-500",    shadow: "shadow-blue-500/40",   label: "text-blue-700",   bg: "bg-blue-50"    },
+  { name: "Barracuda", min: 16, ring: "ring-violet-500",  shadow: "shadow-violet-500/40", label: "text-violet-700", bg: "bg-violet-50"  },
+  { name: "Mérou",     min: 25, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",  label: "text-amber-700",  bg: "bg-amber-50"   },
+];
+
+export const getFishLevel = (count: number): FishLevel => {
+  for (let i = FISH_LEVELS.length - 1; i >= 0; i--) {
+    if (count >= FISH_LEVELS[i].min) return FISH_LEVELS[i];
+  }
+  return FISH_LEVELS[0];
+};
 
 // Keywords that define technical instructors/encadrants
 const TECHNICAL_KEYWORDS = [
@@ -78,6 +104,49 @@ export const useTrombinoscope = () => {
 
       if (membersError) throw membersError;
 
+      // Fetch current year presence counts
+      const currentYear = new Date().getFullYear();
+      const startOfYear = `${currentYear}-01-01T00:00:00`;
+      const endOfYear = `${currentYear}-12-31T23:59:59`;
+      const nowIso = new Date().toISOString();
+
+      // Presences from regular reservations (user_id → profiles.email)
+      const { data: reservationPresences } = await supabase
+        .from("reservations")
+        .select("user_id, outing:outings!inner(date_time)")
+        .eq("status", "confirmé")
+        .eq("is_present", true)
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", nowIso);
+
+      // Profiles to map user_id → email
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, email");
+
+      const profileEmailById = new Map((profiles || []).map((p) => [p.id, p.email?.toLowerCase() || ""]));
+
+      // Count presences per email
+      const countByEmail = new Map<string, number>();
+      (reservationPresences || []).forEach((r: any) => {
+        const email = profileEmailById.get(r.user_id);
+        if (email) countByEmail.set(email, (countByEmail.get(email) || 0) + 1);
+      });
+
+      // Historical outing participants for current year
+      const { data: historicalPresences } = await supabase
+        .from("historical_outing_participants")
+        .select("member_id, outing:outings!inner(date_time), member:club_members_directory(email)")
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", nowIso);
+
+      (historicalPresences || []).forEach((hp: any) => {
+        const email = hp.member?.email?.toLowerCase();
+        if (email) countByEmail.set(email, (countByEmail.get(email) || 0) + 1);
+      });
+
       // Map directly - avatar_url is now included in the RPC result
       const allMembers: TrombiMember[] = (members || []).map((m) => ({
         id: m.id,
@@ -89,6 +158,7 @@ export const useTrombinoscope = () => {
         email: m.email || null,
         phone: (m as { phone?: string }).phone || null,
         avatar_url: m.avatar_url || null,
+        outings_count: countByEmail.get(m.email?.toLowerCase() || "") || 0,
       }));
 
       // Hierarchical weights for board roles
