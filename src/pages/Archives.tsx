@@ -451,7 +451,7 @@ const Archives = () => {
           ) : (
             <div className="space-y-4">
               {filteredOutings.map((outing) => (
-                <Card key={outing.id} className="shadow-card animate-fade-in">
+                <Card key={outing.id} className="shadow-card animate-fade-in overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                       <div>
@@ -731,18 +731,16 @@ const Archives = () => {
 
                     {/* Photo preview */}
                     {outing.photos && outing.photos.length > 0 && (
-                      <div className="w-full overflow-hidden">
-                        <div className="grid grid-cols-4 gap-2 mt-1">
-                          {outing.photos.slice(0, 4).map((photo: string, idx: number) => (
-                            <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted min-w-0">
-                              <img
-                                src={photo}
-                                alt={`Photo ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ))}
-                        </div>
+                      <div className="grid grid-cols-4 gap-2 mt-1">
+                        {outing.photos.slice(0, 4).map((photo: string, idx: number) => (
+                          <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted min-w-0">
+                            <img
+                              src={photo}
+                              alt={`Photo ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
                       </div>
                     )}
                   </CardContent>
