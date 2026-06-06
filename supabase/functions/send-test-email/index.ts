@@ -20,7 +20,7 @@ async function sendEmail(to: string, subject: string, html: string) {
     body: JSON.stringify({
       sender: {
         name: "Team Oxygen",
-        email: "karimsaari.com@gmail.com",
+        email: "email@karimsaari.com",
       },
       to: [{ email: to, name: to }],
       subject: subject,
@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
           <ul>
             <li><strong>API Endpoint :</strong> https://api.brevo.com/v3/smtp/email</li>
             <li><strong>Méthode :</strong> HTTP POST (plus stable que SMTP)</li>
-            <li><strong>Expéditeur :</strong> Team Oxygen (karimsaari.com@gmail.com)</li>
+            <li><strong>Expéditeur :</strong> Team Oxygen (email@karimsaari.com)</li>
             <li><strong>Mode :</strong> Production</li>
           </ul>
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">

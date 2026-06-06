@@ -23,6 +23,7 @@ import { useCreateHistoricalOuting } from "@/hooks/useCreateHistoricalOuting";
 import { cn } from "@/lib/utils";
 
 const historicalOutingSchema = z.object({
+  title: z.string().max(100).optional(),
   date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
   location_id: z.string().optional(),
   location: z.string().min(3, "Le lieu doit faire au moins 3 caractères"),
@@ -110,6 +111,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
   const form = useForm<HistoricalOutingFormData>({
     resolver: zodResolver(historicalOutingSchema),
     defaultValues: {
+      title: "",
       location: "",
       location_id: "",
       outing_type: "Mer",
@@ -195,8 +197,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
     const startDateTime = new Date(data.date);
     startDateTime.setHours(10, 0, 0, 0); // Default time for historical outings
 
-    // Generate a title based on type and location
-    const title = `${data.outing_type} - ${data.location}`;
+    const title = data.title?.trim() || `${data.outing_type} - ${data.location}`;
 
     let coInstructorProfileId: string | null = null;
     if (coInstructorMemberId) {
@@ -219,8 +220,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
       participant_member_ids: Array.from(selectedMemberIds),
     });
 
-    // Reset and close
-    form.reset();
+    form.reset({ title: "", location: "", location_id: "", outing_type: "Mer", organizer_id: "" });
     setSelectedMemberIds(new Set());
     setSearchQuery("");
     setCoInstructorMemberId("");
@@ -242,6 +242,21 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 gap-4 overflow-y-auto pb-4">
+            {/* Title */}
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Titre <span className="text-muted-foreground font-normal">(optionnel)</span></FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ex : Dépollution port de la Pointe Rouge" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {/* Header fields */}
             <div className="grid gap-4 sm:grid-cols-3">
               <FormField

@@ -23,7 +23,7 @@ async function sendEmail(to: string, toName: string, subject: string, html: stri
     body: JSON.stringify({
       sender: {
         name: "Team Oxygen",
-        email: "karimsaari.com@gmail.com",
+        email: "email@karimsaari.com",
       },
       to: [{ email: to, name: toName }],
       subject: subject,
