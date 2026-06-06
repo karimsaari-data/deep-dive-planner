@@ -14,6 +14,7 @@ import {
 import { Users, Crown, GraduationCap, UserCircle, Mail, Phone, MessageCircle, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
+import { getFishLevel, FISH_LEVELS } from "@/hooks/useTrombinoscope";
 
 // Generate a pastel color from initials
 const getAvatarColor = (name: string): string => {
@@ -119,16 +120,25 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
   const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
   const isBureau = showBoardRole && !!member.board_role;
+  const fish = getFishLevel(member.outings_count);
+
+  // Ring: bureau/top-tier override fish color, else fish level
+  const ringClass = isTopTier
+    ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30"
+    : isBureau
+    ? "ring-4 ring-primary shadow-lg shadow-primary/30"
+    : `ring-4 ${fish.ring} shadow-lg ${fish.shadow}`;
 
   return (
     <button
       type="button"
       className="flex flex-col items-center text-center group cursor-pointer focus:outline-none"
       onClick={() => onClick(member)}
+      title={`${fish.name} — ${member.outings_count} sortie${member.outings_count !== 1 ? "s" : ""} cette année`}
     >
-      {/* Avatar with optional glow effect for BPJEPS/DEJEPS or bureau */}
+      {/* Avatar */}
       <div className={`relative ${isTopTier ? "before:absolute before:inset-0 before:rounded-full before:bg-amber-400/40 before:blur-lg before:animate-pulse" : isBureau ? "before:absolute before:inset-0 before:rounded-full before:bg-primary/30 before:blur-lg before:animate-pulse" : ""}`}>
-        <Avatar className={`h-20 w-20 md:h-24 md:w-24 transition-transform duration-200 md:group-hover:scale-110 relative z-10 ${isTopTier ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30" : isBureau ? "ring-4 ring-primary shadow-lg shadow-primary/30" : "ring-2 ring-border/50"}`}>
+        <Avatar className={`h-20 w-20 md:h-24 md:w-24 transition-transform duration-200 md:group-hover:scale-110 relative z-10 ${ringClass}`}>
           {member.avatar_url ? (
             <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />
           ) : null}
@@ -169,6 +179,13 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
         <Badge variant="secondary" className="hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0">
           {member.apnea_level}
         </Badge>
+      )}
+
+      {/* Fish level badge — shown on desktop for all, hidden on mobile */}
+      {member.outings_count > 0 && (
+        <span className={`hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0 rounded-full font-semibold ${fish.label} ${fish.bg}`}>
+          {fish.name} · {member.outings_count}
+        </span>
       )}
     </button>
   );
@@ -325,6 +342,24 @@ const Trombinoscope = () => {
             )}
           </>
         )}
+      </div>
+
+      {/* Fish level legend */}
+      <div className="container mx-auto px-3 pb-8 md:px-4">
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Niveaux — sorties de l'année</p>
+          <div className="flex flex-wrap gap-3">
+            {FISH_LEVELS.map((level) => (
+              <div key={level.name} className="flex items-center gap-1.5">
+                <span className={`h-3 w-3 rounded-full border-2 ${level.ring.replace("ring-", "border-")}`} />
+                <span className={`text-xs font-medium ${level.label}`}>{level.name}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {level.min === 0 ? "0" : level.name === "Mérou" ? `${level.min}+` : `${level.min}–${FISH_LEVELS[FISH_LEVELS.indexOf(level) + 1].min - 1}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <ContactDialog
