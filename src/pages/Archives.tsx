@@ -751,9 +751,9 @@ const Archives = () => {
 
                     {/* Photo thumbnails */}
                     {outing.photos && outing.photos.length > 0 && (
-                      <div className="flex gap-2 mb-3">
+                      <div className="grid grid-cols-4 gap-2 mb-3">
                         {outing.photos.map((photo: string, idx: number) => (
-                          <div key={idx} className="h-16 w-24 rounded-md overflow-hidden flex-shrink-0 bg-muted">
+                          <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted min-w-0">
                             <img
                               src={photo}
                               alt={`Photo ${idx + 1}`}
