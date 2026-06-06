@@ -165,12 +165,12 @@ export const useTrombinoscope = () => {
 
       // Hierarchical weights for board roles
       const roleWeights: Record<string, number> = {
-        PrÃ©sident: 1,
-        "Vice-PrÃ©sident": 2,
-        TrÃ©sorier: 3,
-        SecrÃ©taire: 4,
-        "TrÃ©sorier Adjoint": 5,
-        "SecrÃ©taire Adjoint": 6,
+        Président: 1,
+        "Vice-Président": 2,
+        Trésorier: 3,
+        Secrétaire: 4,
+        "Trésorier Adjoint": 5,
+        "Secrétaire Adjoint": 6,
         "Membre du bureau": 7,
       };
 
