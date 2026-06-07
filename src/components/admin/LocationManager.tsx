@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import L from "leaflet";
+import { Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -877,6 +878,13 @@ const LocationManager = () => {
                     Voir sur Google Maps
                   </a>
                 )}
+                <Link
+                  to={`/location/${viewingLocation.id}`}
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Cartographie &amp; POSS
+                </Link>
               </div>
             </div>
           )}
