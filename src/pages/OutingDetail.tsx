@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle, UserPlus, X } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle, UserPlus, X, Trash2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { formatFullName } from "@/lib/formatName";
 
@@ -35,7 +35,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting } from "@/hooks/useOutings";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -68,6 +68,7 @@ const OutingDetail = () => {
   const updatePresence = useUpdateReservationPresence();
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
+  const deleteOuting = useDeleteOuting();
   const archiveOuting = useArchiveOuting();
   const lockPOSS = useLockPOSS();
   const unlockPOSS = useUnlockPOSS();
@@ -448,6 +449,37 @@ const OutingDetail = () => {
                     </AlertDialogContent>
                   </AlertDialog>
                 )
+              )}
+              {(isOutingOrganizer || isAdmin) && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" />
+                      Supprimer
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-destructive" />
+                        Supprimer définitivement ?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        La sortie sera supprimée sans notification aux participants. Cette action est irréversible.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteOuting.mutate(outing.id, { onSuccess: () => navigate("/") })}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={deleteOuting.isPending}
+                      >
+                        {deleteOuting.isPending ? "Suppression..." : "Supprimer définitivement"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
               {!isPast && hasActiveReservations && canCancelOuting && (
                 <AlertDialog>

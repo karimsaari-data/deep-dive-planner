@@ -559,6 +559,28 @@ export const useCancelOuting = () => {
   });
 };
 
+export const useDeleteOuting = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (outingId: string) => {
+      const { error } = await supabase
+        .from("outings")
+        .update({ is_deleted: true })
+        .eq("id", outingId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      toast.success("Sortie supprimée");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la suppression");
+    },
+  });
+};
+
 export const useUpdateOuting = () => {
   const queryClient = useQueryClient();
 
