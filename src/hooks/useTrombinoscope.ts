@@ -116,7 +116,7 @@ export const useTrombinoscope = () => {
       const { data: reservationPresences } = await supabase
         .from("reservations")
         .select("user_id, outing:outings!inner(date_time)")
-        .eq("status", "confirmÃ©")
+        .eq("status", "confirmé")
         .eq("is_present", true)
         .gte("outing.date_time", startOfYear)
         .lte("outing.date_time", endOfYear)

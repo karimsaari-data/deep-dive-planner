@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,20 +25,32 @@ import { useLocations } from "@/hooks/useLocations";
 import { cn } from "@/lib/utils";
 
 const editOutingSchema = z.object({
-  title: z.string().min(3, "Le titre doit faire au moins 3 caractÃ¨res").max(100),
+  title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
   description: z.string().max(1000).optional(),
-  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dÃ©passer le 31/12/2030"),
+  date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
   endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
   waterEntryTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
   waterExitTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)").optional(),
   location_id: z.string().optional(),
-  location: z.string().min(3, "Le lieu doit faire au moins 3 caractÃ¨res").max(200),
-  outing_type: z.enum(["Fosse", "Mer", "Piscine", "Ã‰tang", "DÃ©pollution"]),
+  location: z.string().min(3, "Le lieu doit faire au moins 3 caractères").max(200),
+  outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
   max_participants: z.number().min(1).max(100),
 });
 
 type EditOutingFormData = z.infer<typeof editOutingSchema>;
+
+// Normalize "HH:MM" or "HH:MM:SS" to "HH:MM" for time inputs
+const toHHMM = (t: string | null | undefined): string => {
+  if (!t) return "";
+  return t.slice(0, 5);
+};
+
+// Append seconds for PostgreSQL time columns
+const toTimeValue = (t: string | null | undefined): string | null => {
+  if (!t) return null;
+  return t.length === 5 ? t + ":00" : t;
+};
 
 interface EditOutingDialogProps {
   outing: Outing;
@@ -61,8 +73,8 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
       date: outingDate,
       startTime: format(outingDate, "HH:mm"),
       endTime: endDate ? format(endDate, "HH:mm") : "",
-      waterEntryTime: outing.water_entry_time || "",
-      waterExitTime: outing.water_exit_time || "",
+      waterEntryTime: toHHMM(outing.water_entry_time),
+      waterExitTime: toHHMM(outing.water_exit_time),
       location: outing.location,
       location_id: outing.location_id || "",
       outing_type: outing.outing_type,
@@ -78,8 +90,8 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
         date: outingDate,
         startTime: format(outingDate, "HH:mm"),
         endTime: endDate ? format(endDate, "HH:mm") : "",
-        waterEntryTime: outing.water_entry_time || "",
-        waterExitTime: outing.water_exit_time || "",
+        waterEntryTime: toHHMM(outing.water_entry_time),
+        waterExitTime: toHHMM(outing.water_exit_time),
         location: outing.location,
         location_id: outing.location_id || "",
         outing_type: outing.outing_type,
@@ -117,8 +129,8 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
         description: data.description || null,
         date_time: startDateTime.toISOString(),
         end_date: endDateTime?.toISOString() || null,
-        water_entry_time: data.waterEntryTime || null,
-        water_exit_time: data.waterExitTime || null,
+        water_entry_time: toTimeValue(data.waterEntryTime),
+        water_exit_time: toTimeValue(data.waterExitTime),
         location: data.location,
         location_id: data.location_id || null,
         outing_type: data.outing_type as OutingType,
@@ -171,7 +183,7 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                   <FormLabel>Description (optionnel)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="DÃ©tails de la sortie..."
+                      placeholder="Détails de la sortie..."
                       className="resize-none"
                       {...field}
                     />
@@ -229,7 +241,7 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>DÃ©but</FormLabel>
+                    <FormLabel>Début</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -259,7 +271,7 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                 name="waterEntryTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Heure mise Ã  l'eau</FormLabel>
+                    <FormLabel>Heure mise à l'eau</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} />
                     </FormControl>
@@ -289,11 +301,11 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                 name="location_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lieu enregistrÃ©</FormLabel>
+                    <FormLabel>Lieu enregistré</FormLabel>
                     <Select onValueChange={handleLocationChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="SÃ©lectionner un lieu" />
+                          <SelectValue placeholder="Sélectionner un lieu" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -338,15 +350,15 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="SÃ©lectionner un type" />
+                          <SelectValue placeholder="Sélectionner un type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Mer">Mer</SelectItem>
                         <SelectItem value="Piscine">Piscine</SelectItem>
-                        <SelectItem value="DÃ©pollution">DÃ©pollution</SelectItem>
+                        <SelectItem value="Dépollution">Dépollution</SelectItem>
                         <SelectItem value="Fosse">Fosse</SelectItem>
-                        <SelectItem value="Ã‰tang">Ã‰tang</SelectItem>
+                        <SelectItem value="Étang">Étang</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -410,5 +422,3 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
 };
 
 export default EditOutingDialog;
-
-
