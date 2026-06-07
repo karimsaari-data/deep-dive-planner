@@ -31,7 +31,7 @@ export const FISH_LEVELS: FishLevel[] = [
   { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500"  },
   { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500" },
   { name: "Barracuda",  min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500"     },
-  { name: "MÃ©rou",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400"   },
+  { name: "Mérou",       min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400"   },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
@@ -74,7 +74,7 @@ const getTechnicalWeight = (apneaLevel: string | null): number => {
   if (
     levelLower.includes("mef2") ||
     levelLower.includes("instructeur") ||
-    levelLower.includes("encadrant apnÃ©e de niveau 2")
+    levelLower.includes("encadrant apnée de niveau 2")
   ) {
     return 2;
   }
@@ -82,7 +82,7 @@ const getTechnicalWeight = (apneaLevel: string | null): number => {
   if (
     levelLower.includes("mef1") ||
     levelLower.includes("moniteur") ||
-    levelLower.includes("encadrant apnÃ©e de niveau 1")
+    levelLower.includes("encadrant apnée de niveau 1")
   ) {
     return 3;
   }
