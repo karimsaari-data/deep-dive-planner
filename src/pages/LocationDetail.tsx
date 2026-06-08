@@ -163,6 +163,50 @@ const LocationDetail = () => {
             </div>
           )}
 
+          {/* POSS maps (uploaded images) */}
+          {(location.satellite_map_url || location.bathymetric_map_url) && (
+            <div className="mb-6 grid gap-4 md:grid-cols-2">
+              {location.satellite_map_url && (
+                <a
+                  href={location.satellite_map_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block overflow-hidden rounded-xl border border-border shadow-card hover:shadow-elevated transition-shadow"
+                >
+                  <img
+                    src={location.satellite_map_url}
+                    alt={`Carto POSS satellite – ${location.name}`}
+                    className="w-full object-cover max-h-64 group-hover:opacity-90 transition-opacity"
+                  />
+                  <div className="flex items-center gap-2 px-3 py-2 bg-card text-sm font-medium text-primary">
+                    <Compass className="h-4 w-4" />
+                    Carto POSS – Vue satellite
+                    <ExternalLink className="h-3 w-3 ml-auto" />
+                  </div>
+                </a>
+              )}
+              {location.bathymetric_map_url && (
+                <a
+                  href={location.bathymetric_map_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group block overflow-hidden rounded-xl border border-border shadow-card hover:shadow-elevated transition-shadow"
+                >
+                  <img
+                    src={location.bathymetric_map_url}
+                    alt={`Carto POSS bathymétrie – ${location.name}`}
+                    className="w-full object-cover max-h-64 group-hover:opacity-90 transition-opacity"
+                  />
+                  <div className="flex items-center gap-2 px-3 py-2 bg-card text-sm font-medium text-primary">
+                    <Anchor className="h-4 w-4" />
+                    Carto POSS – Bathymétrie
+                    <ExternalLink className="h-3 w-3 ml-auto" />
+                  </div>
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2">
             {/* Satellite Map with waypoints */}
             {hasCoordinates && (
