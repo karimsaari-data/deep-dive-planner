@@ -324,6 +324,27 @@ export const useDecommissionEquipment = () => {
   });
 };
 
+export const useDeleteEquipment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (inventoryId: string) => {
+      const { error } = await supabase
+        .from("equipment_inventory")
+        .delete()
+        .eq("id", inventoryId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["equipment-inventory"] });
+      toast.success("Matériel supprimé");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la suppression");
+    },
+  });
+};
+
 // Hook for equipment history
 export const useEquipmentHistory = (inventoryId?: string) => {
   return useQuery({

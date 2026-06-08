@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Package, ArrowRightLeft, Trash2, AlertTriangle, Loader2, Calendar, Hash, User } from "lucide-react";
-import { EquipmentInventoryItem, useTransferEquipment, useDecommissionEquipment, useEncadrants } from "@/hooks/useEquipment";
+import { EquipmentInventoryItem, useTransferEquipment, useDecommissionEquipment, useDeleteEquipment, useEncadrants } from "@/hooks/useEquipment";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -31,6 +32,7 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
   const { data: encadrants } = useEncadrants();
   const transferEquipment = useTransferEquipment();
   const decommissionEquipment = useDecommissionEquipment();
+  const deleteEquipment = useDeleteEquipment();
 
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isDecommissionOpen, setIsDecommissionOpen] = useState(false);
@@ -147,24 +149,54 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
             )}
 
             {/* Actions */}
-            {isOwner && item.status === "disponible" && (
+            {isOwner && (
               <div className="space-y-2 pt-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setIsTransferOpen(true)}
-                >
-                  <ArrowRightLeft className="mr-2 h-4 w-4" />
-                  Transférer à un autre encadrant
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-destructive hover:text-destructive"
-                  onClick={() => setIsDecommissionOpen(true)}
-                >
-                  <AlertTriangle className="mr-2 h-4 w-4" />
-                  Déclarer un problème / Mise au rebus
-                </Button>
+                {item.status === "disponible" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => setIsTransferOpen(true)}
+                    >
+                      <ArrowRightLeft className="mr-2 h-4 w-4" />
+                      Transférer à un autre encadrant
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-destructive hover:text-destructive"
+                      onClick={() => setIsDecommissionOpen(true)}
+                    >
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Déclarer un problème / Mise au rebus
+                    </Button>
+                  </>
+                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Supprimer définitivement
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Supprimer ce matériel ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        "{item.catalog?.name}" ({item.unique_code}) sera supprimé définitivement. Cette action est irréversible.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => deleteEquipment.mutate(item.id, { onSuccess: () => onOpenChange(false) })}
+                      >
+                        {deleteEquipment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Supprimer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </div>
