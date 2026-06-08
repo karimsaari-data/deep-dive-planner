@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Package, ArrowRightLeft, Trash2, AlertTriangle, Loader2, Calendar, Hash, User } from "lucide-react";
-import { EquipmentInventoryItem, useTransferEquipment, useDecommissionEquipment, useDeleteEquipment, useEncadrants } from "@/hooks/useEquipment";
+import { Package, ArrowRightLeft, Trash2, AlertTriangle, Loader2, Calendar, Hash, User, Camera } from "lucide-react";
+import { EquipmentInventoryItem, useTransferEquipment, useDecommissionEquipment, useDeleteEquipment, useUpdateEquipmentPhoto, useEncadrants } from "@/hooks/useEquipment";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
@@ -33,6 +33,8 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
   const transferEquipment = useTransferEquipment();
   const decommissionEquipment = useDecommissionEquipment();
   const deleteEquipment = useDeleteEquipment();
+  const updatePhoto = useUpdateEquipmentPhoto();
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [isTransferOpen, setIsTransferOpen] = useState(false);
   const [isDecommissionOpen, setIsDecommissionOpen] = useState(false);
@@ -45,6 +47,13 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
   const status = statusLabels[item.status] || { label: item.status, variant: "outline" as const };
   const isOwner = item.owner_id === user?.id;
   const displayPhoto = item.photo_url || item.catalog?.photo_url;
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    updatePhoto.mutate({ inventoryId: item.id, file });
+    e.target.value = "";
+  };
 
   const handleTransfer = () => {
     if (!selectedUserId) return;
@@ -84,7 +93,7 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
 
           <div className="mt-6 space-y-6">
             {/* Photo */}
-            <div className="aspect-square w-full rounded-xl overflow-hidden bg-muted">
+            <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-muted group">
               {displayPhoto ? (
                 <img
                   src={displayPhoto}
@@ -95,6 +104,28 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
                 <div className="flex h-full w-full items-center justify-center">
                   <Package className="h-16 w-16 text-muted-foreground" />
                 </div>
+              )}
+              {isOwner && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={updatePhoto.isPending}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  >
+                    {updatePhoto.isPending
+                      ? <Loader2 className="h-8 w-8 text-white animate-spin" />
+                      : <Camera className="h-8 w-8 text-white" />
+                    }
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
+                </>
               )}
             </div>
 
@@ -151,6 +182,19 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
             {/* Actions */}
             {isOwner && (
               <div className="space-y-2 pt-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={updatePhoto.isPending}
+                >
+                  {updatePhoto.isPending
+                    ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    : <Camera className="mr-2 h-4 w-4" />
+                  }
+                  {displayPhoto ? "Modifier la photo" : "Ajouter une photo"}
+                </Button>
+
                 {item.status === "disponible" && (
                   <>
                     <Button
@@ -171,6 +215,7 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
                     </Button>
                   </>
                 )}
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
