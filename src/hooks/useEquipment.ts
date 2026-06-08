@@ -343,11 +343,8 @@ export const useUpdateEquipmentPhoto = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment-inventory"] });
-<<<<<<< HEAD
       queryClient.invalidateQueries({ queryKey: ["my-equipment-inventory"] });
       queryClient.invalidateQueries({ queryKey: ["global-equipment-inventory"] });
-=======
->>>>>>> origin/main
       toast.success("Photo mise à jour");
     },
     onError: (error: Error) => {
