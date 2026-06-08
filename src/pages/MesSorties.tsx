@@ -196,7 +196,7 @@ const MesSorties = () => {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   {myOutings.map((outing) => {
-                    const confirmedCount = (outing.confirmed_count ?? 0) + (outing.co_instructors?.length ?? 0);
+                    const confirmedCount = outing.confirmed_count ?? 0;
                     const isCoInstructed = outing.organizer_id !== user?.id;
 
                     return (
