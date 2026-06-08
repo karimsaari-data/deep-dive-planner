@@ -187,37 +187,41 @@ export const useAddToInventory = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ catalogId, notes, photoUrl }: { catalogId: string; notes?: string; photoUrl?: string }) => {
+    mutationFn: async ({ catalogId, notes, photoUrl, quantity = 1 }: { catalogId: string; notes?: string; photoUrl?: string; quantity?: number }) => {
       if (!user) throw new Error("Non authentifié");
+
+      const rows = Array.from({ length: quantity }, () => ({
+        catalog_id: catalogId,
+        owner_id: user.id,
+        notes: notes || null,
+        photo_url: photoUrl || null,
+      }));
 
       const { data, error } = await supabase
         .from("equipment_inventory")
-        .insert({
-          catalog_id: catalogId,
-          owner_id: user.id,
-          notes,
-          photo_url: photoUrl,
-        } as any)
-        .select()
-        .single();
+        .insert(rows as any)
+        .select();
 
       if (error) throw error;
 
-      // Log history
-      await supabase.from("equipment_history").insert({
-        inventory_id: data.id,
-        action_type: "acquisition",
-        to_user_id: user.id,
-        new_status: "disponible",
-        created_by: user.id,
-      });
+      // Log history for each item
+      await supabase.from("equipment_history").insert(
+        data.map((item: { id: string }) => ({
+          inventory_id: item.id,
+          action_type: "acquisition",
+          to_user_id: user.id,
+          new_status: "disponible",
+          created_by: user.id,
+        }))
+      );
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["my-equipment-inventory"] });
       queryClient.invalidateQueries({ queryKey: ["global-equipment-inventory"] });
-      toast.success("Matériel ajouté à votre inventaire !");
+      const count = Array.isArray(data) ? data.length : 1;
+      toast.success(count > 1 ? `${count} articles ajoutés à votre inventaire !` : "Matériel ajouté à votre inventaire !");
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de l'ajout");

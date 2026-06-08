@@ -117,6 +117,7 @@ const MyInventoryTab = () => {
   const [step, setStep] = useState<"select" | "details">("select");
   const [selectedCatalogItem, setSelectedCatalogItem] = useState<typeof catalog extends (infer T)[] ? T : never | null>(null);
   const [notes, setNotes] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -177,7 +178,7 @@ const MyInventoryTab = () => {
     }
 
     addToInventory.mutate(
-      { catalogId: selectedCatalogItem.id, notes: notes.trim() || undefined, photoUrl },
+      { catalogId: selectedCatalogItem.id, notes: notes.trim() || undefined, photoUrl, quantity },
       {
         onSuccess: () => {
           resetForm();
@@ -194,6 +195,7 @@ const MyInventoryTab = () => {
     setStep("select");
     setSelectedCatalogItem(null);
     setNotes("");
+    setQuantity(1);
     setPhotoFile(null);
     setPhotoPreview(null);
     setIsUploading(false);
@@ -203,6 +205,7 @@ const MyInventoryTab = () => {
     setStep("select");
     setSelectedCatalogItem(null);
     setNotes("");
+    setQuantity(1);
     setPhotoFile(null);
     setPhotoPreview(null);
   };
@@ -300,9 +303,40 @@ const MyInventoryTab = () => {
                       </Button>
                     </div>
 
+                    {/* Quantity */}
+                    <div className="space-y-2">
+                      <Label>Quantité</Label>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 shrink-0"
+                          onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                          disabled={quantity <= 1}
+                        >
+                          −
+                        </Button>
+                        <span className="w-10 text-center font-semibold text-lg">{quantity}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 shrink-0"
+                          onClick={() => setQuantity(q => Math.min(50, q + 1))}
+                          disabled={quantity >= 50}
+                        >
+                          +
+                        </Button>
+                        {quantity > 1 && (
+                          <span className="text-sm text-muted-foreground">→ {quantity} articles créés</span>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Photo upload */}
                     <div className="space-y-2">
-                      <Label>Photo de votre article</Label>
+                      <Label>Photo {quantity > 1 ? "(commune à tous les articles)" : "de votre article"}</Label>
                       {photoPreview ? (
                         <div className="relative">
                           <img
@@ -391,7 +425,7 @@ const MyInventoryTab = () => {
                         disabled={addToInventory.isPending || isUploading}
                       >
                         {(addToInventory.isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Ajouter
+                        {quantity > 1 ? `Ajouter ${quantity} articles` : "Ajouter"}
                       </Button>
                     </div>
                   </div>
