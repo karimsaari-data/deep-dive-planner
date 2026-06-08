@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints, MapPin } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints, MapPin, Users, X } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,21 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const [maxParticipantsLimit, setMaxParticipantsLimit] = useState<number>(100);
   const [locationOpen, setLocationOpen] = useState(false);
   const [locationSearch, setLocationSearch] = useState(prefilledLocationName || "");
+  const [selectedCoInstructors, setSelectedCoInstructors] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
+  const [coInstructorSearch, setCoInstructorSearch] = useState("");
+  const [coInstructorPickerOpen, setCoInstructorPickerOpen] = useState(false);
+
+  const { data: allMembers } = useQuery({
+    queryKey: ["profiles-picker"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .order("last_name");
+      if (error) throw error;
+      return data as { id: string; first_name: string; last_name: string }[];
+    },
+  });
 
   const form = useForm<OutingFormData>({
     resolver: zodResolver(outingSchema),
@@ -232,9 +248,15 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
         boat_id: isNaturalEnvironment && data.dive_mode === "boat" ? data.boat_id : undefined,
       },
       {
-        onSuccess: (newOuting) => {
+        onSuccess: async (newOuting) => {
           form.reset();
           if (newOuting?.id) {
+            if (selectedCoInstructors.length > 0) {
+              await supabase.from("outing_co_instructors").insert(
+                selectedCoInstructors.map((ci) => ({ outing_id: newOuting.id, user_id: ci.id }))
+              );
+            }
+            setSelectedCoInstructors([]);
             setCreatedOutingId(newOuting.id);
             setShowShareDialog(true);
           }
@@ -772,6 +794,67 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 </FormItem>
               )}
             />
+
+            {/* Co-encadrants */}
+            <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+              <div className="flex items-center gap-2 text-base font-medium">
+                <Users className="h-4 w-4 text-primary" />
+                Co-encadrants (optionnel)
+              </div>
+              {selectedCoInstructors.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedCoInstructors.map((ci) => (
+                    <span key={ci.id} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
+                      {ci.first_name} {ci.last_name}
+                      <button type="button" onClick={() => setSelectedCoInstructors((prev) => prev.filter((c) => c.id !== ci.id))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <Popover open={coInstructorPickerOpen} onOpenChange={setCoInstructorPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter un co-encadrant
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-2" align="start">
+                  <Input
+                    placeholder="Rechercher..."
+                    value={coInstructorSearch}
+                    onChange={(e) => setCoInstructorSearch(e.target.value)}
+                    className="mb-2"
+                    autoFocus
+                  />
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {(allMembers ?? [])
+                      .filter(
+                        (m) =>
+                          m.id !== user?.id &&
+                          !selectedCoInstructors.some((c) => c.id === m.id) &&
+                          (coInstructorSearch === "" ||
+                            `${m.first_name} ${m.last_name}`.toLowerCase().includes(coInstructorSearch.toLowerCase()))
+                      )
+                      .map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted"
+                          onClick={() => {
+                            setSelectedCoInstructors((prev) => [...prev, m]);
+                            setCoInstructorSearch("");
+                            setCoInstructorPickerOpen(false);
+                          }}
+                        >
+                          {m.first_name} {m.last_name}
+                        </button>
+                      ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
 
             <Button
               type="submit"
