@@ -215,6 +215,7 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
                     </Button>
                   </>
                 )}
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
