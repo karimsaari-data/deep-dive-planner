@@ -246,7 +246,7 @@ const MemberManagement = () => {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-3">
+                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3">
                           {/* Niveau d'apnée */}
                           <Select
                             value={profile.apnea_level ?? ""}
@@ -257,10 +257,10 @@ const MemberManagement = () => {
                               })
                             }
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger className="w-full sm:w-[140px]">
                               <SelectValue placeholder="Niveau" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent side="top">
                               {APNEA_LEVELS.map((level) => (
                                 <SelectItem key={level} value={level}>
                                   {level}
@@ -279,10 +279,10 @@ const MemberManagement = () => {
                               })
                             }
                           >
-                            <SelectTrigger className="w-[130px]">
+                            <SelectTrigger className="w-full sm:w-[130px]">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent side="top">
                               <SelectItem value="Membre">
                                 <div className="flex items-center gap-2">
                                   <User className="h-3 w-3" />
@@ -308,10 +308,10 @@ const MemberManagement = () => {
                               })
                             }
                           >
-                            <SelectTrigger className="w-[130px]">
+                            <SelectTrigger className="w-full sm:w-[130px]">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent side="top">
                               <SelectItem value="member">
                                 <Badge variant="outline">Membre</Badge>
                               </SelectItem>
