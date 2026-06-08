@@ -745,6 +745,11 @@ export const useAddCoInstructor = () => {
         .from("outing_co_instructors")
         .insert({ outing_id: outingId, user_id: userId });
       if (error) throw error;
+      // Auto-confirm co-instructor as participant (upsert to avoid duplicate)
+      await supabase.from("reservations").upsert(
+        { outing_id: outingId, user_id: userId, status: "confirmé" },
+        { onConflict: "outing_id,user_id", ignoreDuplicates: false }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });
@@ -769,6 +774,13 @@ export const useRemoveCoInstructor = () => {
         .eq("outing_id", outingId)
         .eq("user_id", userId);
       if (error) throw error;
+      // Cancel the auto-confirmed reservation when co-instructor is removed
+      await supabase
+        .from("reservations")
+        .update({ status: "annulé", cancelled_at: new Date().toISOString() })
+        .eq("outing_id", outingId)
+        .eq("user_id", userId)
+        .eq("status", "confirmé");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });

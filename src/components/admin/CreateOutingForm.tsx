@@ -255,6 +255,10 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               await supabase.from("outing_co_instructors").insert(
                 selectedCoInstructors.map((ci) => ({ outing_id: newOuting.id, user_id: ci.id }))
               );
+              await supabase.from("reservations").upsert(
+                selectedCoInstructors.map((ci) => ({ outing_id: newOuting.id, user_id: ci.id, status: "confirmé" })),
+                { onConflict: "outing_id,user_id", ignoreDuplicates: false }
+              );
             }
             setSelectedCoInstructors([]);
             setCreatedOutingId(newOuting.id);
