@@ -477,20 +477,28 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 )}
               />
 
-              {/* Récapitulatif calculé */}
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Mise à l'eau</p>
-                  <p className="font-semibold text-primary">{waterEntryTime}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Sortie eau</p>
-                  <p className="font-semibold text-primary">{waterExitTime}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">Fin RDV</p>
-                  <p className="font-semibold text-muted-foreground">{endTime}</p>
-                </div>
+              {/* Timeline déroulé de la sortie */}
+              <div className="pt-2 border-t border-border space-y-0">
+                {[
+                  { label: "RDV", time: startTime || "10:00", color: "bg-primary", desc: "Arrivée & équipement" },
+                  { label: "Mise à l'eau", time: waterEntryTime, color: "bg-cyan-500", desc: `Après ${formatDuration(prepDuration ?? 30)} de préparation` },
+                  { label: "Sortie de l'eau", time: waterExitTime, color: "bg-blue-500", desc: `Session ${formatDuration(sessionDuration ?? 120)}` },
+                  { label: "Fin RDV", time: endTime, color: "bg-muted-foreground", desc: "Rangement & départ" },
+                ].map((step, i, arr) => (
+                  <div key={step.label} className="flex items-stretch gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1 ${step.color}`} />
+                      {i < arr.length - 1 && <div className="w-0.5 flex-1 bg-border my-1" />}
+                    </div>
+                    <div className={`pb-3 ${i === arr.length - 1 ? "pb-0" : ""}`}>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-sm text-foreground">{step.time}</span>
+                        <span className="text-sm font-medium text-foreground">{step.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

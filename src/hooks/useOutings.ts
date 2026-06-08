@@ -199,6 +199,54 @@ export const useOuting = (outingId: string) => {
 
       if (error) throw error;
 
+      // Enrich reservations with apnea_level from membership_yearly_status (authoritative source)
+      if (data?.reservations?.length) {
+        const currentSeasonYear = new Date().getMonth() >= 8
+          ? new Date().getFullYear() + 1
+          : new Date().getFullYear();
+
+        const userIds = data.reservations.map((r: any) => r.user_id);
+
+        // Get emails from profiles to join with directory
+        const { data: profileEmails } = await supabase
+          .from("profiles")
+          .select("id, email")
+          .in("id", userIds);
+
+        const emailByUserId = new Map((profileEmails || []).map((p: any) => [p.id, p.email?.toLowerCase()]));
+
+        // Get directory member IDs
+        const emails = [...emailByUserId.values()].filter(Boolean);
+        const { data: dirMembers } = await supabase
+          .from("club_members_directory")
+          .select("id, email")
+          .in("email", emails);
+
+        const dirIdByEmail = new Map((dirMembers || []).map((d: any) => [d.email.toLowerCase(), d.id]));
+
+        // Get current season levels
+        const memberIds = [...dirIdByEmail.values()];
+        const { data: seasonLevels } = memberIds.length
+          ? await supabase
+              .from("membership_yearly_status")
+              .select("member_id, apnea_level")
+              .eq("season_year", currentSeasonYear)
+              .in("member_id", memberIds)
+          : { data: [] };
+
+        const levelByMemberId = new Map((seasonLevels || []).map((s: any) => [s.member_id, s.apnea_level]));
+
+        // Patch each reservation's profile.apnea_level
+        for (const r of data.reservations as any[]) {
+          const email = emailByUserId.get(r.user_id);
+          const memberId = email ? dirIdByEmail.get(email) : null;
+          const seasonLevel = memberId ? levelByMemberId.get(memberId) : null;
+          if (seasonLevel && r.profile) {
+            r.profile.apnea_level = seasonLevel;
+          }
+        }
+      }
+
       // Fetch organizer max depths and max participants if organizer has apnea_level
       if (data && data.organizer?.apnea_level) {
         const { data: levelData } = await supabase
