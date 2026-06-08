@@ -324,6 +324,30 @@ export const useDecommissionEquipment = () => {
   });
 };
 
+export const useUpdateEquipmentPhoto = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ inventoryId, file }: { inventoryId: string; file: File }) => {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `inventory/${crypto.randomUUID()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("outings_gallery").upload(filePath, file);
+      if (uploadError) throw new Error("Erreur lors de l'upload de la photo");
+      const { data: { publicUrl } } = supabase.storage.from("outings_gallery").getPublicUrl(filePath);
+      const { error } = await supabase.from("equipment_inventory").update({ photo_url: publicUrl }).eq("id", inventoryId);
+      if (error) throw new Error(error.message);
+      return publicUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["equipment-inventory"] });
+      toast.success("Photo mise à jour");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};
+
 export const useDeleteEquipment = () => {
   const queryClient = useQueryClient();
 
