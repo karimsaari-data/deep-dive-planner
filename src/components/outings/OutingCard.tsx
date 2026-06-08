@@ -69,10 +69,8 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
     }
   };
 
-  // Use real confirmed count from SECURITY DEFINER function (bypasses RLS)
-  // Co-instructors count as participants in the headcount (they occupy a spot)
-  const coInstructorsCount = outing.co_instructors?.length ?? 0;
-  const currentParticipants = (outing.confirmed_count ?? 0) + coInstructorsCount;
+  // Co-instructors have confirmed reservations — confirmed_count already includes them
+  const currentParticipants = outing.confirmed_count ?? 0;
   const isFull = currentParticipants >= outing.max_participants;
   const userReservation = outing.reservations?.find((r) => r.user_id === user?.id && r.status !== "annulé");
   const isRegistered = !!userReservation;

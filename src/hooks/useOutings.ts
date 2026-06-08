@@ -751,6 +751,7 @@ export const useCoInstructedOutings = () => {
             *,
             organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
             location_details:locations(id, name, address, maps_url),
+            co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
             reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
           )
         `)
@@ -793,6 +794,11 @@ export const useAddCoInstructor = () => {
         .from("outing_co_instructors")
         .insert({ outing_id: outingId, user_id: userId });
       if (error) throw error;
+      // Auto-confirm co-instructor as participant (upsert to avoid duplicate)
+      await supabase.from("reservations").upsert(
+        { outing_id: outingId, user_id: userId, status: "confirmé" },
+        { onConflict: "outing_id,user_id", ignoreDuplicates: false }
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });
@@ -817,6 +823,13 @@ export const useRemoveCoInstructor = () => {
         .eq("outing_id", outingId)
         .eq("user_id", userId);
       if (error) throw error;
+      // Cancel the auto-confirmed reservation when co-instructor is removed
+      await supabase
+        .from("reservations")
+        .update({ status: "annulé", cancelled_at: new Date().toISOString() })
+        .eq("outing_id", outingId)
+        .eq("user_id", userId)
+        .eq("status", "confirmé");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });

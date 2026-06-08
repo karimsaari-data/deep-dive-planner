@@ -77,11 +77,12 @@ const OutingDetail = () => {
   const addCoInstructor = useAddCoInstructor();
   const removeCoInstructor = useRemoveCoInstructor();
   const { data: allMembers } = useQuery({
-    queryKey: ["profiles-picker"],
+    queryKey: ["encadrants-picker"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
+        .eq("member_status", "Encadrant")
         .order("last_name");
       if (error) throw error;
       return data as { id: string; first_name: string; last_name: string }[];
