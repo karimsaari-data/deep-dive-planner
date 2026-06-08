@@ -28,7 +28,7 @@ import { toast } from "sonner";
 
 const outingSchema = z.object({
   title: z.string().min(3, "Le titre doit faire au moins 3 caractères").max(100),
-  description: z.string().max(500, "La description ne peut pas dépasser 500 caractères").optional(),
+  description: z.string().max(1000, "La description ne peut pas dépasser 1000 caractères").optional(),
   date: z.date({ required_error: "La date est requise" }).max(new Date("2030-12-31"), "La date ne peut pas dépasser le 31/12/2030"),
   startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Format invalide (HH:MM)"),
   prepDuration: z.number().min(0).max(180),
@@ -295,7 +295,12 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (optionnel)</FormLabel>
+                  <div className="flex justify-between items-baseline">
+                    <FormLabel>Description (optionnel)</FormLabel>
+                    <span className="text-xs text-muted-foreground">
+                      {(field.value?.length ?? 0)}/1000
+                    </span>
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Détails de la sortie..."
