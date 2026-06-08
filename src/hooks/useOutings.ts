@@ -703,6 +703,7 @@ export const useCoInstructedOutings = () => {
             *,
             organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
             location_details:locations(id, name, address, maps_url),
+            co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
             reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
           )
         `)
