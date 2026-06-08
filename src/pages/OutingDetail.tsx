@@ -545,6 +545,30 @@ const OutingDetail = () => {
                 )}
               </div>
             </div>
+            {(outing.water_entry_time || outing.water_exit_time) && (
+              <div className="mt-4 space-y-0">
+                {[
+                  { label: "RDV", time: format(new Date(outing.date_time), "HH'h'mm", { locale: fr }), color: "bg-primary", desc: "Arrivée & équipement" },
+                  ...(outing.water_entry_time ? [{ label: "Mise à l'eau", time: outing.water_entry_time.slice(0,5).replace(":", "h"), color: "bg-cyan-500", desc: "Début de session" }] : []),
+                  ...(outing.water_exit_time ? [{ label: "Sortie de l'eau", time: outing.water_exit_time.slice(0,5).replace(":", "h"), color: "bg-blue-500", desc: "Fin de session" }] : []),
+                  ...(outing.end_date ? [{ label: "Fin RDV", time: format(new Date(outing.end_date), "HH'h'mm", { locale: fr }), color: "bg-muted-foreground", desc: "Rangement & départ" }] : []),
+                ].map((step, i, arr) => (
+                  <div key={step.label} className="flex items-stretch gap-3">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${step.color}`} />
+                      {i < arr.length - 1 && <div className="w-0.5 flex-1 bg-border my-1" />}
+                    </div>
+                    <div className={i < arr.length - 1 ? "pb-2" : "pb-0"}>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-sm text-foreground">{step.time}</span>
+                        <span className="text-sm font-medium text-foreground">{step.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{step.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             {outing.description && (
               <p className="mt-2 text-muted-foreground">{outing.description}</p>
             )}
