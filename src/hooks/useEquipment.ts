@@ -204,7 +204,6 @@ export const useAddToInventory = () => {
 
       if (error) throw error;
 
-      // Log history for each item
       await supabase.from("equipment_history").insert(
         data.map((item: { id: string }) => ({
           inventory_id: item.id,
@@ -344,6 +343,8 @@ export const useUpdateEquipmentPhoto = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["equipment-inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["my-equipment-inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["global-equipment-inventory"] });
       toast.success("Photo mise à jour");
     },
     onError: (error: Error) => {
