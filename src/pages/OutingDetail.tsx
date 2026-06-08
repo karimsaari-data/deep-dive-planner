@@ -691,6 +691,7 @@ const OutingDetail = () => {
               const profile = reservation.profile;
               const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
               const isOrg = reservation.user_id === outing.organizer_id;
+              const isCoInstructor = !isOrg && (outing.co_instructors?.some(ci => ci.user_id === reservation.user_id) ?? false);
               const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
               const isInstructor = isEncadrant(reservation);
               const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
@@ -739,6 +740,9 @@ const OutingDetail = () => {
                         )}
                         {isInstructor && !isOrg && (
                           <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">Encadrant</Badge>
+                        )}
+                        {isCoInstructor && (
+                          <Badge className="bg-purple-500 text-white text-[10px] px-1.5 py-0">Co-encadrant</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
