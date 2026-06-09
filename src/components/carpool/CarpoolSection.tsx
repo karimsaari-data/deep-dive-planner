@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { Reservation, CarpoolOption, useCancelCarpoolOffer } from "@/hooks/useOutings";
+import { Reservation, CarpoolOption, useCancelCarpoolOffer, useOfferCarpool } from "@/hooks/useOutings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -34,6 +34,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const cancelCarpoolOffer = useCancelCarpoolOffer();
+  const offerCarpool = useOfferCarpool();
   const { data: carpools, isLoading } = useCarpools(outingId);
   const { data: userCarpool } = useUserCarpool(outingId);
   const { data: userBooking } = useUserCarpoolBooking(outingId);
@@ -263,6 +264,23 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
           >
             <Plus className="h-4 w-4" />
             Proposer un trajet
+          </Button>
+        )}
+
+        {/* Button for non-drivers who want to offer a ride after registration */}
+        {!isDriver && !hasBookedCarpool && !isPast && (
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={() => {
+              offerCarpool.mutate(outingId, {
+                onSuccess: () => setShowForm(true),
+              });
+            }}
+            disabled={offerCarpool.isPending}
+          >
+            <Car className="h-4 w-4" />
+            {offerCarpool.isPending ? "..." : "Proposer un covoiturage"}
           </Button>
         )}
       </CardContent>
