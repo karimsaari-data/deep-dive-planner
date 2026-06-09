@@ -474,6 +474,7 @@ export const useCancelCarpoolOffer = () => {
     },
     onSuccess: (_, outingId) => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
       queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
       queryClient.invalidateQueries({ queryKey: ["carpool-driver-seats", outingId] });
       toast.success("Proposition de covoiturage annulée");
@@ -502,6 +503,7 @@ export const useOfferCarpool = () => {
     },
     onSuccess: (_, outingId) => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
       queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
       queryClient.invalidateQueries({ queryKey: ["carpool-driver-seats", outingId] });
     },
