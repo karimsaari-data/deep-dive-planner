@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { Reservation, CarpoolOption } from "@/hooks/useOutings";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   useCarpools,
   useUserCarpool,
@@ -34,6 +36,20 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
   const { data: carpools, isLoading } = useCarpools(outingId);
   const { data: userCarpool } = useUserCarpool(outingId);
   const { data: userBooking } = useUserCarpoolBooking(outingId);
+
+  const { data: volunteerDriverCount = 0 } = useQuery({
+    queryKey: ["carpool-driver-count", outingId],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("reservations")
+        .select("id", { count: "exact", head: true })
+        .eq("outing_id", outingId)
+        .eq("status", "confirmé")
+        .eq("carpool_option", "driver");
+      return count ?? 0;
+    },
+    enabled: !!outingId && !!user,
+  });
 
   const isDriver = userReservation?.carpool_option === "driver";
   const isPassenger = userReservation?.carpool_option === "passenger";
@@ -208,9 +224,21 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
         ) : (
           !showDriverPrompt &&
           !hasCreatedCarpool && (
-            <p className="text-center text-muted-foreground py-4">
-              Aucun covoiturage proposé pour le moment
-            </p>
+            volunteerDriverCount > 0 ? (
+              <Alert className="border-amber-400/50 bg-amber-50 dark:bg-amber-950/20">
+                <Car className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 dark:text-amber-300">
+                  <span className="font-semibold">{volunteerDriverCount} conducteur{volunteerDriverCount > 1 ? "s" : ""} volontaire{volunteerDriverCount > 1 ? "s" : ""}</span>, aucun trajet configuré pour l'instant.
+                  {isDriver && !isPast && (
+                    <span> Vous proposez de conduire ? <button className="underline font-medium" onClick={() => setShowForm(true)}>Configurez votre trajet.</button></span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                Aucun covoiturage proposé pour le moment
+              </p>
+            )
           )
         )}
 
