@@ -456,6 +456,34 @@ export const useCancelReservation = () => {
   });
 };
 
+export const useCancelCarpoolOffer = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (outingId: string) => {
+      if (!user) throw new Error("Non connecté");
+
+      const { error } = await supabase
+        .from("reservations")
+        .update({ carpool_option: "none", carpool_seats: 0 })
+        .eq("outing_id", outingId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, outingId) => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["carpool-driver-seats", outingId] });
+      toast.success("Proposition de covoiturage annulée");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'annulation");
+    },
+  });
+};
+
 export const useUpdateReservationPresence = () => {
   const queryClient = useQueryClient();
 

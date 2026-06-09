@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { Reservation, CarpoolOption } from "@/hooks/useOutings";
+import { Reservation, CarpoolOption, useCancelCarpoolOffer } from "@/hooks/useOutings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -33,6 +33,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
+  const cancelCarpoolOffer = useCancelCarpoolOffer();
   const { data: carpools, isLoading } = useCarpools(outingId);
   const { data: userCarpool } = useUserCarpool(outingId);
   const { data: userBooking } = useUserCarpoolBooking(outingId);
@@ -131,15 +132,26 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
               <span>
                 👋 Vous avez proposé de conduire ! Configurez votre trajet maintenant.
               </span>
-              <Button
-                variant="ocean"
-                size="sm"
-                className="gap-1 shrink-0"
-                onClick={() => setShowForm(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Configurer
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="ocean"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => setShowForm(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Configurer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                  onClick={() => cancelCarpoolOffer.mutate(outingId)}
+                  disabled={cancelCarpoolOffer.isPending}
+                >
+                  {cancelCarpoolOffer.isPending ? "Annulation..." : "Annuler ma proposition"}
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}
