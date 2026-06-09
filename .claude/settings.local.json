@@ -32,7 +32,8 @@
       "mcp__Vercel__list_deployments",
       "mcp__Supabase__get_logs",
       "mcp__Supabase__list_projects",
-      "mcp__Supabase__get_project"
+      "mcp__Supabase__get_project",
+      "Bash(cp \"/root/.claude/uploads/d70b30d4-34aa-5ef0-8391-c3d8d21321fd/054c15e1-Dossier_de_presse.pdf\" \"/home/user/deep-dive-planner/public/files/Dossier_de_presse.pdf\")"
     ]
   }
 }
