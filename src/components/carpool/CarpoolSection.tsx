@@ -37,16 +37,16 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
   const { data: userCarpool } = useUserCarpool(outingId);
   const { data: userBooking } = useUserCarpoolBooking(outingId);
 
-  const { data: volunteerDriverCount = 0 } = useQuery({
-    queryKey: ["carpool-driver-count", outingId],
+  const { data: volunteerSeatsCount = 0 } = useQuery({
+    queryKey: ["carpool-driver-seats", outingId],
     queryFn: async () => {
-      const { count } = await supabase
+      const { data } = await supabase
         .from("reservations")
-        .select("id", { count: "exact", head: true })
+        .select("carpool_seats")
         .eq("outing_id", outingId)
         .eq("status", "confirmé")
         .eq("carpool_option", "driver");
-      return count ?? 0;
+      return (data ?? []).reduce((sum, r) => sum + (r.carpool_seats ?? 0), 0);
     },
     enabled: !!outingId && !!user,
   });
@@ -224,11 +224,11 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
         ) : (
           !showDriverPrompt &&
           !hasCreatedCarpool && (
-            volunteerDriverCount > 0 ? (
+            volunteerSeatsCount > 0 ? (
               <Alert className="border-amber-400/50 bg-amber-50 dark:bg-amber-950/20">
                 <Car className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800 dark:text-amber-300">
-                  <span className="font-semibold">{volunteerDriverCount} conducteur{volunteerDriverCount > 1 ? "s" : ""} volontaire{volunteerDriverCount > 1 ? "s" : ""}</span>, aucun trajet configuré pour l'instant.
+                  <span className="font-semibold">{volunteerSeatsCount} place{volunteerSeatsCount > 1 ? "s" : ""} proposée{volunteerSeatsCount > 1 ? "s" : ""}</span>, aucun trajet configuré pour l'instant.
                   {isDriver && !isPast && (
                     <span> Vous proposez de conduire ? <button className="underline font-medium" onClick={() => setShowForm(true)}>Configurez votre trajet.</button></span>
                   )}
