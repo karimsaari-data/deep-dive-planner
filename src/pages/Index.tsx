@@ -65,6 +65,13 @@ const Index = () => {
 
       <ActivePollsBanner />
 
+      {/* Club calendar from Google Calendar */}
+      <section className="pt-8 pb-0">
+        <div className="container mx-auto px-4">
+          <ClubCalendarWidget />
+        </div>
+      </section>
+
       {/* Outings Section */}
       <section className="py-12">
         <div className="container mx-auto px-4">
@@ -128,10 +135,6 @@ const Index = () => {
               ))}
             </div>
           )}
-          {/* Club calendar from Google Calendar */}
-          <div className="mt-10">
-            <ClubCalendarWidget />
-          </div>
         </div>
       </section>
 
