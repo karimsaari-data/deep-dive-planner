@@ -220,13 +220,10 @@ const CarpoolForm = ({
               <MapPin className="h-3 w-3" />
               Point de rendez-vous *
             </Label>
-            <p className="text-xs text-muted-foreground">
-              Indiquez votre point de départ par l'une de ces trois options :
-            </p>
-
             {/* Option 1 : carte interactive */}
             {(destinationLat && destinationLng) && (
               <>
+                <p className="text-xs font-medium text-muted-foreground">Option 1 — Choisir sur la carte</p>
                 <Button
                   type="button"
                   variant={showMap ? "secondary" : "outline"}
@@ -234,7 +231,7 @@ const CarpoolForm = ({
                   onClick={() => setShowMap(!showMap)}
                 >
                   <Map className="h-4 w-4" />
-                  {showMap ? "Masquer la carte" : "📍 Choisir sur la carte"}
+                  {showMap ? "Masquer la carte" : "📍 Ouvrir la carte"}
                 </Button>
                 {showMap && (
                   <CarpoolMapPicker
@@ -253,6 +250,9 @@ const CarpoolForm = ({
             )}
 
             {/* Option 2 : saisie libre */}
+            <p className="text-xs font-medium text-muted-foreground">
+              {(destinationLat && destinationLng) ? "Option 2" : "Option 1"} — Saisie libre
+            </p>
             <Input
               id="meetingPoint"
               placeholder="Ex: Parking du supermarché, 12 rue de la Gare"
@@ -267,10 +267,13 @@ const CarpoolForm = ({
             </div>
 
             {/* Option 3 : lien Google Maps */}
+            <p className="text-xs font-medium text-muted-foreground">
+              {(destinationLat && destinationLng) ? "Option 3" : "Option 2"} — Lien Google Maps
+            </p>
             <Input
               id="mapsLink"
               type="url"
-              placeholder="Lien Google Maps (maps.google.com/...)"
+              placeholder="https://maps.google.com/..."
               value={mapsLink}
               onChange={(e) => setMapsLink(e.target.value)}
             />
