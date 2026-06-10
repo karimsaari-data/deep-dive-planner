@@ -456,6 +456,46 @@ export const useCancelReservation = () => {
   });
 };
 
+export const useUpdateReservationCarpool = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      outingId,
+      carpoolOption,
+      carpoolSeats,
+    }: {
+      outingId: string;
+      carpoolOption: CarpoolOption;
+      carpoolSeats: number;
+    }) => {
+      if (!user) throw new Error("Non connecté");
+
+      const { error } = await supabase
+        .from("reservations")
+        .update({
+          carpool_option: carpoolOption,
+          carpool_seats: carpoolSeats,
+        })
+        .eq("outing_id", outingId)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+      queryClient.invalidateQueries({ queryKey: ["outing-participants"] });
+      toast.success("Covoiturage mis à jour");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour du covoiturage");
+    },
+  });
+};
+
 export const useUpdateReservationPresence = () => {
   const queryClient = useQueryClient();
 

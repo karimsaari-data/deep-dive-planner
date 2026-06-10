@@ -224,6 +224,9 @@ const MesSorties = () => {
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
+                              {outing.is_staff_only && (
+                                <Badge className="bg-amber-500 text-white text-xs">PRIVÉ STAFF</Badge>
+                              )}
                               {getTypeIcon(outing.outing_type)}
                               <Badge variant="secondary">{outing.outing_type}</Badge>
                             </div>
