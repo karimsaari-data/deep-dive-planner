@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Waves, Loader2, History, ExternalLink } from "lucide-react";
+import { Waves, Loader2, History, ExternalLink, Calendar } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import OutingCard from "@/components/outings/OutingCard";
 import OutingFilters from "@/components/outings/OutingFilters";
@@ -56,9 +56,18 @@ const Index = () => {
           <h1 className="mb-3 text-3xl font-bold tracking-widest text-white md:text-4xl" style={{ letterSpacing: "0.1em" }}>
             Prochaines sorties
           </h1>
-          <div className="flex items-center gap-2 text-white/60">
-            <Waves className="h-4 w-4" />
-            <span className="text-sm">Team Oxygen</span>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 text-white/60">
+              <Waves className="h-4 w-4" />
+              <span className="text-sm">Team Oxygen</span>
+            </div>
+            <a
+              href="#agenda-club"
+              className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              Agenda du club
+            </a>
           </div>
         </div>
       </section>
@@ -130,7 +139,7 @@ const Index = () => {
           )}
 
           {/* Club calendar from Google Calendar */}
-          <div className="mt-10">
+          <div id="agenda-club" className="mt-10 scroll-mt-6">
             <ClubCalendarWidget />
           </div>
         </div>
