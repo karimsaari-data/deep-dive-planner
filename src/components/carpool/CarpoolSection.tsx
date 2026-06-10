@@ -186,7 +186,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
         {carpools && carpools.length > 0 ? (
           viewMode === "map" && hasCarpoolsForMap ? (
             <CarpoolMapView
-              carpools={carpools.filter((c) => c.driver_id !== user.id)}
+              carpools={carpools}
               outingId={outingId}
               destinationLat={destinationLat}
               destinationLng={destinationLng}

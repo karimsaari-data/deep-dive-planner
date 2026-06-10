@@ -288,7 +288,20 @@ const CarpoolMapView = ({
 
           <div className="flex items-center gap-2 text-sm mb-3 p-2 bg-muted/50 rounded-lg">
             <MapPin className="h-4 w-4 text-primary shrink-0" />
-            <span className="truncate">{selectedCarpool.meeting_point}</span>
+            {selectedCarpool.meeting_point ? (
+              <span className="truncate">{selectedCarpool.meeting_point}</span>
+            ) : selectedCarpool.maps_link ? (
+              <a
+                href={selectedCarpool.maps_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline truncate"
+              >
+                Voir sur Google Maps
+              </a>
+            ) : (
+              <span className="text-muted-foreground italic">Point non précisé</span>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
