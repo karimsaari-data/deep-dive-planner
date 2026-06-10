@@ -300,6 +300,9 @@ const OutingDetail = () => {
           <div className="mb-8">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="secondary">{outing.outing_type}</Badge>
+              {outing.is_staff_only && (
+                <Badge className="bg-amber-500 text-white">PRIVÉ STAFF</Badge>
+              )}
               {outing.is_poss_locked && (
                 <Badge className="gap-1 bg-amber-600 text-white">
                   <Lock className="h-3 w-3" />
