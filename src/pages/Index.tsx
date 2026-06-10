@@ -12,6 +12,7 @@ import HistoricalOutingForm from "@/components/outings/HistoricalOutingForm";
 import { useCarpoolCounts } from "@/hooks/useCarpoolCounts";
 import LandingPage from "@/pages/LandingPage";
 import ActivePollsBanner from "@/components/sondages/ActivePollsBanner";
+import ClubCalendarWidget from "@/components/calendar/ClubCalendarWidget";
 
 const Index = () => {
   // ── Tous les hooks en premier (règle des hooks React) ─────────────
@@ -127,6 +128,13 @@ const Index = () => {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Club calendar from Google Calendar */}
+      <section className="pb-10">
+        <div className="container mx-auto px-4 max-w-lg">
+          <ClubCalendarWidget />
         </div>
       </section>
 
