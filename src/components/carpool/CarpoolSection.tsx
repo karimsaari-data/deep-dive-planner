@@ -114,7 +114,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
             <AlertCircle className="h-4 w-4 text-primary" />
             <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <span>
-                👋 Vous avez proposé de conduire ! Configurez votre trajet maintenant.
+                🌿 Merci de proposer un covoiturage ! Configurez votre trajet pour que vos équipiers puissent vous rejoindre.
               </span>
               <div className="flex gap-2 shrink-0">
                 <Button
