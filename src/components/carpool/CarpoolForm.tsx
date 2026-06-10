@@ -98,7 +98,7 @@ const CarpoolForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!departureTime || !meetingPoint) {
+    if (!departureTime || (!meetingPoint && !mapsLink)) {
       return;
     }
 
@@ -214,61 +214,63 @@ const CarpoolForm = ({
             </div>
           </div>
 
-          {/* Map picker toggle */}
-          {(destinationLat && destinationLng) && (
-            <div className="space-y-2">
-              <Button
-                type="button"
-                variant={showMap ? "secondary" : "outline"}
-                className="w-full gap-2"
-                onClick={() => setShowMap(!showMap)}
-              >
-                <Map className="h-4 w-4" />
-                {showMap ? "Masquer la carte" : "📍 Choisir le RDV sur la carte"}
-              </Button>
-              
-              {showMap && (
-                <CarpoolMapPicker
-                  destinationLat={destinationLat}
-                  destinationLng={destinationLng}
-                  destinationName={destinationName}
-                  onLocationSelect={handleMapLocationSelect}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Meeting point */}
+          {/* Meeting point — 3 alternatives */}
           <div className="space-y-2">
-            <Label htmlFor="meetingPoint" className="flex items-center gap-1">
+            <Label className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              Lieu de rendez-vous *
+              Point de rendez-vous *
             </Label>
+
+            {/* Option 1 : carte interactive */}
+            {(destinationLat && destinationLng) && (
+              <>
+                <Button
+                  type="button"
+                  variant={showMap ? "secondary" : "outline"}
+                  className="w-full gap-2"
+                  onClick={() => setShowMap(!showMap)}
+                >
+                  <Map className="h-4 w-4" />
+                  {showMap ? "Masquer la carte" : "📍 Choisir sur la carte"}
+                </Button>
+                {showMap && (
+                  <CarpoolMapPicker
+                    destinationLat={destinationLat}
+                    destinationLng={destinationLng}
+                    destinationName={destinationName}
+                    onLocationSelect={handleMapLocationSelect}
+                  />
+                )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex-1 border-t" />
+                  ou
+                  <div className="flex-1 border-t" />
+                </div>
+              </>
+            )}
+
+            {/* Option 2 : saisie libre */}
             <Input
               id="meetingPoint"
               placeholder="Ex: Parking du supermarché, 12 rue de la Gare"
               value={meetingPoint}
               onChange={(e) => setMeetingPoint(e.target.value)}
-              required
             />
-          </div>
 
-          {/* Maps link */}
-          <div className="space-y-2">
-            <Label htmlFor="mapsLink" className="flex items-center gap-1">
-              <Link2 className="h-3 w-3" />
-              Lien Google Maps (optionnel)
-            </Label>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex-1 border-t" />
+              ou
+              <div className="flex-1 border-t" />
+            </div>
+
+            {/* Option 3 : lien Google Maps */}
             <Input
               id="mapsLink"
               type="url"
-              placeholder="https://maps.google.com/..."
+              placeholder="Lien Google Maps (maps.google.com/...)"
               value={mapsLink}
               onChange={(e) => setMapsLink(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              {showMap ? "Rempli automatiquement depuis la carte" : "Collez un lien Google Maps pour faciliter le rendez-vous"}
-            </p>
           </div>
 
           {/* Notes */}
@@ -295,7 +297,7 @@ const CarpoolForm = ({
               type="submit"
               variant="ocean"
               className="flex-1 gap-1"
-              disabled={isPending || !departureTime || !meetingPoint}
+              disabled={isPending || !departureTime || (!meetingPoint && !mapsLink)}
             >
               <Save className="h-4 w-4" />
               {isPending ? "Enregistrement..." : isEditing ? "Mettre à jour" : "Créer"}
