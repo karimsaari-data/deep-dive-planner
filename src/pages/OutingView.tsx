@@ -217,12 +217,17 @@ const OutingView = () => {
     (apneaLevels || []).map(l => [l.code, l])
   );
 
-  // Sort participants: organizer first, then instructors, then others
+  // Sort participants: organizer first, then co-instructors, then instructors by level, then others
   const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
     const aIsOrganizer = a.user_id === organizerId;
     const bIsOrganizer = b.user_id === organizerId;
     if (aIsOrganizer && !bIsOrganizer) return -1;
     if (!aIsOrganizer && bIsOrganizer) return 1;
+
+    const aIsCoInstr = coInstructorIds.has(a.user_id);
+    const bIsCoInstr = coInstructorIds.has(b.user_id);
+    if (aIsCoInstr && !bIsCoInstr) return -1;
+    if (!aIsCoInstr && bIsCoInstr) return 1;
 
     const aLevel = apneaLevelMap.get(a.profile?.apnea_level ?? "");
     const bLevel = apneaLevelMap.get(b.profile?.apnea_level ?? "");
@@ -594,21 +599,19 @@ const OutingView = () => {
                       <div
                         key={reservation.id}
                         className={`flex items-center gap-3 rounded-lg border p-3 ${
-                          isOrg
+                          isOrg || isCoInstr
                             ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
-                            : isCoInstr
-                              ? "border-blue-300 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-700"
-                              : "border-border bg-muted/30"
+                            : "border-border bg-muted/30"
                         }`}
                       >
                         <div className="relative">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={profile?.avatar_url ?? undefined} />
-                            <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : isCoInstr ? "bg-blue-200 text-blue-800" : "bg-primary/10 text-primary"}`}>
+                            <AvatarFallback className={`text-sm ${isOrg || isCoInstr ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
                               {initials}
                             </AvatarFallback>
                           </Avatar>
-                          {(isInstructor || isCoInstr) && (
+                          {(isOrg || isCoInstr || isInstructor) && (
                             <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
                               <Shield className="h-3 w-3 text-white" />
                             </div>
@@ -623,7 +626,7 @@ const OutingView = () => {
                               <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
                             )}
                             {isCoInstr && !isOrg && (
-                              <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">Coencadrant</Badge>
+                              <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Coencadrant</Badge>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
