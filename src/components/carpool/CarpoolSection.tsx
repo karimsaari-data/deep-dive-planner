@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Car, Plus, AlertCircle, List, MapIcon } from "lucide-react";
+import { Car, Plus, AlertCircle, List, MapIcon, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
-import { Reservation, CarpoolOption } from "@/hooks/useOutings";
+import { Reservation, CarpoolOption, useUpdateReservationCarpool } from "@/hooks/useOutings";
 import {
   useCarpools,
   useUserCarpool,
@@ -30,6 +30,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const updateCarpool = useUpdateReservationCarpool();
 
   const { data: carpools, isLoading } = useCarpools(outingId);
   const { data: userCarpool } = useUserCarpool(outingId);
@@ -115,15 +116,27 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
               <span>
                 👋 Vous avez proposé de conduire ! Configurez votre trajet maintenant.
               </span>
-              <Button
-                variant="ocean"
-                size="sm"
-                className="gap-1 shrink-0"
-                onClick={() => setShowForm(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Configurer
-              </Button>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="ocean"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => setShowForm(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Configurer
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  disabled={updateCarpool.isPending}
+                  onClick={() => updateCarpool.mutate({ outingId, carpoolOption: "none", carpoolSeats: 0 })}
+                >
+                  <X className="h-4 w-4" />
+                  Annuler
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}
