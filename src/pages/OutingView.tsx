@@ -554,7 +554,7 @@ const OutingView = () => {
 
           {/* Fiche Sécurité - Available to all */}
           <Card className="shadow-card mb-6">
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 space-y-3">
               <Button
                 variant="outline"
                 className="w-full gap-2"
@@ -570,6 +570,25 @@ const OutingView = () => {
                 <Download className="h-4 w-4" />
                 Télécharger la Fiche Sécurité Apnée
               </Button>
+
+              {/* Fiche évacuation - encadrants only */}
+              {(user.id === organizerId || isCoInstructor) && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/5"
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = '/fiche-evacuation-plongeur.pdf';
+                    link.download = 'Fiche_Evacuation_Plongeur_AnnexeIII-19.pdf';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Fiche d'évacuation de plongeur (Annexe III-19)
+                </Button>
+              )}
             </CardContent>
           </Card>
 
