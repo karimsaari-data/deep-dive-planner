@@ -220,6 +220,9 @@ const CarpoolForm = ({
               <MapPin className="h-3 w-3" />
               Point de rendez-vous *
             </Label>
+            <p className="text-xs text-muted-foreground">
+              Indiquez votre point de départ par l'une de ces trois options :
+            </p>
 
             {/* Option 1 : carte interactive */}
             {(destinationLat && destinationLng) && (
