@@ -42,6 +42,7 @@ import {
   useOuting,
   useCreateReservation,
   useCancelReservation,
+  useUpdateReservationCarpool,
   CarpoolOption,
 } from "@/hooks/useOutings";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,10 +93,14 @@ const OutingView = () => {
 
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
+  const updateCarpool = useUpdateReservationCarpool();
   const { data: apneaLevels } = useApneaLevels();
 
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(1);
+  const [showCarpoolEdit, setShowCarpoolEdit] = useState(false);
+  const [editCarpoolOption, setEditCarpoolOption] = useState<CarpoolOption>("none");
+  const [editCarpoolSeats, setEditCarpoolSeats] = useState(1);
 
   const handleCarpoolOptionChange = (value: CarpoolOption) => {
     setCarpoolOption(value);
@@ -176,6 +181,24 @@ const OutingView = () => {
 
   const isCoInstructor = outing.co_instructors?.some(ci => ci.user_id === user.id) ?? false;
   const coInstructorIds = new Set((outing.co_instructors ?? []).map(ci => ci.user_id));
+
+  const handleOpenCarpoolEdit = () => {
+    setEditCarpoolOption((userReservation?.carpool_option as CarpoolOption) ?? "none");
+    setEditCarpoolSeats(userReservation?.carpool_seats || 1);
+    setShowCarpoolEdit(true);
+  };
+
+  const handleCarpoolUpdate = () => {
+    if (!outing) return;
+    updateCarpool.mutate(
+      {
+        outingId: outing.id,
+        carpoolOption: editCarpoolOption,
+        carpoolSeats: editCarpoolOption === "driver" ? editCarpoolSeats : 0,
+      },
+      { onSuccess: () => setShowCarpoolEdit(false) }
+    );
+  };
 
   const handleRegister = () => {
     createReservation.mutate({
@@ -351,6 +374,97 @@ const OutingView = () => {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+
+                    {/* Carpool option — editable after registration */}
+                    <div className="border-t pt-3">
+                      {showCarpoolEdit ? (
+                        <div className="space-y-3">
+                          <Label className="flex items-center gap-2 text-sm font-medium">
+                            <Car className="h-4 w-4" />
+                            Modifier le covoiturage
+                          </Label>
+                          <RadioGroup
+                            value={editCarpoolOption}
+                            onValueChange={(v) => setEditCarpoolOption(v as CarpoolOption)}
+                            className="space-y-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="none" id="edit-none" />
+                              <Label htmlFor="edit-none" className="font-normal">Pas de covoiturage</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="driver" id="edit-driver" />
+                              <Label htmlFor="edit-driver" className="font-normal">Je propose des places</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="passenger" id="edit-passenger" />
+                              <Label htmlFor="edit-passenger" className="font-normal">Je cherche une place</Label>
+                            </div>
+                          </RadioGroup>
+                          {editCarpoolOption === "driver" && (
+                            <div className="space-y-2">
+                              <Label className="text-sm">Places disponibles</Label>
+                              <div className="flex items-center gap-4">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full"
+                                  onClick={() => setEditCarpoolSeats(Math.max(1, editCarpoolSeats - 1))}
+                                  disabled={editCarpoolSeats <= 1}
+                                >
+                                  <Minus className="h-4 w-4" />
+                                </Button>
+                                <span className="text-2xl font-bold w-8 text-center">{editCarpoolSeats}</span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full"
+                                  onClick={() => setEditCarpoolSeats(Math.min(8, editCarpoolSeats + 1))}
+                                  disabled={editCarpoolSeats >= 8}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ocean"
+                              size="sm"
+                              className="flex-1"
+                              onClick={handleCarpoolUpdate}
+                              disabled={updateCarpool.isPending}
+                            >
+                              {updateCarpool.isPending ? "Enregistrement..." : "Enregistrer"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowCarpoolEdit(false)}
+                            >
+                              Annuler
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          className="w-full flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                          onClick={handleOpenCarpoolEdit}
+                        >
+                          <Car className="h-4 w-4 shrink-0" />
+                          <span>
+                            {userReservation?.carpool_option === "driver"
+                              ? `Je propose ${userReservation.carpool_seats || 1} place(s)`
+                              : userReservation?.carpool_option === "passenger"
+                                ? "Je cherche une place"
+                                : "Pas de covoiturage"}
+                          </span>
+                          <span className="ml-auto text-xs underline underline-offset-2">Modifier</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-6">
