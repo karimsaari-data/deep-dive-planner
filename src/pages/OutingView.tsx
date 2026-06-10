@@ -56,6 +56,7 @@ import { Anchor, Satellite } from "lucide-react";
 import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
+import { FicheEvacuationGenerator } from "@/components/pdf/FicheEvacuationGenerator";
 
 /** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
 const extractDepth = (prerogatives: string | null): string | null => {
@@ -573,21 +574,7 @@ const OutingView = () => {
 
               {/* Fiche évacuation - encadrants only */}
               {(user.id === organizerId || isCoInstructor) && (
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/5"
-                  onClick={() => {
-                    const link = document.createElement('a');
-                    link.href = '/fiche-evacuation-plongeur.pdf';
-                    link.download = 'Fiche_Evacuation_Plongeur_AnnexeIII-19.pdf';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  Fiche d'évacuation de plongeur (Annexe III-19)
-                </Button>
+                <FicheEvacuationGenerator />
               )}
             </CardContent>
           </Card>
