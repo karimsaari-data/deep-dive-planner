@@ -159,17 +159,33 @@ const CarpoolCard = ({
         {/* Meeting point with clickable map link */}
         <div className="mt-4 flex items-center gap-2 text-sm p-3 bg-muted/50 rounded-lg">
           <MapPin className="h-5 w-5 text-primary shrink-0" />
-          <span className="text-foreground flex-1">{carpool.meeting_point}</span>
-          {carpool.maps_link && (
+          {carpool.meeting_point ? (
+            <>
+              <span className="text-foreground flex-1">{carpool.meeting_point}</span>
+              {carpool.maps_link && (
+                <a
+                  href={carpool.maps_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors font-medium"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span className="text-xs">GPS</span>
+                </a>
+              )}
+            </>
+          ) : carpool.maps_link ? (
             <a
               href={carpool.maps_link}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors font-medium"
+              className="flex-1 flex items-center gap-1 text-primary hover:text-primary/80 transition-colors font-medium"
             >
-              <ExternalLink className="h-4 w-4" />
-              <span className="text-xs">GPS</span>
+              <span>Voir le point de départ sur la carte</span>
+              <ExternalLink className="h-4 w-4 shrink-0" />
             </a>
+          ) : (
+            <span className="text-muted-foreground italic">Point de départ non précisé</span>
           )}
         </div>
 
