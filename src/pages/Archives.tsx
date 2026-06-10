@@ -571,21 +571,21 @@ const Archives = () => {
                                         }
                                         
                                         return (
-                                          <div 
-                                            key={member.id} 
-                                            className={`flex items-center gap-2 rounded-lg border p-2 ${cardStyle}`}
+                                          <div
+                                            key={member.id}
+                                            className={`flex items-center gap-2 rounded-lg border p-2 min-w-0 ${cardStyle}`}
                                           >
-                                            <Avatar className="h-10 w-10">
+                                            <Avatar className="h-10 w-10 shrink-0">
                                               <AvatarFallback className={`text-sm ${avatarStyle}`}>
                                                 {initials}
                                               </AvatarFallback>
                                             </Avatar>
-                                            <div>
-                                              <p className="text-sm font-medium text-foreground">
+                                            <div className="min-w-0 flex-1">
+                                              <p className="text-sm font-medium text-foreground break-words leading-tight">
                                                 {member?.first_name} {member?.last_name}
                                               </p>
-                                              <Badge 
-                                                variant={badgeVariant} 
+                                              <Badge
+                                                variant={badgeVariant}
                                                 className={`text-xs ${isOrganizer ? "border-primary text-primary font-semibold" : ""}`}
                                               >
                                                 {badgeText}
@@ -610,26 +610,26 @@ const Archives = () => {
                                         const profile = r.profile;
                                         const initials = `${profile?.first_name?.[0] ?? ""}${profile?.last_name?.[0] ?? ""}`;
                                         return (
-                                          <div 
-                                            key={r.id} 
-                                            className={`flex items-center gap-2 rounded-lg border p-2 ${
-                                              r.is_present 
-                                                ? "border-emerald-500/50 bg-emerald-500/10" 
+                                          <div
+                                            key={r.id}
+                                            className={`flex items-center gap-2 rounded-lg border p-2 min-w-0 ${
+                                              r.is_present
+                                                ? "border-emerald-500/50 bg-emerald-500/10"
                                                 : "border-border bg-muted/30 opacity-60"
                                             }`}
                                           >
-                                            <Avatar className="h-10 w-10">
+                                            <Avatar className="h-10 w-10 shrink-0">
                                               <AvatarImage src={profile?.avatar_url ?? undefined} />
                                               <AvatarFallback className="bg-primary/10 text-primary text-sm">
                                                 {initials}
                                               </AvatarFallback>
                                             </Avatar>
-                                            <div>
-                                              <p className="text-sm font-medium text-foreground">
+                                            <div className="min-w-0 flex-1">
+                                              <p className="text-sm font-medium text-foreground break-words leading-tight">
                                                 {profile?.first_name} {profile?.last_name}
                                               </p>
-                                              <Badge 
-                                                variant={r.is_present ? "default" : "outline"} 
+                                              <Badge
+                                                variant={r.is_present ? "default" : "outline"}
                                                 className="text-xs"
                                               >
                                                 {r.is_present ? "Présent" : "Absent"}
