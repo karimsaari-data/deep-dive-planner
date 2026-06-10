@@ -96,6 +96,9 @@ const Reservations = () => {
                                 <Badge variant="secondary">
                                   {reservation.outing?.outing_type}
                                 </Badge>
+                                {reservation.outing?.is_staff_only && (
+                                  <Badge className="bg-amber-500 text-white text-xs">PRIVÉ STAFF</Badge>
+                                )}
                                 {reservation.status === "en_attente" && (
                                   <Badge variant="outline" className="border-amber-500 text-amber-600">
                                     Liste d'attente
