@@ -20,12 +20,12 @@ interface CarpoolFormProps {
   outingDateTime?: string;
 }
 
-// Calcul intelligent : heure de RDV = heure de sortie - 1h30
+// Calcul intelligent : heure de RDV = heure de sortie - 1h
 const computeDefaultDepartureTime = (outingDateTime?: string): string => {
   if (!outingDateTime) return "";
   try {
     const outingDate = new Date(outingDateTime);
-    const departureDate = new Date(outingDate.getTime() - 90 * 60 * 1000); // -1h30
+    const departureDate = new Date(outingDate.getTime() - 60 * 60 * 1000); // -1h
     const hours = departureDate.getHours().toString().padStart(2, "0");
     const minutes = departureDate.getMinutes().toString().padStart(2, "0");
     return `${hours}:${minutes}`;
