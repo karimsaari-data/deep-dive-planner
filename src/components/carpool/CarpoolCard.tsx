@@ -1,4 +1,4 @@
-import { Clock, MapPin, ExternalLink, Users, Trash2, Edit2, Phone, CheckCircle2 } from "lucide-react";
+import { Clock, MapPin, ExternalLink, Users, Trash2, Edit2, MessageCircle, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -144,13 +144,17 @@ const CarpoolCard = ({
           )}
         </div>
 
-        {/* Contact Button - Prominent call button */}
+        {/* Contact Button - WhatsApp */}
         {carpool.driver?.phone && !isOwner && (
           <div className="mt-3">
-            <a href={`tel:${carpool.driver.phone}`}>
-              <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto border-primary/50 text-primary hover:bg-primary/10">
-                <Phone className="h-4 w-4" />
-                Appeler {carpool.driver.first_name}
+            <a
+              href={`https://wa.me/${carpool.driver.phone.replace(/\D/g, "").replace(/^0/, "33")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto border-green-500/50 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp {carpool.driver.first_name}
               </Button>
             </a>
           </div>
