@@ -128,13 +128,10 @@ const Index = () => {
               ))}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* Club calendar from Google Calendar */}
-      <section className="pb-10">
-        <div className="container mx-auto px-4 max-w-lg">
-          <ClubCalendarWidget />
+          {/* Club calendar from Google Calendar */}
+          <div className="mt-10">
+            <ClubCalendarWidget />
+          </div>
         </div>
       </section>
 
