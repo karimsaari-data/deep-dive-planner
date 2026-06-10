@@ -174,6 +174,9 @@ const OutingView = () => {
   );
   const isRegistered = !!userReservation;
 
+  const isCoInstructor = outing.co_instructors?.some(ci => ci.user_id === user.id) ?? false;
+  const coInstructorIds = new Set((outing.co_instructors ?? []).map(ci => ci.user_id));
+
   const handleRegister = () => {
     createReservation.mutate({
       outingId: outing.id,
@@ -317,11 +320,13 @@ const OutingView = () => {
                 {isRegistered ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-emerald-600">
-                      <UserPlus className="h-5 w-5" />
+                      {isCoInstructor ? <Shield className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
                       <span className="font-medium">
                         {userReservation?.status === "en_attente"
                           ? "Vous êtes sur liste d'attente"
-                          : "Vous êtes inscrit(e) à cette sortie"}
+                          : isCoInstructor
+                            ? "Vous êtes coencadrant(e) de cette sortie"
+                            : "Vous êtes inscrit(e) à cette sortie"}
                       </span>
                     </div>
                     <AlertDialog>
@@ -466,6 +471,7 @@ const OutingView = () => {
                     const profile = reservation.profile;
                     const initials = profile ? `${profile.first_name?.[0] ?? ""}${profile.last_name?.[0] ?? ""}` : "?";
                     const isOrg = reservation.user_id === organizerId;
+                    const isCoInstr = coInstructorIds.has(reservation.user_id);
                     const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
                     const isInstructor = levelInfo?.is_instructor ?? false;
                     const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
@@ -476,17 +482,19 @@ const OutingView = () => {
                         className={`flex items-center gap-3 rounded-lg border p-3 ${
                           isOrg
                             ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
-                            : "border-border bg-muted/30"
+                            : isCoInstr
+                              ? "border-blue-300 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-700"
+                              : "border-border bg-muted/30"
                         }`}
                       >
                         <div className="relative">
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={profile?.avatar_url ?? undefined} />
-                            <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
+                            <AvatarFallback className={`text-sm ${isOrg ? "bg-amber-200 text-amber-800" : isCoInstr ? "bg-blue-200 text-blue-800" : "bg-primary/10 text-primary"}`}>
                               {initials}
                             </AvatarFallback>
                           </Avatar>
-                          {isInstructor && (
+                          {(isInstructor || isCoInstr) && (
                             <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-amber-500 flex items-center justify-center shadow-sm" title="Encadrant">
                               <Shield className="h-3 w-3 text-white" />
                             </div>
@@ -499,6 +507,9 @@ const OutingView = () => {
                             </p>
                             {isOrg && (
                               <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
+                            )}
+                            {isCoInstr && !isOrg && (
+                              <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">Coencadrant</Badge>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
