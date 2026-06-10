@@ -238,6 +238,24 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
             Proposer un trajet
           </Button>
         )}
+
+        {/* Button for users who didn't declare a carpool at registration */}
+        {!isDriver && !isPassenger && !hasCreatedCarpool && !isPast && !showForm && (
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            disabled={updateCarpool.isPending}
+            onClick={() =>
+              updateCarpool.mutate(
+                { outingId, carpoolOption: "driver", carpoolSeats: 1 },
+                { onSuccess: () => setShowForm(true) }
+              )
+            }
+          >
+            <Plus className="h-4 w-4" />
+            Proposer un covoiturage
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
