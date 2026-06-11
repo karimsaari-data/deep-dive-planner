@@ -104,7 +104,7 @@ export const useOutings = (typeFilter?: OutingType | null) => {
           organizer:profiles!outings_organizer_id_fkey(first_name, last_name, apnea_level),
           location_details:locations(id, name, address, maps_url, latitude, longitude, photo_url, max_depth),
           co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
-          reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at)
+          reservations(id, user_id, status, carpool_option, carpool_seats, cancelled_at, is_present, created_at, profile:profiles(first_name, last_name))
         `)
         .eq("is_deleted", false)
         .order("date_time", { ascending: true });
