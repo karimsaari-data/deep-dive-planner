@@ -32,20 +32,19 @@ const Line = ({
     <div
       style={{
         flex: 1,
-        borderBottom: BORDER,
         minWidth: "20px",
         height: LINE_HEIGHT,
-        display: "flex",
-        alignItems: "flex-end",
+        position: "relative",
       }}
     >
       {value && (
         <span
           style={{
+            position: "absolute",
+            left: "4px",
+            bottom: "2px",
             fontSize: "10px",
-            lineHeight: LINE_HEIGHT,
-            paddingLeft: "4px",
-            paddingBottom: "1px",
+            lineHeight: "10px",
             color: "#555",
             fontStyle: "italic",
             whiteSpace: "nowrap",
@@ -54,6 +53,8 @@ const Line = ({
           {value}
         </span>
       )}
+      {/* Rule pinned to the bottom so the value text can never overlap it */}
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, borderBottom: BORDER }} />
     </div>
   </div>
 );
@@ -76,14 +77,20 @@ const LineRow = ({
   </div>
 );
 
+/**
+ * Checkbox bottom-aligned with its label (html2canvas does not center flex
+ * items reliably). Box and text share the same fixed row height; the box is
+ * lifted 1px so it sits on the text baseline.
+ */
 const CheckBox = ({ label, checked = false }: { label: string; checked?: boolean }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+  <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: LINE_HEIGHT }}>
     <div
       style={{
         width: "11px",
         height: "11px",
         border: BORDER,
         flexShrink: 0,
+        marginBottom: "1px",
         backgroundColor: checked ? LINE_COLOR : "white",
         display: "flex",
         alignItems: "center",
@@ -92,7 +99,7 @@ const CheckBox = ({ label, checked = false }: { label: string; checked?: boolean
     >
       {checked && <span style={{ color: "white", fontSize: "9px", lineHeight: 1 }}>✓</span>}
     </div>
-    <span style={{ fontSize: "10px", lineHeight: "12px" }}>{label}</span>
+    <span style={{ fontSize: "10px", lineHeight: LINE_HEIGHT, whiteSpace: "nowrap" }}>{label}</span>
   </div>
 );
 
@@ -286,7 +293,7 @@ export const PDFPageEvacuationApnee = () => {
             <Line label="Durée totale" width="140px" />
           </LineRow>
           <div style={{ display: "flex", alignItems: "flex-end", gap: "14px" }}>
-            <span style={{ fontSize: "10px", whiteSpace: "nowrap", lineHeight: "12px" }}>Médicalisation</span>
+            <span style={{ fontSize: "10px", whiteSpace: "nowrap", lineHeight: LINE_HEIGHT }}>Médicalisation</span>
             <CheckBox label="oui" />
             <CheckBox label="non" />
             <Line label="Médecin convoyeur" />
