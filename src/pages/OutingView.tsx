@@ -56,6 +56,7 @@ import { Anchor, Satellite } from "lucide-react";
 import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
+import { useCarpools } from "@/hooks/useCarpools";
 import { FicheEvacuationGenerator } from "@/components/pdf/FicheEvacuationGenerator";
 
 /** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
@@ -96,6 +97,19 @@ const OutingView = () => {
   const cancelReservation = useCancelReservation();
   const updateCarpool = useUpdateReservationCarpool();
   const { data: apneaLevels } = useApneaLevels();
+  const { data: carpools } = useCarpools(id ?? "");
+
+  // Set of user ids who already have a seat booked in a carpool for this outing
+  const bookedPassengerIds = new Set(
+    (carpools ?? []).flatMap((c) => (c.passengers ?? []).map((p) => p.passenger_id))
+  );
+  // Remaining (not yet booked) seats per driver, to stay consistent with the carpool widget
+  const remainingSeatsByDriver = new Map(
+    (carpools ?? []).map((c) => [
+      c.driver_id,
+      Math.max(0, (c.available_seats ?? 0) - (c.passengers?.length ?? 0)),
+    ])
+  );
 
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(1);
@@ -649,11 +663,18 @@ const OutingView = () => {
                             )}
                             {reservation.carpool_option === "driver" && (
                               <Badge variant="secondary" className="text-xs gap-1">
-                                <Car className="h-3 w-3" /> {reservation.carpool_seats}
+                                <Car className="h-3 w-3" />{" "}
+                                {(remainingSeatsByDriver.get(reservation.user_id) ?? reservation.carpool_seats)} dispo
                               </Badge>
                             )}
                             {reservation.carpool_option === "passenger" && (
-                              <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
+                              bookedPassengerIds.has(reservation.user_id) ? (
+                                <Badge variant="secondary" className="text-xs gap-1">
+                                  <Car className="h-3 w-3" /> Inscrit covoit.
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs">Cherche covoit.</Badge>
+                              )
                             )}
                           </div>
                         </div>
