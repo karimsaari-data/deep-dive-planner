@@ -368,7 +368,8 @@ const ClubMembersDirectory = () => {
 
   // CSV Export with seasonal columns
   const exportCSV = () => {
-    if (!members?.length) {
+    const dataToExport = filteredAndSortedMembers?.length ? filteredAndSortedMembers : members;
+    if (!dataToExport?.length) {
       toast.error("Aucun adhérent à exporter");
       return;
     }
@@ -396,7 +397,7 @@ const ClubMembersDirectory = () => {
       "season",
     ];
 
-    const rows = members.map((m) => {
+    const rows = dataToExport.map((m) => {
       const status = getStatusForMember(m.id);
       return [
         m.member_id,
