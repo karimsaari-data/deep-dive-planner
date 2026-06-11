@@ -16,8 +16,9 @@ function parseFromString(value: string): { lat: number; lng: number } | null {
   const num = "(-?\\d+(?:\\.\\d+)?)";
   const patterns = [
     new RegExp(`[?&](?:q|query|ll|sll|center|destination|daddr)=${num},${num}`, "i"),
-    new RegExp(`@${num},${num}`),
+    // !3d!4d = actual pinned place — preferred over the @ viewport center.
     new RegExp(`!3d${num}!4d${num}`),
+    new RegExp(`@${num},${num}`),
     new RegExp(`/${num},${num}`),
   ];
   for (const re of patterns) {

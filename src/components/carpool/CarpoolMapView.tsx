@@ -47,10 +47,10 @@ const parseLatLngFromMapsLink = (mapsLink: string | null): { lat: number; lng: n
   const patterns = [
     // ?q= / ?query= / ?ll= / ?sll= / ?center= / ?destination= / ?daddr=
     new RegExp(`[?&](?:q|query|ll|sll|center|destination|daddr)=${num},${num}`, "i"),
-    // @lat,lng (viewport / place URLs)
-    new RegExp(`@${num},${num}`),
-    // !3dLAT!4dLNG (encoded place data)
+    // !3dLAT!4dLNG = the actual pinned place — more accurate than the @ viewport
     new RegExp(`!3d${num}!4d${num}`),
+    // @lat,lng = map viewport center (fallback, approximate)
+    new RegExp(`@${num},${num}`),
     // /lat,lng path segment
     new RegExp(`/${num},${num}`),
   ];
