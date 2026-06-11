@@ -386,10 +386,18 @@ export const useBookCarpool = () => {
         });
 
       if (error) throw error;
+
+      // Clear "looking for carpool" status now that the passenger has a seat
+      await supabase
+        .from("reservations")
+        .update({ carpool_option: "none" })
+        .eq("user_id", user.id)
+        .eq("outing_id", outingId);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["carpools", variables.outingId] });
       queryClient.invalidateQueries({ queryKey: ["user-carpool-booking", variables.outingId] });
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
       toast.success("Place réservée !");
     },
     onError: (error: Error) => {
@@ -412,10 +420,18 @@ export const useCancelCarpoolBooking = () => {
         .eq("id", bookingId);
 
       if (error) throw error;
+
+      // Restore "looking for carpool" status when cancelling
+      await supabase
+        .from("reservations")
+        .update({ carpool_option: "passenger" })
+        .eq("user_id", user.id)
+        .eq("outing_id", outingId);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["carpools", variables.outingId] });
       queryClient.invalidateQueries({ queryKey: ["user-carpool-booking", variables.outingId] });
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
       toast.success("Réservation annulée");
     },
     onError: (error: Error) => {
