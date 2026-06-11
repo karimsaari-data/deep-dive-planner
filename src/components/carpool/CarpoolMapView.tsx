@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatFullName } from "@/lib/formatName";
 import { MapPin, Navigation, User, Clock } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Carpool, useBookCarpool } from "@/hooks/useCarpools";
+import { Carpool, useBookCarpool, useResolveMapsLinks } from "@/hooks/useCarpools";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Fix Leaflet marker icon issue
@@ -94,6 +94,24 @@ const CarpoolMapView = ({
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCarpool, setSelectedCarpool] = useState<Carpool | null>(null);
   const hasAutoLocated = useRef(false);
+
+  // Links that can't be parsed client-side (e.g. short links) are resolved
+  // server-side via the edge function so every carpool shows on the map.
+  const linksToResolve = useMemo(
+    () =>
+      carpools
+        .filter((c) => c.maps_link && !parseLatLngFromMapsLink(c.maps_link))
+        .map((c) => ({ id: c.id, url: c.maps_link as string })),
+    [carpools]
+  );
+  const { data: resolvedCoords } = useResolveMapsLinks(linksToResolve);
+
+  // Coordinates for a carpool: from the link directly, else from server resolution.
+  const getCarpoolCoords = useCallback(
+    (carpool: Carpool): { lat: number; lng: number } | null =>
+      parseLatLngFromMapsLink(carpool.maps_link) ?? resolvedCoords?.[carpool.id] ?? null,
+    [resolvedCoords]
+  );
 
   // Auto-locate user
   useEffect(() => {
@@ -199,7 +217,7 @@ const CarpoolMapView = ({
 
     // Car markers for each carpool
     carpools.forEach((carpool) => {
-      const coords = parseLatLngFromMapsLink(carpool.maps_link);
+      const coords = getCarpoolCoords(carpool);
       if (!coords) return;
 
       const passengers = carpool.passengers ?? [];
@@ -242,7 +260,7 @@ const CarpoolMapView = ({
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     }
-  }, [carpools, userLocation, destinationLat, destinationLng, destinationName, userBookingCarpoolId, user?.id]);
+  }, [carpools, getCarpoolCoords, userLocation, destinationLat, destinationLng, destinationName, userBookingCarpoolId, user?.id]);
 
   const handleBook = (carpoolId: string) => {
     bookCarpool.mutate({ carpoolId, outingId });

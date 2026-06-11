@@ -113,6 +113,26 @@ export const useCarpools = (outingId: string) => {
   });
 };
 
+// Resolve coordinates for maps links that can't be parsed client-side
+// (short links like maps.app.goo.gl). Delegates to the resolve-maps-link
+// edge function, which follows redirects server-side. Results are cached
+// since a link's coordinates never change.
+export const useResolveMapsLinks = (links: { id: string; url: string }[]) => {
+  return useQuery({
+    queryKey: ["resolve-maps-links", links.map((l) => `${l.id}:${l.url}`).sort()],
+    enabled: links.length > 0,
+    staleTime: 1000 * 60 * 60, // 1h
+    gcTime: 1000 * 60 * 60 * 24,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("resolve-maps-link", {
+        body: { links },
+      });
+      if (error) throw error;
+      return (data?.coordinates ?? {}) as Record<string, { lat: number; lng: number }>;
+    },
+  });
+};
+
 export const useUserCarpool = (outingId: string) => {
   const { user } = useAuth();
 
