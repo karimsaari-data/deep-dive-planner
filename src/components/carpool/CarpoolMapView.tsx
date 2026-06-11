@@ -27,29 +27,51 @@ interface CarpoolMapViewProps {
   isPast?: boolean;
 }
 
-// Parse lat/lng from Google Maps link
+// Parse lat/lng from a maps link. Tolerates the many formats Google/Apple Maps
+// produce (query params, @lat,lng, place data, etc.) so every carpool that has
+// real coordinates in its link shows up on the map — not just those created via
+// the in-app map picker. Short links (maps.app.goo.gl) contain no coordinates
+// and cannot be resolved client-side, so they remain unparseable.
 const parseLatLngFromMapsLink = (mapsLink: string | null): { lat: number; lng: number } | null => {
   if (!mapsLink) return null;
-  
-  // Try various Google Maps URL formats
-  // Format 1: q=lat,lng
-  let match = mapsLink.match(/q=([\d.-]+),([\d.-]+)/);
-  if (match) {
-    return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+  const link = mapsLink.trim();
+
+  const num = "(-?\\d+(?:\\.\\d+)?)";
+  const isValid = (lat: number, lng: number) =>
+    !Number.isNaN(lat) &&
+    !Number.isNaN(lng) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lng) <= 180;
+
+  // Most-specific patterns first, generic fallback last.
+  const patterns = [
+    // ?q= / ?query= / ?ll= / ?sll= / ?center= / ?destination= / ?daddr=
+    new RegExp(`[?&](?:q|query|ll|sll|center|destination|daddr)=${num},${num}`, "i"),
+    // @lat,lng (viewport / place URLs)
+    new RegExp(`@${num},${num}`),
+    // !3dLAT!4dLNG (encoded place data)
+    new RegExp(`!3d${num}!4d${num}`),
+    // /lat,lng path segment
+    new RegExp(`/${num},${num}`),
+  ];
+
+  for (const re of patterns) {
+    const match = link.match(re);
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      if (isValid(lat, lng)) return { lat, lng };
+    }
   }
-  
-  // Format 2: @lat,lng
-  match = mapsLink.match(/@([\d.-]+),([\d.-]+)/);
-  if (match) {
-    return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+
+  // Generic fallback: first decimal coordinate-looking pair anywhere in the link.
+  const generic = link.match(/(-?\d{1,3}\.\d{3,}),\s*(-?\d{1,3}\.\d{3,})/);
+  if (generic) {
+    const lat = parseFloat(generic[1]);
+    const lng = parseFloat(generic[2]);
+    if (isValid(lat, lng)) return { lat, lng };
   }
-  
-  // Format 3: place/lat,lng
-  match = mapsLink.match(/place\/([\d.-]+),([\d.-]+)/);
-  if (match) {
-    return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
-  }
-  
+
   return null;
 };
 
@@ -227,6 +249,11 @@ const CarpoolMapView = ({
     setSelectedCarpool(null);
   };
 
+  // Texte générique posé par le sélecteur de carte : traité comme absence d'adresse.
+  const GENERIC_MAP_POINT = "Point GPS sélectionné sur la carte";
+  const selectedHasRealMeetingPoint =
+    !!selectedCarpool?.meeting_point && selectedCarpool.meeting_point !== GENERIC_MAP_POINT;
+
   const selectedPassengers = selectedCarpool?.passengers ?? [];
   const selectedRemainingSeats = selectedCarpool
     ? selectedCarpool.available_seats - selectedPassengers.length
@@ -289,7 +316,7 @@ const CarpoolMapView = ({
 
           <div className="flex items-center gap-2 text-sm mb-3 p-2 bg-muted/50 rounded-lg">
             <MapPin className="h-4 w-4 text-primary shrink-0" />
-            {selectedCarpool.meeting_point ? (
+            {selectedHasRealMeetingPoint ? (
               <span className="truncate">{selectedCarpool.meeting_point}</span>
             ) : selectedCarpool.maps_link ? (
               <a
