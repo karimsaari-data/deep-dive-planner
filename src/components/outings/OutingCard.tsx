@@ -6,7 +6,7 @@ import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Tra
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -251,24 +251,30 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
 
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className={cn("font-medium cursor-default underline decoration-dotted decoration-muted-foreground underline-offset-2", isFull ? "text-destructive" : "text-foreground")}>
+            {confirmedParticipantNames.length > 0 ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn("font-medium cursor-pointer underline decoration-dotted decoration-muted-foreground underline-offset-2", isFull ? "text-destructive" : "text-foreground")}
+                  >
                     {currentParticipants}/{outing.max_participants} participants
-                  </span>
-                </TooltipTrigger>
-                {confirmedParticipantNames.length > 0 && (
-                  <TooltipContent side="right" className="max-w-[200px]">
-                    <ul className="text-xs space-y-0.5">
-                      {confirmedParticipantNames.map((name) => (
-                        <li key={name}>{name}</li>
-                      ))}
-                    </ul>
-                  </TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="start" className="w-auto max-w-[220px] p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Participants inscrits</p>
+                  <ul className="text-sm space-y-0.5">
+                    {confirmedParticipantNames.map((name) => (
+                      <li key={name}>{name}</li>
+                    ))}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <span className={cn("font-medium", isFull ? "text-destructive" : "text-foreground")}>
+                {currentParticipants}/{outing.max_participants} participants
+              </span>
+            )}
             {!isFull && (
               <span className="text-xs text-muted-foreground">
                 ({spotsLeft} place{spotsLeft > 1 ? "s" : ""} restante{spotsLeft > 1 ? "s" : ""})
