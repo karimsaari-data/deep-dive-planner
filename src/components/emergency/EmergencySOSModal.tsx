@@ -1,4 +1,5 @@
 import { Phone, AlertTriangle, User } from "lucide-react";
+import { formatFullName } from "@/lib/formatName";
 import {
   Dialog,
   DialogContent,
@@ -80,7 +81,7 @@ const EmergencySOSModal = ({ isOpen, onClose, participants, outingTitle }: Emerg
                       </Avatar>
                       <div className="flex-1">
                         <p className="font-medium">
-                          {participant.first_name} {participant.last_name}
+                          {formatFullName(participant.first_name, participant.last_name)}
                         </p>
                         {participant.apnea_level && (
                           <Badge variant="outline" className="text-xs mt-1">

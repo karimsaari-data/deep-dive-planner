@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
@@ -296,7 +297,7 @@ const Souvenirs = () => {
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-foreground">
-                                  {p.first_name} {p.last_name}
+                                  {formatFullName(p.first_name, p.last_name)}
                                 </p>
                                 {isEncadrant && (
                                   <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">Encadrant</Badge>

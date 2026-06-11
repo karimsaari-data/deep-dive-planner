@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -155,7 +156,7 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div>
                     <p className="text-muted-foreground text-xs">Détenteur</p>
-                    <p className="font-medium">{item.owner.first_name} {item.owner.last_name}</p>
+                    <p className="font-medium">{formatFullName(item.owner.first_name, item.owner.last_name)}</p>
                   </div>
                 </div>
               )}
@@ -269,7 +270,7 @@ export const EquipmentDetailSheet = ({ item, open, onOpenChange }: EquipmentDeta
                     ?.filter((e) => e.id !== user?.id)
                     .map((encadrant) => (
                       <SelectItem key={encadrant.id} value={encadrant.id}>
-                        {encadrant.first_name} {encadrant.last_name}
+                        {formatFullName(encadrant.first_name, encadrant.last_name)}
                       </SelectItem>
                     ))}
                 </SelectContent>

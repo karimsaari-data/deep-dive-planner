@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { Car, Plus, AlertCircle, List, MapIcon, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -174,7 +175,7 @@ const CarpoolSection = ({ outingId, userReservation, isPast, destinationLat, des
             <AlertDescription>
               Vous avez réservé une place avec{" "}
               <strong>
-                {userBooking.carpool?.driver?.first_name} {userBooking.carpool?.driver?.last_name}
+                {formatFullName(userBooking.carpool?.driver?.first_name, userBooking.carpool?.driver?.last_name)}
               </strong>
               {" "}• Départ à {userBooking.carpool?.departure_time?.slice(0, 5)} depuis{" "}
               {userBooking.carpool?.meeting_point}

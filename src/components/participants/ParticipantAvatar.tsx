@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatFullName } from "@/lib/formatName";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Shield, Star } from "lucide-react";
 
@@ -32,7 +33,7 @@ const ParticipantAvatar = ({
   size = "sm",
 }: ParticipantAvatarProps) => {
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  const fullName = `${firstName} ${lastName}`;
+  const fullName = formatFullName(firstName, lastName);
   const isEncadrant = memberStatus === "Encadrant";
 
   return (

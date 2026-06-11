@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Users, Search, Shield, User, Trash2, AlertTriangle } from "lucide-react";
@@ -240,7 +241,7 @@ const MemberManagement = () => {
                           </Avatar>
                           <div>
                             <p className="font-semibold text-foreground">
-                              {profile.first_name} {profile.last_name}
+                              {formatFullName(profile.first_name, profile.last_name)}
                             </p>
                             <p className="text-sm text-muted-foreground">{profile.email}</p>
                           </div>
@@ -344,7 +345,7 @@ const MemberManagement = () => {
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Cette action est irréversible. Le profil de{" "}
-                                  <strong>{profile.first_name} {profile.last_name}</strong>{" "}
+                                  <strong>{formatFullName(profile.first_name, profile.last_name)}</strong>{" "}
                                   et toutes ses réservations seront supprimés.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>

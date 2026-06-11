@@ -74,7 +74,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const currentParticipants = outing.confirmed_count ?? 0;
   const confirmedParticipantNames = (outing.reservations ?? [])
     .filter((r) => r.status === "confirmé" && r.profile)
-    .map((r) => `${r.profile!.first_name} ${r.profile!.last_name}`);
+    .map((r) => formatFullName(r.profile!.first_name, r.profile!.last_name));
   const isFull = currentParticipants >= outing.max_participants;
   const userReservation = outing.reservations?.find((r) => r.user_id === user?.id && r.status !== "annulé");
   const isRegistered = !!userReservation;

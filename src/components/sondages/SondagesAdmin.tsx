@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function SondagesAdmin() {
       const names = optionCounts.voters[opt.id] ?? [];
       names.forEach(name => rows.push([opt.label, name]));
     }
-    notVotedMembers.forEach(m => rows.push(["N'a pas voté", `${m.first_name} ${m.last_name}`]));
+    notVotedMembers.forEach(m => rows.push(["N'a pas voté", formatFullName(m.first_name, m.last_name)]));
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
     const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
     const encoder = new TextEncoder();
@@ -212,7 +213,7 @@ export default function SondagesAdmin() {
     for (const v of votes) {
       for (const oid of v.selected_options) {
         counts[oid] = (counts[oid] ?? 0) + 1;
-        voters[oid] = [...(voters[oid] ?? []), v.member ? `${v.member.first_name} ${v.member.last_name}` : "?"];
+        voters[oid] = [...(voters[oid] ?? []), v.member ? formatFullName(v.member.first_name, v.member.last_name) : "?"];
       }
     }
     return { counts, voters };
@@ -466,7 +467,7 @@ export default function SondagesAdmin() {
                       <tr><td colSpan={selectedPoll.options.length + 2} className="px-4 py-6 text-center text-sm text-gray-400">Aucun résultat</td></tr>
                     )}
                     {filteredMembers.map(m => {
-                      const name = `${m.first_name} ${m.last_name}`;
+                      const name = formatFullName(m.first_name, m.last_name);
                       const isSaving = saving[m.id];
                       const rowPending = pending[m.id] ?? [];
                       return (

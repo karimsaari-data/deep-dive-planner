@@ -1,4 +1,5 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
+import { formatFullName } from "@/lib/formatName";
 import { PDFMember } from "@/hooks/usePDFReportData";
 
 interface PDFPageBureauProps {
@@ -108,7 +109,7 @@ export const PDFPageBureau = ({ members, pageNumber }: PDFPageBureauProps) => {
                   textAlign: "center",
                 }}
               >
-                {member.first_name} {member.last_name}
+                {formatFullName(member.first_name, member.last_name)}
               </h3>
 
               <span

@@ -87,7 +87,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { 
+import { formatFirstName, formatLastName } from "@/lib/formatName";
+import {
   cleanCsvCell,
   normalizePhone,
   parseCsvText,
@@ -498,8 +499,8 @@ const ClubMembersDirectory = () => {
 
         const reasons: string[] = [];
 
-        const firstName = cleanCsvCell((row as any).first_name) || "";
-        const lastName = cleanCsvCell((row as any).last_name) || "";
+        const firstName = formatFirstName(cleanCsvCell((row as any).first_name) || "");
+        const lastName = formatLastName(cleanCsvCell((row as any).last_name) || "");
         const email = (cleanCsvCell((row as any).email) || "").toLowerCase();
 
         if (!email) reasons.push("Email manquant");

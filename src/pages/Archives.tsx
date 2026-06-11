@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -483,12 +484,12 @@ const Archives = () => {
                           {outing.location_details?.name || outing.location}
                           {outing.displayedOrganizer && (
                             <span className="ml-4">
-                              Encadrant: {outing.displayedOrganizer.first_name} {outing.displayedOrganizer.last_name}
+                              Encadrant: {formatFullName(outing.displayedOrganizer.first_name, outing.displayedOrganizer.last_name)}
                             </span>
                           )}
                           {outing.co_instructors?.length > 0 && (
                             <span className="ml-2">
-                              · Co-encadrant: {outing.co_instructors[0].profile.first_name} {outing.co_instructors[0].profile.last_name}
+                              · Co-encadrant: {formatFullName(outing.co_instructors[0].profile.first_name, outing.co_instructors[0].profile.last_name)}
                             </span>
                           )}
                         </div>
@@ -582,7 +583,7 @@ const Archives = () => {
                                             </Avatar>
                                             <div className="min-w-0 flex-1">
                                               <p className="text-sm font-medium text-foreground break-words leading-tight">
-                                                {member?.first_name} {member?.last_name}
+                                                {formatFullName(member?.first_name, member?.last_name)}
                                               </p>
                                               <Badge
                                                 variant={badgeVariant}
@@ -626,7 +627,7 @@ const Archives = () => {
                                             </Avatar>
                                             <div className="min-w-0 flex-1">
                                               <p className="text-sm font-medium text-foreground break-words leading-tight">
-                                                {profile?.first_name} {profile?.last_name}
+                                                {formatFullName(profile?.first_name, profile?.last_name)}
                                               </p>
                                               <Badge
                                                 variant={r.is_present ? "default" : "outline"}
