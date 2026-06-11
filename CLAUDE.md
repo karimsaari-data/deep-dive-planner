@@ -86,6 +86,7 @@ public/             # Static assets, PWA manifest, favicons
 - **TypeScript:** Strict mode is OFF (`tsconfig.app.json`). ESLint rules for unused vars/params are disabled.
 - **Supabase types:** Auto-generated in `src/integrations/supabase/types.ts` -- regenerate via Supabase CLI, do not edit by hand.
 - **No test framework:** There are no automated tests. Validate changes by running `npm run build` and `npm run lint`.
+- **PDF pages:** Any change to a component in `src/components/pdf/pages/` MUST be visually verified with the `verify-pdf` skill (`node .claude/skills/verify-pdf/render-pdf-page.mjs <Component>`) — html2canvas renders flex alignment differently from the browser, so `npm run build` alone is not enough.
 
 ## Database
 
