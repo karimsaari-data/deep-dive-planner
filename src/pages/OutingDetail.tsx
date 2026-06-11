@@ -40,6 +40,7 @@ import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
+import { FicheEvacuationGenerator } from "@/components/pdf/FicheEvacuationGenerator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import CarpoolSection from "@/components/carpool/CarpoolSection";
@@ -380,6 +381,8 @@ const OutingDetail = () => {
                 <Download className="h-4 w-4" />
                 Fiche Sécurité
               </Button>
+              {/* Fiche évacuation - encadrants uniquement */}
+              {canManageOuting && <FicheEvacuationGenerator compact />}
               {!isPast && canCancelOuting && (
                 <EditOutingDialog outing={outing} />
               )}

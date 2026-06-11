@@ -2,11 +2,17 @@ import { useState, useRef } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { PDFPageEvacuationApnee } from "./pages/PDFPageEvacuationApnee";
 
-export const FicheEvacuationGenerator = () => {
+interface FicheEvacuationGeneratorProps {
+  /** Compact button for toolbars (size sm, no full width) */
+  compact?: boolean;
+}
+
+export const FicheEvacuationGenerator = ({ compact = false }: FicheEvacuationGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -51,14 +57,21 @@ export const FicheEvacuationGenerator = () => {
     <>
       <Button
         variant="outline"
-        className="w-full gap-2 border-destructive/40 text-destructive hover:bg-destructive/5"
+        size={compact ? "sm" : "default"}
+        className={cn(
+          "gap-2 border-destructive/40 text-destructive hover:bg-destructive/5",
+          !compact && "w-full"
+        )}
         onClick={generatePDF}
         disabled={isGenerating}
       >
         {isGenerating ? (
           <><Loader2 className="h-4 w-4 animate-spin" />Génération...</>
         ) : (
-          <><Download className="h-4 w-4" />Fiche d'évacuation de plongeur (Annexe III-19)</>
+          <>
+            <Download className="h-4 w-4" />
+            {compact ? "Fiche d'évacuation" : "Fiche d'évacuation de plongeur (Annexe III-19)"}
+          </>
         )}
       </Button>
 
