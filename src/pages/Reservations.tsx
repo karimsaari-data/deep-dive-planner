@@ -1,3 +1,4 @@
+import { formatFullName } from "@/lib/formatName";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight, Clock } from "lucide-react";
@@ -218,7 +219,7 @@ const Reservations = () => {
                                             >
                                               {index + 1}
                                             </span>
-                                            {p.first_name} {p.last_name}
+                                            {formatFullName(p.first_name, p.last_name)}
                                             {isMe && (
                                               <span className="ml-1 text-xs font-medium text-amber-600">
                                                 (vous)

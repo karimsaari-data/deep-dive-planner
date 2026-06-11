@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { formatFullName } from "@/lib/formatName";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -640,7 +641,7 @@ const OutingView = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-foreground truncate">
-                              {profile?.first_name} {profile?.last_name}
+                              {formatFullName(profile?.first_name, profile?.last_name)}
                             </p>
                             {isOrg && (
                               <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>

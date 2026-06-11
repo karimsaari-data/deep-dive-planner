@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -389,7 +390,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
                     <SelectContent>
                       {encadrants.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
-                          {m.first_name} {m.last_name}
+                          {formatFullName(m.first_name, m.last_name)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -415,7 +416,7 @@ const HistoricalOutingForm = ({ open, onOpenChange }: HistoricalOutingFormProps)
                     ?.filter((e) => e.id !== form.watch("organizer_id"))
                     .map((e) => (
                       <SelectItem key={e.id} value={e.id}>
-                        {e.first_name} {e.last_name}
+                        {formatFullName(e.first_name, e.last_name)}
                       </SelectItem>
                     ))}
                 </SelectContent>

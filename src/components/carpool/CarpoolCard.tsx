@@ -1,4 +1,5 @@
 import { Clock, MapPin, ExternalLink, Users, Trash2, Edit2, MessageCircle, CheckCircle2 } from "lucide-react";
+import { formatFullName } from "@/lib/formatName";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,7 +56,7 @@ const CarpoolCard = ({
   const isBooked = !!userBookingId;
 
   const driverName = carpool.driver
-    ? `${carpool.driver.first_name} ${carpool.driver.last_name}`
+    ? formatFullName(carpool.driver.first_name, carpool.driver.last_name)
     : "Conducteur";
   const driverInitials = carpool.driver
     ? `${carpool.driver.first_name?.[0] ?? ""}${carpool.driver.last_name?.[0] ?? ""}`

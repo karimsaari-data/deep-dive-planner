@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter, Camera, Upload, Hash, BarChart3, List } from "lucide-react";
 import Layout from "@/components/layout/Layout";
@@ -573,7 +574,7 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
         </div>
         {item.owner && (
           <p className="text-xs text-muted-foreground">
-            Détenteur: {item.owner.first_name} {item.owner.last_name}
+            Détenteur: {formatFullName(item.owner.first_name, item.owner.last_name)}
           </p>
         )}
         {item.notes && (
@@ -609,7 +610,7 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
                         ?.filter((e) => e.id !== user?.id)
                         .map((encadrant) => (
                           <SelectItem key={encadrant.id} value={encadrant.id}>
-                            {encadrant.first_name} {encadrant.last_name}
+                            {formatFullName(encadrant.first_name, encadrant.last_name)}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -695,7 +696,7 @@ const GlobalInventoryTab = () => {
       if (item.owner && !ownerMap.has(item.owner.id)) {
         ownerMap.set(item.owner.id, {
           id: item.owner.id,
-          name: `${item.owner.first_name} ${item.owner.last_name}`,
+          name: formatFullName(item.owner.first_name, item.owner.last_name),
           email: item.owner.email,
         });
       }
@@ -721,7 +722,7 @@ const GlobalInventoryTab = () => {
     const rows = inventory.map((item) => [
       item.unique_code || "",
       item.catalog?.name || "",
-      item.owner ? `${item.owner.first_name} ${item.owner.last_name}` : "",
+      item.owner ? formatFullName(item.owner.first_name, item.owner.last_name) : "",
       item.status,
       item.notes || "",
       format(new Date(item.acquired_at), "dd/MM/yyyy"),
@@ -889,14 +890,14 @@ const HistoryTab = () => {
                 <div className="text-sm">
                   {entry.action_type === "transfer" && entry.from_user && entry.to_user && (
                     <p>
-                      De <span className="font-medium">{entry.from_user.first_name} {entry.from_user.last_name}</span>
+                      De <span className="font-medium">{formatFullName(entry.from_user.first_name, entry.from_user.last_name)}</span>
                       {" → "}
-                      <span className="font-medium">{entry.to_user.first_name} {entry.to_user.last_name}</span>
+                      <span className="font-medium">{formatFullName(entry.to_user.first_name, entry.to_user.last_name)}</span>
                     </p>
                   )}
                   {entry.action_type === "acquisition" && entry.to_user && (
                     <p>
-                      Ajouté par <span className="font-medium">{entry.to_user.first_name} {entry.to_user.last_name}</span>
+                      Ajouté par <span className="font-medium">{formatFullName(entry.to_user.first_name, entry.to_user.last_name)}</span>
                     </p>
                   )}
                   {entry.action_type === "decommission" && (

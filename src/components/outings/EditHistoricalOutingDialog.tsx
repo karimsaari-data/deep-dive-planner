@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -334,7 +335,7 @@ const EditHistoricalOutingDialog = ({ outing, open, onOpenChange }: Props) => {
                     </FormControl>
                     <SelectContent>
                       {encadrants?.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>
+                        <SelectItem key={e.id} value={e.id}>{formatFullName(e.first_name, e.last_name)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -355,7 +356,7 @@ const EditHistoricalOutingDialog = ({ outing, open, onOpenChange }: Props) => {
                 <SelectContent>
                   <SelectItem value="none">Aucun</SelectItem>
                   {encadrants?.filter((e) => e.id !== organizerId).map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.first_name} {e.last_name}</SelectItem>
+                    <SelectItem key={e.id} value={e.id}>{formatFullName(e.first_name, e.last_name)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

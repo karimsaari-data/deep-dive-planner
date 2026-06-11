@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { MapPin, Navigation, User, Clock } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -202,7 +203,7 @@ const CarpoolMapView = ({
       });
 
       const driverName = carpool.driver
-        ? `${carpool.driver.first_name} ${carpool.driver.last_name}`
+        ? formatFullName(carpool.driver.first_name, carpool.driver.last_name)
         : "Conducteur";
 
       const carMarker = L.marker([coords.lat, coords.lng], { icon: carIcon }).addTo(map);
@@ -275,7 +276,7 @@ const CarpoolMapView = ({
             </Avatar>
             <div>
               <p className="font-bold text-foreground">
-                {selectedCarpool.driver?.first_name} {selectedCarpool.driver?.last_name}
+                {formatFullName(selectedCarpool.driver?.first_name, selectedCarpool.driver?.last_name)}
               </p>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-3 w-3" />

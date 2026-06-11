@@ -775,7 +775,7 @@ const OutingDetail = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-foreground">
-                          {profile?.first_name} {profile?.last_name}
+                          {formatFullName(profile?.first_name, profile?.last_name)}
                         </p>
                         {isOrg && (
                           <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Organisateur</Badge>
@@ -894,7 +894,7 @@ const OutingDetail = () => {
                           <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-semibold text-amber-700">
                             {index + 1}
                           </span>
-                          {profile?.first_name} {profile?.last_name}
+                          {formatFullName(profile?.first_name, profile?.last_name)}
                         </div>
                       );
                     })}
@@ -920,7 +920,7 @@ const OutingDetail = () => {
                           )}
                         >
                           <XCircle className="h-4 w-4" />
-                          {profile?.first_name} {profile?.last_name}
+                          {formatFullName(profile?.first_name, profile?.last_name)}
                           {isLastMinute && <Badge variant="destructive" className="text-xs">-24h</Badge>}
                         </div>
                       );

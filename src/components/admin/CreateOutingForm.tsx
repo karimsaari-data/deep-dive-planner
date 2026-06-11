@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -818,7 +819,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 <div className="flex flex-wrap gap-2">
                   {selectedCoInstructors.map((ci) => (
                     <span key={ci.id} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
-                      {ci.first_name} {ci.last_name}
+                      {formatFullName(ci.first_name, ci.last_name)}
                       <button type="button" onClick={() => setSelectedCoInstructors((prev) => prev.filter((c) => c.id !== ci.id))}>
                         <X className="h-3 w-3" />
                       </button>
@@ -861,7 +862,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                             setCoInstructorPickerOpen(false);
                           }}
                         >
-                          {m.first_name} {m.last_name}
+                          {formatFullName(m.first_name, m.last_name)}
                         </button>
                       ))}
                   </div>

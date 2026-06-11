@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatFullName } from "@/lib/formatName";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -144,7 +145,7 @@ export default function SondageVote() {
         <div className="w-full max-w-sm">
           <div className="mb-6">
             <h1 className="text-xl font-bold">{poll?.title}</h1>
-            <p className="text-sm text-gray-400 mt-1">Bonjour {member?.first_name} {member?.last_name}</p>
+            <p className="text-sm text-gray-400 mt-1">Bonjour {formatFullName(member?.first_name, member?.last_name)}</p>
           </div>
 
           <p className="text-sm text-gray-500 mb-4">
