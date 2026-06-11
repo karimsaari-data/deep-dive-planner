@@ -58,7 +58,6 @@ import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
 import { useCarpools } from "@/hooks/useCarpools";
-import { FicheEvacuationGenerator } from "@/components/pdf/FicheEvacuationGenerator";
 
 /** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
 const extractDepth = (prerogatives: string | null): string | null => {
@@ -586,11 +585,6 @@ const OutingView = () => {
                 <Download className="h-4 w-4" />
                 Télécharger la Fiche Sécurité Apnée
               </Button>
-
-              {/* Fiche évacuation - encadrants only */}
-              {(user.id === organizerId || isCoInstructor) && (
-                <FicheEvacuationGenerator />
-              )}
             </CardContent>
           </Card>
 
