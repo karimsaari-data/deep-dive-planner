@@ -1,11 +1,23 @@
 import { formatFullName } from "@/lib/formatName";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight, Clock } from "lucide-react";
+import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight, Clock, CalendarPlus } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  buildGoogleCalendarUrl,
+  buildOutlookCalendarUrl,
+  downloadICS,
+  type CalendarEvent,
+} from "@/lib/calendar";
 import { useMyReservations, useCancelReservation } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -235,10 +247,67 @@ const Reservations = () => {
                             );
                           })()}
 
+                          {(() => {
+                            const o = reservation.outing;
+                            if (!o?.date_time) return null;
+                            const calendarEvent: CalendarEvent = {
+                              title: o.title,
+                              start: o.date_time,
+                              end: o.end_date,
+                              description: o.description,
+                              location: o.location_details?.name || o.location,
+                            };
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full mt-4"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <CalendarPlus className="h-4 w-4 mr-2" />
+                                    Ajouter au calendrier
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="center"
+                                  className="w-[var(--radix-dropdown-menu-trigger-width)]"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(buildGoogleCalendarUrl(calendarEvent), "_blank", "noopener,noreferrer");
+                                    }}
+                                  >
+                                    Google Agenda
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(buildOutlookCalendarUrl(calendarEvent), "_blank", "noopener,noreferrer");
+                                    }}
+                                  >
+                                    Outlook
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      downloadICS(calendarEvent, `${o.title?.replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "sortie"}.ics`);
+                                    }}
+                                  >
+                                    Apple / Autre (.ics)
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
+
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full mt-4"
+                            className="w-full mt-2"
                             onClick={(e) => {
                               e.stopPropagation();
                               cancelReservation.mutate(reservation.outing_id);
