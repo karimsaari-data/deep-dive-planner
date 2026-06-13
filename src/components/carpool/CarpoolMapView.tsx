@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatFullName } from "@/lib/formatName";
 import { MapPin, Navigation, User, Clock } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Carpool, useBookCarpool } from "@/hooks/useCarpools";
+import { Carpool, useBookCarpool, useResolveMapsLinks } from "@/hooks/useCarpools";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Fix Leaflet marker icon issue
@@ -27,29 +27,51 @@ interface CarpoolMapViewProps {
   isPast?: boolean;
 }
 
-// Parse lat/lng from Google Maps link
+// Parse lat/lng from a maps link. Tolerates the many formats Google/Apple Maps
+// produce (query params, @lat,lng, place data, etc.) so every carpool that has
+// real coordinates in its link shows up on the map — not just those created via
+// the in-app map picker. Short links (maps.app.goo.gl) contain no coordinates
+// and cannot be resolved client-side, so they remain unparseable.
 const parseLatLngFromMapsLink = (mapsLink: string | null): { lat: number; lng: number } | null => {
   if (!mapsLink) return null;
-  
-  // Try various Google Maps URL formats
-  // Format 1: q=lat,lng
-  let match = mapsLink.match(/q=([\d.-]+),([\d.-]+)/);
-  if (match) {
-    return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+  const link = mapsLink.trim();
+
+  const num = "(-?\\d+(?:\\.\\d+)?)";
+  const isValid = (lat: number, lng: number) =>
+    !Number.isNaN(lat) &&
+    !Number.isNaN(lng) &&
+    Math.abs(lat) <= 90 &&
+    Math.abs(lng) <= 180;
+
+  // Most-specific patterns first, generic fallback last.
+  const patterns = [
+    // ?q= / ?query= / ?ll= / ?sll= / ?center= / ?destination= / ?daddr=
+    new RegExp(`[?&](?:q|query|ll|sll|center|destination|daddr)=${num},${num}`, "i"),
+    // !3dLAT!4dLNG = the actual pinned place — more accurate than the @ viewport
+    new RegExp(`!3d${num}!4d${num}`),
+    // @lat,lng = map viewport center (fallback, approximate)
+    new RegExp(`@${num},${num}`),
+    // /lat,lng path segment
+    new RegExp(`/${num},${num}`),
+  ];
+
+  for (const re of patterns) {
+    const match = link.match(re);
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      if (isValid(lat, lng)) return { lat, lng };
+    }
   }
-  
-  // Format 2: @lat,lng
-  match = mapsLink.match(/@([\d.-]+),([\d.-]+)/);
-  if (match) {
-    return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+
+  // Generic fallback: first decimal coordinate-looking pair anywhere in the link.
+  const generic = link.match(/(-?\d{1,3}\.\d{3,}),\s*(-?\d{1,3}\.\d{3,})/);
+  if (generic) {
+    const lat = parseFloat(generic[1]);
+    const lng = parseFloat(generic[2]);
+    if (isValid(lat, lng)) return { lat, lng };
   }
-  
-  // Format 3: place/lat,lng
-  match = mapsLink.match(/place\/([\d.-]+),([\d.-]+)/);
-  if (match) {
-    return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
-  }
-  
+
   return null;
 };
 
@@ -72,6 +94,24 @@ const CarpoolMapView = ({
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedCarpool, setSelectedCarpool] = useState<Carpool | null>(null);
   const hasAutoLocated = useRef(false);
+
+  // Links that can't be parsed client-side (e.g. short links) are resolved
+  // server-side via the edge function so every carpool shows on the map.
+  const linksToResolve = useMemo(
+    () =>
+      carpools
+        .filter((c) => c.maps_link && !parseLatLngFromMapsLink(c.maps_link))
+        .map((c) => ({ id: c.id, url: c.maps_link as string })),
+    [carpools]
+  );
+  const { data: resolvedCoords } = useResolveMapsLinks(linksToResolve);
+
+  // Coordinates for a carpool: from the link directly, else from server resolution.
+  const getCarpoolCoords = useCallback(
+    (carpool: Carpool): { lat: number; lng: number } | null =>
+      parseLatLngFromMapsLink(carpool.maps_link) ?? resolvedCoords?.[carpool.id] ?? null,
+    [resolvedCoords]
+  );
 
   // Auto-locate user
   useEffect(() => {
@@ -177,7 +217,7 @@ const CarpoolMapView = ({
 
     // Car markers for each carpool
     carpools.forEach((carpool) => {
-      const coords = parseLatLngFromMapsLink(carpool.maps_link);
+      const coords = getCarpoolCoords(carpool);
       if (!coords) return;
 
       const passengers = carpool.passengers ?? [];
@@ -220,12 +260,17 @@ const CarpoolMapView = ({
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
     }
-  }, [carpools, userLocation, destinationLat, destinationLng, destinationName, userBookingCarpoolId, user?.id]);
+  }, [carpools, getCarpoolCoords, userLocation, destinationLat, destinationLng, destinationName, userBookingCarpoolId, user?.id]);
 
   const handleBook = (carpoolId: string) => {
     bookCarpool.mutate({ carpoolId, outingId });
     setSelectedCarpool(null);
   };
+
+  // Texte générique posé par le sélecteur de carte : traité comme absence d'adresse.
+  const GENERIC_MAP_POINT = "Point GPS sélectionné sur la carte";
+  const selectedHasRealMeetingPoint =
+    !!selectedCarpool?.meeting_point && selectedCarpool.meeting_point !== GENERIC_MAP_POINT;
 
   const selectedPassengers = selectedCarpool?.passengers ?? [];
   const selectedRemainingSeats = selectedCarpool
@@ -289,7 +334,7 @@ const CarpoolMapView = ({
 
           <div className="flex items-center gap-2 text-sm mb-3 p-2 bg-muted/50 rounded-lg">
             <MapPin className="h-4 w-4 text-primary shrink-0" />
-            {selectedCarpool.meeting_point ? (
+            {selectedHasRealMeetingPoint ? (
               <span className="truncate">{selectedCarpool.meeting_point}</span>
             ) : selectedCarpool.maps_link ? (
               <a

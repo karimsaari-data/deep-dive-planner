@@ -55,6 +55,12 @@ const CarpoolCard = ({
   const isFull = remainingSeats <= 0;
   const isBooked = !!userBookingId;
 
+  // Texte générique posé automatiquement par le sélecteur de carte : on le traite
+  // comme une absence d'adresse pour afficher partout le même grand lien GPS.
+  const GENERIC_MAP_POINT = "Point GPS sélectionné sur la carte";
+  const hasRealMeetingPoint =
+    !!carpool.meeting_point && carpool.meeting_point !== GENERIC_MAP_POINT;
+
   const driverName = carpool.driver
     ? formatFullName(carpool.driver.first_name, carpool.driver.last_name)
     : "Conducteur";
@@ -164,7 +170,7 @@ const CarpoolCard = ({
         {/* Meeting point with clickable map link */}
         <div className="mt-4 flex items-center gap-2 text-sm p-3 bg-muted/50 rounded-lg">
           <MapPin className="h-5 w-5 text-primary shrink-0" />
-          {carpool.meeting_point ? (
+          {hasRealMeetingPoint ? (
             <>
               <span className="text-foreground flex-1">{carpool.meeting_point}</span>
               {carpool.maps_link && (
