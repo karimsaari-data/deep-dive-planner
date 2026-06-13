@@ -43,6 +43,12 @@ export interface POSSWeather {
   conditions: string | null;
 }
 
+export interface POSSCoInstructor {
+  name: string;
+  level: string | null;
+  phone: string | null;
+}
+
 export interface POSSData {
   outingTitle: string;
   outingDateTime: string;
@@ -54,6 +60,8 @@ export interface POSSData {
   participants: POSSParticipant[];
   organizerName: string;
   organizerLevel: string | null;
+  organizerPhone: string | null;
+  coInstructors: POSSCoInstructor[];
   waterEntryTime: string | null;
   waterExitTime: string | null;
   weather: POSSWeather | null;
@@ -147,7 +155,7 @@ const calculateDuration = (entryTime: string | null, exitTime: string | null): s
 
 // Main POSS Generator
 export const generatePOSS = async (data: POSSData): Promise<void> => {
-  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, waterEntryTime, waterExitTime, weather } = data;
+  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, organizerPhone, coInstructors, waterEntryTime, waterExitTime, weather } = data;
   
   const doc = new jsPDF({
     orientation: "landscape",
@@ -172,7 +180,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   // ====================
   // A. EN-TÊTE OPTIMISÉ
   // ====================
-  const headerHeight = 22;
+  const headerHeight = 20;
   drawBox(doc, margin, y, contentWidth, headerHeight, { fill: "#f3f4f6" });
 
   // Logo (left - smaller)
@@ -192,33 +200,67 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   const dateStr = format(new Date(outingDateTime), "EEEE d MMMM yyyy", { locale: fr });
   const sessionDuration = calculateDuration(waterEntryTime, waterExitTime);
   const sessionTimeInfo = waterEntryTime && waterExitTime
-    ? `Mise à l'eau : ${waterEntryTime} | Sortie : ${waterExitTime} | Durée : ${sessionDuration}`
+    ? `Mise à l'eau : ${waterEntryTime}  |  Sortie : ${waterExitTime}  |  Durée : ${sessionDuration}`
     : "Horaires non définis";
 
-  doc.text(`Date : ${dateStr}  |  Lieu : ${location?.name || outingLocation}`, margin + 22, y + 12);
+  doc.text(`Date : ${dateStr}   |   Lieu : ${location?.name || outingLocation}`, pageWidth / 2, y + 12, { align: "center" });
   doc.setFontSize(7.5);
-  doc.text(sessionTimeInfo, margin + 22, y + 15.5);
+  doc.text(sessionTimeInfo, pageWidth / 2, y + 16, { align: "center" });
 
-  // Numéros d'urgence dans le bandeau
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor("#dc2626");
-  doc.text("URGENCE : VHF 16 | CROSS 196 | SAMU 15", margin + 22, y + 19);
-  doc.setTextColor("#000000");
-
-  // Responsable et date de génération (top right)
-  doc.setTextColor("#dc2626");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(`Responsable : ${organizerName}`, pageWidth - margin - 55, y + 12);
-
+  // Date de génération (top right)
   doc.setTextColor("#666666");
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text(`Généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, pageWidth - margin - 55, y + 16);
+  doc.text(`Généré le ${format(new Date(), "dd/MM/yyyy 'à' HH:mm")}`, pageWidth - margin - 2, y + 18, { align: "right" });
   doc.setTextColor("#000000");
 
   y += headerHeight + 3;
+
+  // ====================
+  // ENCADREMENT & CONTACTS (Responsable + Co-encadrants avec téléphones)
+  // ====================
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor("#0369a1");
+  doc.text("ENCADREMENT & CONTACTS", margin, y);
+  doc.setTextColor("#000000");
+  y += 4;
+
+  const encadrementRows: string[][] = [
+    ["Responsable POSS", organizerName, organizerLevel || "-", organizerPhone || "Non renseigné"],
+  ];
+  coInstructors.forEach((co) => {
+    encadrementRows.push(["Co-encadrant", co.name, co.level || "-", co.phone || "Non renseigné"]);
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Rôle", "Nom", "Niveau", "Téléphone"]],
+    body: encadrementRows,
+    theme: "grid",
+    headStyles: {
+      fillColor: "#0369a1",
+      textColor: "#ffffff",
+      fontStyle: "bold",
+      fontSize: 9,
+    },
+    styles: { fontSize: 9, cellPadding: 2, valign: "middle" },
+    columnStyles: {
+      0: { cellWidth: 40, fontStyle: "bold" },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: contentWidth - 145, fontStyle: "bold" },
+    },
+    didParseCell: (cell) => {
+      // Highlight the responsable row
+      if (cell.section === "body" && cell.row.index === 0) {
+        cell.cell.styles.fillColor = "#fef3c7";
+      }
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
 
   // ====================
   // ENCART MÉTÉO SYNTHÉTIQUE
@@ -230,26 +272,33 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor("#92400e");
-    doc.text(`⚠ ${weather.conditions || "Conditions défavorables"} — Vent ${weather.windSpeed || "N/A"} (raf. ${weather.maxWindSpeed || "N/A"}) ≈ Houle ${weather.waveHeight || "N/A"} (max ${weather.maxWaveHeight || "N/A"}) 🌡 ${weather.temperature || "N/A"}°`, margin + 5, y + 8);
+    doc.text(`Conditions : ${weather.conditions || "à vérifier"}  -  Vent ${weather.windSpeed || "N/A"} (raf. ${weather.maxWindSpeed || "N/A"})  -  Houle ${weather.waveHeight || "N/A"} (max ${weather.maxWaveHeight || "N/A"})  -  Temp. ${weather.temperature || "N/A"}°C`, margin + 5, y + 8);
     doc.setTextColor("#000000");
 
     y += weatherHeight + 3;
   }
 
   // ====================
-  // PROFONDEUR MAX - MISE EN ÉVIDENCE
+  // URGENCE + PROFONDEUR MAX - MISE EN ÉVIDENCE
   // ====================
   const maxDepth = getMaxDepthForLevel(organizerLevel);
   const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
+  const bandHeight = 9;
+  const halfWidth = (contentWidth - 4) / 2;
 
-  drawBox(doc, margin, y, contentWidth, 8, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.2 });
+  // Numéros d'urgence (gauche)
+  drawBox(doc, margin, y, halfWidth, bandHeight, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.2 });
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor("#dc2626");
-  doc.text(`PROFONDEUR MAX (basée sur ${organizerLevel || "niveau encadrant"}) : ${maxDepthStr}`, pageWidth / 2, y + 5.5, { align: "center" });
+  doc.text("URGENCE : VHF 16  |  CROSS 196  |  SAMU 15", margin + halfWidth / 2, y + 6, { align: "center" });
+
+  // Profondeur max (droite)
+  drawBox(doc, margin + halfWidth + 4, y, halfWidth, bandHeight, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.2 });
+  doc.text(`PROFONDEUR MAX (${organizerLevel || "encadrant"}) : ${maxDepthStr}`, margin + halfWidth + 4 + halfWidth / 2, y + 6, { align: "center" });
   doc.setTextColor("#000000");
 
-  y += 11;
+  y += bandHeight + 4;
 
   // ====================
   // B. CARTOGRAPHIE OPÉRATIONNELLE
@@ -260,8 +309,8 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   y += 5;
 
   // Satellite map only (bathymetric removed for better readability)
-  const mapHeight = 65;
-  const mapWidth = contentWidth;
+  const maxMapHeight = 75;
+  const maxMapWidth = contentWidth;
 
   // Try to load satellite map
   let satelliteBase64: string | null = null;
@@ -270,11 +319,29 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   }
 
   if (satelliteBase64) {
-    doc.addImage(satelliteBase64, "PNG", margin, y, mapWidth, mapHeight);
+    // Preserve the source aspect ratio so the map is not distorted
+    let drawWidth = maxMapWidth;
+    let drawHeight = maxMapHeight;
+    try {
+      const props = doc.getImageProperties(satelliteBase64);
+      const ratio = props.width / props.height;
+      drawWidth = maxMapWidth;
+      drawHeight = drawWidth / ratio;
+      if (drawHeight > maxMapHeight) {
+        drawHeight = maxMapHeight;
+        drawWidth = drawHeight * ratio;
+      }
+    } catch {
+      // Fallback to bounding box if properties can't be read
+      drawWidth = maxMapWidth;
+      drawHeight = maxMapHeight;
+    }
+    const imgX = margin + (contentWidth - drawWidth) / 2; // center horizontally
+    doc.addImage(satelliteBase64, "PNG", imgX, y, drawWidth, drawHeight);
     doc.setFontSize(8);
     doc.setFont("helvetica", "italic");
-    doc.text("Plan logistique (Satellite)", pageWidth / 2, y + mapHeight + 4, { align: "center" });
-    y += mapHeight + 10;
+    doc.text("Plan logistique (Satellite)", pageWidth / 2, y + drawHeight + 4, { align: "center" });
+    y += drawHeight + 10;
   } else {
     // No map available
     drawBox(doc, margin, y, contentWidth, 25, { fill: "#e5e7eb" });
@@ -381,12 +448,17 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setTextColor("#000000");
 
   // ====================
-  // E. TABLEAU DES PLONGEURS
+  // E. TABLEAU DES PLONGEURS (page dédiée)
   // ====================
+  doc.addPage();
+  y = margin;
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
+  doc.setTextColor("#0369a1");
   doc.text("LISTE DES PARTICIPANTS", margin, y);
-  y += 3;
+  doc.setTextColor("#000000");
+  y += 4;
 
   // Helper to check if level is encadrant (EA1, EA2, EA3, EA4, E1, E2, E3, E4)
   const isEncadrant = (level: string | null): boolean => {
@@ -395,17 +467,33 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     return /EA[1-4]|E[1-4]/.test(levelUpper);
   };
 
-  const participantData = participants.map((p) => [
+  // Determine each participant's role (responsable / encadrant / plongeur)
+  const organizerFirstName = organizerName.toLowerCase().split(" ")[0];
+  const getRole = (p: POSSParticipant): "RESP." | "Encadrant" | "" => {
+    const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
+    if (
+      fullName.includes(organizerFirstName) ||
+      organizerName.toLowerCase().includes(p.last_name?.toLowerCase() || "")
+    ) {
+      return "RESP.";
+    }
+    if (isEncadrant(p.apnea_level)) return "Encadrant";
+    return "";
+  };
+  const participantRoles = participants.map(getRole);
+
+  const participantData = participants.map((p, idx) => [
+    participantRoles[idx],
     p.last_name?.toUpperCase() || "",
     p.first_name || "",
     p.apnea_level || "-",
-    p.emergency_contact_phone ? `${p.emergency_contact_name || ""} ${p.emergency_contact_phone}` : "-",
+    p.emergency_contact_phone ? `${p.emergency_contact_name || ""} ${p.emergency_contact_phone}`.trim() : "-",
   ]);
 
   autoTable(doc, {
     startY: y,
-    head: [["NOM", "Prénom", "Niveau", "Contact Urgence"]],
-    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", ""]],
+    head: [["Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]],
+    body: participantData.length > 0 ? participantData : [["", "Aucun participant", "", "", ""]],
     theme: "striped",
     headStyles: {
       fillColor: [14, 165, 233],
@@ -414,31 +502,26 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
       fontSize: 9
     },
     styles: {
-      fontSize: 8.5,
-      cellPadding: 2.5
+      fontSize: 9,
+      cellPadding: 3
     },
     columnStyles: {
-      0: { cellWidth: 35, fontStyle: "bold" },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 45 },
-      3: { cellWidth: contentWidth - 110 },
+      0: { cellWidth: 26, fontStyle: "bold", halign: "center" },
+      1: { cellWidth: 38, fontStyle: "bold" },
+      2: { cellWidth: 32 },
+      3: { cellWidth: 42 },
+      4: { cellWidth: "auto" },
     },
     didParseCell: (data) => {
       if (data.section === 'body' && data.row.index < participants.length) {
-        const participant = participants[data.row.index];
-        const participantFullName = `${participant.first_name} ${participant.last_name}`;
-
+        const role = participantRoles[data.row.index];
         // Highlight organizer (responsable)
-        if (participantFullName.toLowerCase().includes(organizerName.toLowerCase().split(' ')[0]) ||
-            organizerName.toLowerCase().includes(participant.last_name?.toLowerCase() || '')) {
+        if (role === "RESP.") {
           data.cell.styles.fillColor = "#fef3c7"; // Light yellow
           data.cell.styles.fontStyle = "bold";
-          if (data.column.index === 2) {
-            data.cell.text = [`⭐ ${data.cell.text[0]}`];
-          }
         }
         // Highlight encadrants
-        else if (isEncadrant(participant.apnea_level)) {
+        else if (role === "Encadrant") {
           data.cell.styles.fillColor = "#dbeafe"; // Light blue
           data.cell.styles.fontStyle = "bold";
         }
@@ -447,9 +530,16 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     margin: { left: margin, right: margin },
   });
 
-  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
 
-  // Force new page after participants to maintain consistent 4-page layout
+  // Légende des couleurs
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor("#666666");
+  doc.text("Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant", margin, y);
+  doc.setTextColor("#000000");
+
+  // Force new page after participants to maintain consistent layout
   doc.addPage();
   y = margin;
 
@@ -480,9 +570,12 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     ["Pavillon Alpha / Bouée signalisation", "Visible (bateau/côte)", ""],
   ];
 
+  // Rows that are section headers (no specs / no checkbox)
+  const sectionRowIndices = new Set([0, 5, 10]);
+
   autoTable(doc, {
     startY: y,
-    head: [["Matériel", "Spécifications", "✓"]],
+    head: [["Matériel", "Spécifications", "Coché"]],
     body: equipmentData,
     theme: "grid",
     headStyles: {
@@ -502,20 +595,30 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     columnStyles: {
       0: { cellWidth: 75, fontStyle: "bold", halign: "left" },
       1: { cellWidth: contentWidth - 100, halign: "left" },
-      2: { cellWidth: 20, halign: "center", fontSize: 12 }
+      2: { cellWidth: 20, halign: "center" }
     },
     didParseCell: (data) => {
       // Section headers styling
-      if (data.row.index === 0 || data.row.index === 5 || data.row.index === 10) {
+      if (sectionRowIndices.has(data.row.index)) {
         data.cell.styles.fillColor = "#dbeafe";
         data.cell.styles.fontStyle = "bold";
         data.cell.styles.fontSize = 9;
         data.cell.styles.textColor = "#1e40af";
       }
-
-      // Add checkbox in third column for non-header rows
-      if (data.column.index === 2 && data.row.index !== 0 && data.row.index !== 5 && data.row.index !== 10) {
-        data.cell.text = ["☐"];
+    },
+    didDrawCell: (data) => {
+      // Draw a real checkbox square in the third column (skip section headers)
+      if (
+        data.section === "body" &&
+        data.column.index === 2 &&
+        !sectionRowIndices.has(data.row.index)
+      ) {
+        const size = 4;
+        const cx = data.cell.x + data.cell.width / 2 - size / 2;
+        const cy = data.cell.y + data.cell.height / 2 - size / 2;
+        doc.setDrawColor("#334155");
+        doc.setLineWidth(0.4);
+        doc.rect(cx, cy, size, size, "S");
       }
     },
     margin: { left: margin, right: margin }
