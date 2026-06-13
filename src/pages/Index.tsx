@@ -85,18 +85,18 @@ const Index = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               {canUseHistoricalTool && (
                 <Button
                   variant="outline"
                   onClick={() => setShowHistoricalForm(true)}
-                  className="gap-2"
+                  className="w-full gap-2 sm:w-auto"
                 >
                   <History className="h-4 w-4" />
                   Archives / Saisie passée
                 </Button>
               )}
-              <Button asChild variant="outline" className="gap-2">
+              <Button asChild variant="outline" className="w-full gap-2 sm:w-auto">
                 <a href="https://clean-data-collector.lovable.app" target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4" />
                   Caractérisation
