@@ -502,23 +502,43 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setTextColor("#0369a1");
   doc.text("LISTE DES PARTICIPANTS", margin, y);
   doc.setTextColor("#000000");
+
+  // Total participants (encadrants inclus)
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor("#666666");
+  doc.text(
+    `Total : ${participants.length} participant${participants.length > 1 ? "s" : ""}`,
+    pageWidth - margin,
+    y,
+    { align: "right" }
+  );
+  doc.setTextColor("#000000");
   y += 4;
 
-  // Encadrants (responsable + co-encadrants) are already listed in the
-  // ENCADREMENT block at the top, so they are excluded here to avoid duplication.
+  // Rôle : on identifie le responsable et les co-encadrants par leur nom (mêmes
+  // sources que le bloc ENCADREMENT) afin de les repérer et de les placer en
+  // tête du tableau.
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-  const encadrementNames = new Set<string>([
-    norm(organizerName),
-    ...coInstructors.map((c) => norm(c.name)),
-  ]);
-  const isEncadrementMember = (p: POSSParticipant): boolean => {
+  const coNames = new Set(coInstructors.map((c) => norm(c.name)));
+  const orgNorm = norm(organizerName);
+  const roleOf = (p: POSSParticipant): "RESP." | "Encadrant" | "" => {
     const full = norm(`${p.first_name} ${p.last_name}`);
     const reversed = norm(`${p.last_name} ${p.first_name}`);
-    return encadrementNames.has(full) || encadrementNames.has(reversed);
+    if (full === orgNorm || reversed === orgNorm) return "RESP.";
+    if (coNames.has(full) || coNames.has(reversed)) return "Encadrant";
+    return "";
   };
-  const divers = participants.filter((p) => !isEncadrementMember(p));
+  const roleRank = (r: string) => (r === "RESP." ? 0 : r === "Encadrant" ? 1 : 2);
 
-  const participantData = divers.map((p) => [
+  // Encadrants d'abord (responsable, puis co-encadrants), puis les autres
+  // plongeurs ; chaque groupe conserve son ordre d'origine.
+  const sortedParticipants = participants
+    .map((p, idx) => ({ p, role: roleOf(p), idx }))
+    .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.idx - b.idx);
+
+  const participantData = sortedParticipants.map(({ p, role }) => [
+    role,
     p.last_name?.toUpperCase() || "",
     p.first_name || "",
     p.apnea_level || "-",
@@ -529,8 +549,8 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
 
   autoTable(doc, {
     startY: y,
-    head: [["NOM", "Prénom", "Niveau", "Contact Urgence"]],
-    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", ""]],
+    head: [["Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]],
+    body: participantData.length > 0 ? participantData : [["", "Aucun participant", "", "", ""]],
     theme: "striped",
     headStyles: {
       fillColor: [14, 165, 233],
@@ -543,15 +563,35 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
       cellPadding: 3
     },
     columnStyles: {
-      0: { cellWidth: 45, fontStyle: "bold" },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 45 },
-      3: { cellWidth: "auto" },
+      0: { cellWidth: 26, fontStyle: "bold", halign: "center" },
+      1: { cellWidth: 40, fontStyle: "bold" },
+      2: { cellWidth: 32 },
+      3: { cellWidth: 42 },
+      4: { cellWidth: "auto" },
+    },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.row.index < sortedParticipants.length) {
+        const role = sortedParticipants[data.row.index].role;
+        if (role === "RESP.") {
+          data.cell.styles.fillColor = "#fef3c7"; // jaune = responsable
+          data.cell.styles.fontStyle = "bold";
+        } else if (role === "Encadrant") {
+          data.cell.styles.fillColor = "#dbeafe"; // bleu = encadrant
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
     },
     margin: { left: margin, right: margin },
   });
 
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
+
+  // Légende des couleurs
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(8);
+  doc.setTextColor("#666666");
+  doc.text("Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant", margin, y);
+  doc.setTextColor("#000000");
 
   // Force new page after participants to maintain consistent layout
   doc.addPage();
