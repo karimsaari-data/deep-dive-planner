@@ -765,6 +765,42 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   });
 
   // ====================
+  // PAGE CARTE EN GRAND (fin du document)
+  // ====================
+  if (satelliteBase64) {
+    doc.addPage();
+    let mapPageY = margin;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor("#0369a1");
+    doc.text("CARTE SATELLITE (VUE DÉTAILLÉE)", pageWidth / 2, mapPageY + 2, { align: "center" });
+    doc.setTextColor("#000000");
+    mapPageY += 8;
+
+    const availW = contentWidth;
+    const availH = pageHeight - mapPageY - margin;
+    let bigW = availW;
+    let bigH = availH;
+    try {
+      const props = doc.getImageProperties(satelliteBase64);
+      const ratio = props.width / props.height;
+      bigW = availW;
+      bigH = bigW / ratio;
+      if (bigH > availH) {
+        bigH = availH;
+        bigW = bigH * ratio;
+      }
+    } catch {
+      bigW = availW;
+      bigH = availH;
+    }
+    const bigX = margin + (contentWidth - bigW) / 2;
+    const bigY = mapPageY + (availH - bigH) / 2; // center vertically
+    doc.addImage(satelliteBase64, "PNG", bigX, bigY, bigW, bigH);
+  }
+
+  // ====================
   // Save PDF
   // ====================
   const siteName = location?.name?.replace(/\s+/g, "_") || "Sortie";
