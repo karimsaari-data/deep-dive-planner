@@ -111,6 +111,40 @@ const formatGPS = (lat: number | null, lon: number | null): string => {
   return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 };
 
+// Helper: Group a phone's digits with French spacing (pairs of 2).
+// Odd-length national parts (e.g. after a +33 prefix) keep the first digit alone.
+const frenchPhoneGroups = (digits: string): string => {
+  const parts: string[] = [];
+  let i = 0;
+  if (digits.length % 2 === 1) {
+    parts.push(digits[0]);
+    i = 1;
+  }
+  for (; i < digits.length; i += 2) parts.push(digits.slice(i, i + 2));
+  return parts.join(" ");
+};
+
+// Helper: Format a phone number (e.g. "0611033118" -> "06 11 03 31 18",
+// "+33767811438" -> "+33 7 67 81 14 38"). Falls back to the raw value if
+// there are no digits to format.
+const formatPhone = (raw: string | null | undefined): string => {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  const hasPlus = trimmed.startsWith("+");
+  let digits = trimmed.replace(/\D/g, "");
+  if (!digits) return trimmed;
+
+  if (hasPlus) {
+    // International: 2-digit country code, then the national part grouped.
+    return `+${digits.slice(0, 2)} ${frenchPhoneGroups(digits.slice(2))}`;
+  }
+  // French mobile entered without its leading 0 (9 digits starting with 6/7).
+  if (digits.length === 9 && /^[67]/.test(digits)) {
+    digits = `0${digits}`;
+  }
+  return frenchPhoneGroups(digits);
+};
+
 // Helper: Get max depth based on instructor level (FSGT)
 const getMaxDepthForLevel = (apneaLevel: string | null): number | null => {
   if (!apneaLevel) return null;
@@ -227,10 +261,10 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   y += 4;
 
   const encadrementRows: string[][] = [
-    ["Responsable POSS", organizerName, organizerLevel || "-", organizerPhone || "Non renseigné"],
+    ["Responsable POSS", organizerName, organizerLevel || "-", formatPhone(organizerPhone) || "Non renseigné"],
   ];
   coInstructors.forEach((co) => {
-    encadrementRows.push(["Co-encadrant", co.name, co.level || "-", co.phone || "Non renseigné"]);
+    encadrementRows.push(["Co-encadrant", co.name, co.level || "-", formatPhone(co.phone) || "Non renseigné"]);
   });
 
   autoTable(doc, {
@@ -309,7 +343,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   y += 5;
 
   // Satellite map only (bathymetric removed for better readability)
-  const maxMapHeight = 75;
+  const maxMapHeight = 62;
   const maxMapWidth = contentWidth;
 
   // Try to load satellite map
@@ -355,8 +389,18 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   const otherWaypoints = waypoints.filter(w => w.point_type !== "dive_zone");
 
   if (diveZones.length > 0 || otherWaypoints.length > 0) {
+    // Keep the whole legend on one page: if it would not fit under the map,
+    // move it entirely to a fresh page rather than splitting the table.
+    const legendRowCount = diveZones.length + otherWaypoints.length;
+    const estimatedLegendHeight = 5 + 8 + legendRowCount * 7; // title + header + rows
+    if (y + estimatedLegendHeight > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
+    doc.setTextColor("#000000");
     doc.text("LÉGENDE DES POINTS", margin, y);
     y += 5;
 
@@ -424,7 +468,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
       ["Bateau", boat.name || "Non spécifié"],
       ["Immatriculation", boat.registration_number || "N/A"],
       ["Pilote", boat.pilot_name || "Non spécifié"],
-      ["Tél. Pilote", boat.pilot_phone || "Non spécifié"],
+      ["Tél. Pilote", formatPhone(boat.pilot_phone) || "Non spécifié"],
       ["Emplacement O2", boat.oxygen_location || "À bord"],
       ["Port d'attache", boat.home_port || "N/A"],
     ];
@@ -460,40 +504,33 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setTextColor("#000000");
   y += 4;
 
-  // Helper to check if level is encadrant (EA1, EA2, EA3, EA4, E1, E2, E3, E4)
-  const isEncadrant = (level: string | null): boolean => {
-    if (!level) return false;
-    const levelUpper = level.toUpperCase().trim();
-    return /EA[1-4]|E[1-4]/.test(levelUpper);
+  // Encadrants (responsable + co-encadrants) are already listed in the
+  // ENCADREMENT block at the top, so they are excluded here to avoid duplication.
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const encadrementNames = new Set<string>([
+    norm(organizerName),
+    ...coInstructors.map((c) => norm(c.name)),
+  ]);
+  const isEncadrementMember = (p: POSSParticipant): boolean => {
+    const full = norm(`${p.first_name} ${p.last_name}`);
+    const reversed = norm(`${p.last_name} ${p.first_name}`);
+    return encadrementNames.has(full) || encadrementNames.has(reversed);
   };
+  const divers = participants.filter((p) => !isEncadrementMember(p));
 
-  // Determine each participant's role (responsable / encadrant / plongeur)
-  const organizerFirstName = organizerName.toLowerCase().split(" ")[0];
-  const getRole = (p: POSSParticipant): "RESP." | "Encadrant" | "" => {
-    const fullName = `${p.first_name} ${p.last_name}`.toLowerCase();
-    if (
-      fullName.includes(organizerFirstName) ||
-      organizerName.toLowerCase().includes(p.last_name?.toLowerCase() || "")
-    ) {
-      return "RESP.";
-    }
-    if (isEncadrant(p.apnea_level)) return "Encadrant";
-    return "";
-  };
-  const participantRoles = participants.map(getRole);
-
-  const participantData = participants.map((p, idx) => [
-    participantRoles[idx],
+  const participantData = divers.map((p) => [
     p.last_name?.toUpperCase() || "",
     p.first_name || "",
     p.apnea_level || "-",
-    p.emergency_contact_phone ? `${p.emergency_contact_name || ""} ${p.emergency_contact_phone}`.trim() : "-",
+    p.emergency_contact_phone
+      ? `${p.emergency_contact_name || ""} ${formatPhone(p.emergency_contact_phone)}`.trim()
+      : "-",
   ]);
 
   autoTable(doc, {
     startY: y,
-    head: [["Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]],
-    body: participantData.length > 0 ? participantData : [["", "Aucun participant", "", "", ""]],
+    head: [["NOM", "Prénom", "Niveau", "Contact Urgence"]],
+    body: participantData.length > 0 ? participantData : [["Aucun participant", "", "", ""]],
     theme: "striped",
     headStyles: {
       fillColor: [14, 165, 233],
@@ -506,38 +543,15 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
       cellPadding: 3
     },
     columnStyles: {
-      0: { cellWidth: 26, fontStyle: "bold", halign: "center" },
-      1: { cellWidth: 38, fontStyle: "bold" },
-      2: { cellWidth: 32 },
-      3: { cellWidth: 42 },
-      4: { cellWidth: "auto" },
-    },
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.row.index < participants.length) {
-        const role = participantRoles[data.row.index];
-        // Highlight organizer (responsable)
-        if (role === "RESP.") {
-          data.cell.styles.fillColor = "#fef3c7"; // Light yellow
-          data.cell.styles.fontStyle = "bold";
-        }
-        // Highlight encadrants
-        else if (role === "Encadrant") {
-          data.cell.styles.fillColor = "#dbeafe"; // Light blue
-          data.cell.styles.fontStyle = "bold";
-        }
-      }
+      0: { cellWidth: 45, fontStyle: "bold" },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 45 },
+      3: { cellWidth: "auto" },
     },
     margin: { left: margin, right: margin },
   });
 
   y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
-
-  // Légende des couleurs
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
-  doc.setTextColor("#666666");
-  doc.text("Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant", margin, y);
-  doc.setTextColor("#000000");
 
   // Force new page after participants to maintain consistent layout
   doc.addPage();
