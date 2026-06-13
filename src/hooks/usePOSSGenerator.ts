@@ -33,16 +33,18 @@ export const usePOSSGenerator = () => {
       const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") || [];
       const participants: POSSParticipant[] = [];
 
-      // Get organizer's profile to fetch their apnea level
+      // Get organizer's profile to fetch their apnea level and personal phone
       let organizerApneaLevel: string | null = null;
+      let organizerPhone: string | null = null;
       if (outing.organizer_id) {
         const { data: organizerProfile } = await supabase
           .from("profiles")
-          .select("email, apnea_level")
+          .select("email, apnea_level, phone")
           .eq("id", outing.organizer_id)
           .single();
 
         if (organizerProfile) {
+          organizerPhone = organizerProfile.phone || null;
           // Try to get the most current apnea level from membership_yearly_status
           const { data: organizerDirectory } = await supabase
             .from("club_members_directory")
@@ -115,6 +117,26 @@ export const usePOSSGenerator = () => {
         }
       }
 
+      // Build co-instructors list with their personal phone (from profiles)
+      const coInstructors: POSSData["coInstructors"] = [];
+      if (outing.co_instructors && outing.co_instructors.length > 0) {
+        const coIds = outing.co_instructors.map((c) => c.user_id);
+        const { data: coProfiles } = await supabase
+          .from("profiles")
+          .select("id, phone")
+          .in("id", coIds);
+        const coPhoneMap = new Map(coProfiles?.map((p) => [p.id, p.phone]) || []);
+
+        for (const co of outing.co_instructors) {
+          if (!co.profile) continue;
+          coInstructors.push({
+            name: `${co.profile.first_name} ${co.profile.last_name}`,
+            level: co.profile.apnea_level,
+            phone: coPhoneMap.get(co.user_id) || null,
+          });
+        }
+      }
+
       // Build location data
       let locationData: POSSLocation | null = null;
       if (outing.location_details) {
@@ -155,6 +177,8 @@ export const usePOSSGenerator = () => {
         participants,
         organizerName,
         organizerLevel: organizerApneaLevel,
+        organizerPhone,
+        coInstructors,
         waterEntryTime: outing.water_entry_time || null,
         waterExitTime: outing.water_exit_time || null,
         weather: null, // TODO: integrate weather data from API
