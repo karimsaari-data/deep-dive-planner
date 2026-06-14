@@ -124,12 +124,17 @@ const OutingDetail = () => {
   const { data: participantsEmergency } = useQuery({
     queryKey: ["participants-emergency", id],
     queryFn: async () => {
-      if (!outing?.reservations) return [];
-      
-      const confirmedUserIds = outing.reservations
-        .filter(r => r.status === "confirmé" && r.is_present)
-        .map(r => r.user_id);
-      
+      if (!id) return [];
+
+      const { data: presentReservations } = await supabase
+        .from("reservations")
+        .select("user_id")
+        .eq("outing_id", id)
+        .eq("status", "confirmé")
+        .eq("is_present", true);
+
+      const confirmedUserIds = (presentReservations || []).map(r => r.user_id);
+
       if (confirmedUserIds.length === 0) return [];
 
       // Get emails from profiles
@@ -179,7 +184,7 @@ const OutingDetail = () => {
         };
       });
     },
-    enabled: !!outing?.reservations && canMarkAttendance,
+    enabled: !!id && canMarkAttendance,
   });
 
   // Fetch participant phones for contact dialog
@@ -254,9 +259,9 @@ const OutingDetail = () => {
   const canEditPresenceAndReport = canManageOuting;
   const canCancelOuting = canManageOuting;
   
-  // Check if outing can be archived (past, has attendance marked, not already archived)
+  // Check if outing can be archived (past, not already archived)
   const hasAttendanceMarked = confirmedReservations.some(r => r.is_present);
-  const canArchiveOuting = isPast && canEditPresenceAndReport && hasAttendanceMarked && !outing.is_archived;
+  const canArchiveOuting = isPast && canEditPresenceAndReport && !outing.is_archived;
 
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });

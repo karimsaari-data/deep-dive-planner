@@ -117,10 +117,10 @@ export const useOutings = (typeFilter?: OutingType | null) => {
 
       if (error) throw error;
       
-      // Filter outings: only show future outings where end_date (or date_time) is in the future
+      // Keep upcoming outings AND past ones not yet archived (so they don't vanish)
       const upcomingOutings = data?.filter(outing => {
         const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
-        return endDate > now;
+        return endDate > now || !outing.is_archived;
       }) ?? [];
       
       // Fetch real confirmed counts and organizer max depths
@@ -516,6 +516,7 @@ export const useUpdateReservationPresence = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["participants-emergency"] });
       toast.success("Présence mise à jour");
     },
     onError: (error: Error) => {

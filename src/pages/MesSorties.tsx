@@ -15,6 +15,7 @@ import {
   Check,
   Plus,
   History,
+  Dices,
 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
@@ -164,6 +165,17 @@ const MesSorties = () => {
                 <Plus className="h-4 w-4" />
                 Nouvelle sortie
               </Button>
+
+              <a
+                href="https://oxygen-spin-and-win.lovable.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" className="gap-2">
+                  <Dices className="h-4 w-4" />
+                  Tirage au sort
+                </Button>
+              </a>
             </div>
           </div>
 
@@ -181,7 +193,7 @@ const MesSorties = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
-                Sorties à venir
+                Mes sorties
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -198,11 +210,13 @@ const MesSorties = () => {
                   {myOutings.map((outing) => {
                     const confirmedCount = outing.confirmed_count ?? 0;
                     const isCoInstructed = outing.organizer_id !== user?.id;
+                    const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
+                    const isPastOuting = endDate < new Date();
 
                     return (
                       <div
                         key={outing.id}
-                        className="rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:bg-muted/50"
+                        className={`rounded-lg border p-4 transition-colors ${isPastOuting ? "border-orange-200 bg-orange-50/40 hover:bg-orange-50/60 dark:border-orange-900/40 dark:bg-orange-950/20" : "border-border bg-muted/30 hover:bg-muted/50"}`}
                       >
                         <Link to={`/outing/${outing.id}/manage`} className="block">
                           <div className="mb-2 flex items-start justify-between">
@@ -214,6 +228,11 @@ const MesSorties = () => {
                                 {isCoInstructed && (
                                   <Badge variant="outline" className="text-xs border-primary/50 text-primary">
                                     Co-encadrant
+                                  </Badge>
+                                )}
+                                {isPastOuting && (
+                                  <Badge className="text-xs bg-orange-100 text-orange-700 border border-orange-300 dark:bg-orange-900/30 dark:text-orange-400">
+                                    À clôturer
                                   </Badge>
                                 )}
                               </div>
