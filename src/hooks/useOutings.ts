@@ -516,6 +516,7 @@ export const useUpdateReservationPresence = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["participants-emergency"] });
       toast.success("Présence mise à jour");
     },
     onError: (error: Error) => {

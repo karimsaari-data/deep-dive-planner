@@ -124,12 +124,17 @@ const OutingDetail = () => {
   const { data: participantsEmergency } = useQuery({
     queryKey: ["participants-emergency", id],
     queryFn: async () => {
-      if (!outing?.reservations) return [];
-      
-      const confirmedUserIds = outing.reservations
-        .filter(r => r.status === "confirmé" && r.is_present)
-        .map(r => r.user_id);
-      
+      if (!id) return [];
+
+      const { data: presentReservations } = await supabase
+        .from("reservations")
+        .select("user_id")
+        .eq("outing_id", id)
+        .eq("status", "confirmé")
+        .eq("is_present", true);
+
+      const confirmedUserIds = (presentReservations || []).map(r => r.user_id);
+
       if (confirmedUserIds.length === 0) return [];
 
       // Get emails from profiles
@@ -179,7 +184,7 @@ const OutingDetail = () => {
         };
       });
     },
-    enabled: !!outing?.reservations && canMarkAttendance,
+    enabled: !!id && canMarkAttendance,
   });
 
   // Fetch participant phones for contact dialog
