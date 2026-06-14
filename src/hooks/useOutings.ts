@@ -121,7 +121,7 @@ export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived
       const upcomingOutings = data?.filter(outing => {
         const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
         if (includePastUnarchived) {
-          const recentPastUnarchived = endDate <= now && endDate >= sevenDaysAgo && outing.is_archived === false;
+          const recentPastUnarchived = endDate <= now && endDate >= sevenDaysAgo && outing.is_archived !== true;
           return endDate > now || recentPastUnarchived;
         }
         return endDate > now;
@@ -805,12 +805,14 @@ export const useCoInstructedOutings = () => {
       if (error) throw error;
 
       const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const outings = (data || [])
         .map((d) => d.outing)
         .filter((o): o is NonNullable<typeof o> => !!o && !o.is_deleted)
         .filter((o) => {
           const endDate = o.end_date ? new Date(o.end_date) : new Date(o.date_time);
-          return endDate > now;
+          const recentPastUnarchived = endDate <= now && endDate >= sevenDaysAgo && o.is_archived !== true;
+          return endDate > now || recentPastUnarchived;
         });
 
       const outingsWithCounts = await Promise.all(
