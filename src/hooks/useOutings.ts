@@ -117,9 +117,13 @@ export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived
 
       if (error) throw error;
       
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const upcomingOutings = data?.filter(outing => {
         const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
-        if (includePastUnarchived) return endDate > now || outing.is_archived === false;
+        if (includePastUnarchived) {
+          const recentPastUnarchived = endDate <= now && endDate >= sevenDaysAgo && outing.is_archived === false;
+          return endDate > now || recentPastUnarchived;
+        }
         return endDate > now;
       }) ?? [];
       
