@@ -54,7 +54,7 @@ const Archives = () => {
           is_deleted,
           is_archived,
           organizer_member_id,
-          organizer:profiles!outings_organizer_id_fkey(id, first_name, last_name),
+          organizer:profiles!outings_organizer_id_fkey(id, first_name, last_name, email),
           co_instructors:outing_co_instructors(user_id, profile:profiles(first_name, last_name)),
           location_details:locations(name),
           reservations(
@@ -98,9 +98,25 @@ const Archives = () => {
           .from("club_members_directory")
           .select("id, first_name, last_name")
           .in("id", organizerMemberIds);
-        
+
         organizerMembers?.forEach(m => {
           organizerMemberMap.set(m.id, m);
+        });
+      }
+
+      // Build email → club_members_directory name map for regular outings' organizers
+      // This ensures a consistent canonical name across regular and historical outings
+      const regularOrganizerEmails = (data ?? [])
+        .filter(o => !o.organizer_member_id && (o.organizer as any)?.email)
+        .map(o => (o.organizer as any).email.toLowerCase());
+      let emailToCanonicalName = new Map<string, { first_name: string; last_name: string }>();
+      if (regularOrganizerEmails.length > 0) {
+        const { data: emailMembers } = await supabase
+          .from("club_members_directory")
+          .select("first_name, last_name, email")
+          .in("email", regularOrganizerEmails);
+        emailMembers?.forEach((m: any) => {
+          emailToCanonicalName.set(m.email.toLowerCase(), { first_name: m.first_name, last_name: m.last_name });
         });
       }
 
@@ -131,10 +147,14 @@ const Archives = () => {
           : null;
         
         // For historical outings: prefer organizer_member_id, fallback to profiles organizer
-        // For regular outings: use profiles organizer
+        // For regular outings: use club_members_directory canonical name if email matches, else profiles
         const displayedOrganizer = organizerFromMemberDirectory
           ? { first_name: organizerFromMemberDirectory.first_name, last_name: organizerFromMemberDirectory.last_name }
-          : outing.organizer;
+          : (() => {
+              const email = (outing.organizer as any)?.email?.toLowerCase();
+              const canonical = email ? emailToCanonicalName.get(email) : null;
+              return canonical ?? outing.organizer;
+            })();
         
         // Sort historical members: Organizer first, then alphabetically
         const sortedHistoricalMembers = [...historicalMembers].sort((a: any, b: any) => {
