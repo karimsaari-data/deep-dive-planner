@@ -90,11 +90,86 @@ public/             # Static assets, PWA manifest, favicons
 
 ## Database
 
-Core tables: `outings`, `reservations`, `profiles`, `club_members_directory`, `equipment_catalog`, `equipment_inventory`, `equipment_history`, `boats`, `carpools`, `carpool_passengers`, `locations`.
+Supabase project ID: `hyoudezyqbivfthcgpma`. Full schema lives across `supabase/migrations/` (summarized in `migration_complete.sql`); the front-end source of truth for shapes is the auto-generated `src/integrations/supabase/types.ts`.
 
-Key enums: `equipment_status`, `user_role`, `booking_status`.
+### Modèle de données (schéma `public`)
 
-Full schema is defined across `supabase/migrations/` and summarized in `migration_complete.sql`.
+Tables et colonnes telles qu'exposées dans `types.ts`. `id` = `uuid` PK (défaut `gen_random_uuid()`) sauf indication. `→` = clé étrangère.
+
+**`apnea_levels`** — référentiel des niveaux d'apnée
+- `code`, `name`, `prerogatives?`, `is_instructor` (bool), `federation?`, `federation_full_name?`, `created_at`
+
+**`boats`** — bateaux du club
+- `name`, `capacity` (int), `home_port?`, `oxygen_location?`, `pilot_name?`, `pilot_phone?`, `registration_number?`, `created_at`, `updated_at`
+
+**`carpools`** — covoiturages d'une sortie
+- `outing_id` → `outings`, `driver_id`, `available_seats` (int), `departure_time`, `meeting_point`, `maps_link?`, `notes?`, `created_at`, `updated_at`
+
+**`carpool_passengers`** — passagers d'un covoiturage
+- `carpool_id` → `carpools`, `passenger_id`, `created_at`
+
+**`club_members_directory`** — annuaire des membres (données civiles)
+- `member_id`, `first_name`, `last_name`, `email`, `phone?`, `address?`, `birth_date?`, `gender?`, `joined_at?`, `emergency_contact_name?`, `emergency_contact_phone?`, `notes?`, `created_at`, `updated_at`
+
+**`equipment_catalog`** — catalogue de matériel (modèles)
+- `name`, `description?`, `estimated_value?` (num), `photo_url?`, `created_at`, `updated_at`
+
+**`equipment_inventory`** — exemplaires physiques
+- `catalog_id` → `equipment_catalog`, `owner_id` → `profiles`, `unique_code`, `status` (enum `equipment_status`), `acquired_at`, `notes?`, `photo_url?`, `created_at`, `updated_at`
+
+**`equipment_history`** — historique des mouvements de matériel
+- `inventory_id` → `equipment_inventory`, `action_type`, `created_by` → `profiles`, `from_user_id?` → `profiles`, `to_user_id?` → `profiles`, `old_status?`/`new_status?` (enum `equipment_status`), `notes?`, `created_at`
+
+**`historical_outing_participants`** — participations historiques (import)
+- `outing_id` → `outings`, `member_id` → `club_members_directory`, `created_at`
+
+**`locations`** — sites de plongée / lieux
+- `name`, `type?`, `address?`, `latitude?`, `longitude?`, `max_depth?` (num), `maps_url?`, `photo_url?`, `bathymetric_map_url?`, `satellite_map_url?`, `comments?`, `created_at?`, `updated_at?`
+
+**`membership_yearly_status`** — statut adhésion par saison
+- `member_id` → `club_members_directory`, `season_year` (int), `apnea_level?`, `board_role?`, `license_number?`, `is_encadrant` (bool), `payment_status` (bool), `medical_certificate_ok` (bool), `fsgt_insurance_ok` (bool), `buddies_charter_signed` (bool), `created_at`, `updated_at`
+
+**`outings`** — sorties (fonctionnalité cœur)
+- `title`, `date_time` (timestamp, **pas** `outing_date`), `end_date?`, `outing_type` (enum), `location` (texte), `location_id?` → `locations`, `boat_id?` → `boats`, `organizer_id?` → `profiles`, `organizer_member_id?` → `club_members_directory`, `max_participants` (int), `dive_mode?`, `description?`, `session_report?`, `photos?` (text[]), `water_entry_time?`, `water_exit_time?`, `reminder_sent?` (bool), `is_archived` (bool), `is_deleted` (bool — soft-delete), `is_poss_locked` (bool), `is_staff_only` (bool), `created_at?`, `updated_at?`
+- Suppression logique : `UPDATE outings SET is_deleted = true WHERE id = ...` (`is_deleted` est un **boolean**, pas `1`).
+
+**`profiles`** — comptes utilisateurs (lié à Supabase Auth, `id` = auth user id)
+- `email`, `first_name`, `last_name`, `member_code?`, `member_status?` (enum `member_status`), `apnea_level?`, `specialty?`, `phone?`, `avatar_url?`, `created_at?`, `updated_at?`
+
+**`reservations`** — inscriptions à une sortie
+- `outing_id` → `outings`, `user_id` → `profiles`, `status?` (enum `booking_status`), `is_present?` (bool), `carpool_option?` (enum `carpool_option`), `carpool_seats?` (int), `cancelled_at?`, `created_at?`
+
+**`site_waypoints`** — points GPS d'un site
+- `site_id` → `locations`, `name`, `point_type` (enum `waypoint_type`), `latitude` (num), `longitude` (num), `created_at`
+
+**`user_roles`** — rôles applicatifs (séparé de `profiles` pour la sécurité RLS)
+- `user_id`, `role` (enum `app_role`)
+
+### Enums
+
+- `app_role`: `admin` | `organizer` | `member`
+- `booking_status`: `confirmé` | `annulé` | `en_attente`
+- `carpool_option`: `none` | `driver` | `passenger`
+- `equipment_status`: `disponible` | `prêté` | `perdu` | `cassé` | `rebuté`
+- `member_status`: `Membre` | `Encadrant`
+- `outing_type`: `Fosse` | `Mer` | `Piscine` | `Étang` | `Dépollution`
+- `waypoint_type`: `parking` | `water_entry` | `water_exit` | `meeting_point` | `dive_zone` | `toilet`
+
+### Fonctions SQL (RPC)
+
+- `can_view_member_details(_member_email)` → bool
+- `get_club_stats(p_year?)` → json
+- `get_outing_confirmed_count(outing_uuid)` → int
+- `get_outing_participants(outing_uuid)` → set (avatar_url, first_name, id, last_name, member_status)
+- `get_trombinoscope_members()` → set (apnea_level, avatar_url, board_role, email, first_name, id, is_encadrant, last_name)
+- `has_role(_role, _user_id)` → bool
+- `is_current_user_encadrant()` → bool · `is_encadrant_or_admin(_user_id)` → bool · `is_staff(_user_id)` → bool
+
+### Notes / écarts
+
+- Les rôles vivent dans `user_roles` (enum `app_role`), **pas** dans `profiles`. L'ancien `user_status`/`user_role` mentionné historiquement n'existe pas ; l'enum réel est `app_role`.
+- Tables référencées par les triggers DWH mais **absentes de `types.ts`** (existent côté DB, pas exposées au front) : `polls`, `votes`, `outing_co_instructors`. À régénérer via Supabase CLI si besoin de typage.
+- `types.ts` est auto-généré : ne jamais l'éditer à la main, régénérer via la CLI Supabase.
 
 ## Environment Variables
 
