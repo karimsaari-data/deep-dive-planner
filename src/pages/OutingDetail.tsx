@@ -259,9 +259,9 @@ const OutingDetail = () => {
   const canEditPresenceAndReport = canManageOuting;
   const canCancelOuting = canManageOuting;
   
-  // Check if outing can be archived (past, has attendance marked, not already archived)
+  // Check if outing can be archived (past, not already archived)
   const hasAttendanceMarked = confirmedReservations.some(r => r.is_present);
-  const canArchiveOuting = isPast && canEditPresenceAndReport && hasAttendanceMarked && !outing.is_archived;
+  const canArchiveOuting = isPast && canEditPresenceAndReport && !outing.is_archived;
 
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });
