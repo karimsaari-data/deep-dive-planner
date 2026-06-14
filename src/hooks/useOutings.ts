@@ -119,7 +119,7 @@ export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived
       
       const upcomingOutings = data?.filter(outing => {
         const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
-        if (includePastUnarchived) return endDate > now || !outing.is_archived;
+        if (includePastUnarchived) return endDate > now || outing.is_archived === false;
         return endDate > now;
       }) ?? [];
       
