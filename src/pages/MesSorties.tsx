@@ -15,6 +15,7 @@ import {
   Check,
   Plus,
   History,
+  Dices,
 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import CreateOutingForm from "@/components/admin/CreateOutingForm";
@@ -164,6 +165,17 @@ const MesSorties = () => {
                 <Plus className="h-4 w-4" />
                 Nouvelle sortie
               </Button>
+
+              <a
+                href="https://oxygen-spin-and-win.lovable.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" className="gap-2">
+                  <Dices className="h-4 w-4" />
+                  Tirage au sort
+                </Button>
+              </a>
             </div>
           </div>
 
