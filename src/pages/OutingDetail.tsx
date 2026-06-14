@@ -1028,7 +1028,7 @@ const OutingDetail = () => {
                   onChange={(e) => setSessionReport(e.target.value)}
                   className="min-h-[200px]"
                 />
-                <div className="flex gap-3 mt-4">
+                <div className="flex flex-wrap gap-3 mt-4">
                   <Button
                     variant="outline"
                     className="flex-1"
