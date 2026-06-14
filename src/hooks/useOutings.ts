@@ -91,9 +91,9 @@ export interface Outing {
   reservations?: Reservation[];
 }
 
-export const useOutings = (typeFilter?: OutingType | null) => {
+export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived = false) => {
   return useQuery({
-    queryKey: ["outings", typeFilter],
+    queryKey: ["outings", typeFilter, includePastUnarchived],
     queryFn: async () => {
       const now = new Date();
       
@@ -117,10 +117,10 @@ export const useOutings = (typeFilter?: OutingType | null) => {
 
       if (error) throw error;
       
-      // Keep upcoming outings AND past ones not yet archived (so they don't vanish)
       const upcomingOutings = data?.filter(outing => {
         const endDate = outing.end_date ? new Date(outing.end_date) : new Date(outing.date_time);
-        return endDate > now || !outing.is_archived;
+        if (includePastUnarchived) return endDate > now || !outing.is_archived;
+        return endDate > now;
       }) ?? [];
       
       // Fetch real confirmed counts and organizer max depths

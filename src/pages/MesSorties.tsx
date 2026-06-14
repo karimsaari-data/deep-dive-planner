@@ -40,7 +40,7 @@ const MesSorties = () => {
   const { user, loading: authLoading } = useAuth();
   const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
-  const { data: outings, isLoading } = useOutings();
+  const { data: outings, isLoading } = useOutings(null, true);
   const { data: coInstructedOutings, isLoading: isLoadingCoInstructed } = useCoInstructedOutings();
   const { data: locations } = useLocations();
   const [copiedId, setCopiedId] = useState<string | null>(null);
