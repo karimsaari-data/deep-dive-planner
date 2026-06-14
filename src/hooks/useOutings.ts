@@ -727,6 +727,8 @@ export const useArchiveOuting = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["outings"] });
       queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-outings-count"] });
+      queryClient.invalidateQueries({ queryKey: ["member-presences"] });
       toast.success("Sortie validée et archivée");
     },
     onError: (error: Error) => {

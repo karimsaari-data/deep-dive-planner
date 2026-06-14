@@ -92,7 +92,7 @@ const Profile = () => {
       // Regular reservations
       const { count: reservCount } = await supabase
         .from("reservations")
-        .select("*", { count: "exact", head: true })
+        .select("outing:outings!inner(date_time)", { count: "exact", head: true })
         .eq("user_id", user.id)
         .eq("status", "confirmé")
         .eq("is_present", true)

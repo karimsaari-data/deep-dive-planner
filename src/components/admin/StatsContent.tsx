@@ -161,27 +161,32 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       // Group by member (using member_id from club_members_directory as key for historical)
       const memberMap = new Map<string, MemberPresence>();
       
-      // Process regular reservations
+      // Process regular reservations — use club_members_directory key when email matches, to merge with historical entries
       reservations?.forEach((r: any) => {
         const userId = r.user_id;
-        if (!memberMap.has(userId)) {
-          const profile = profileMap.get(userId);
-          memberMap.set(userId, {
-            id: userId,
+        const profile = profileMap.get(userId);
+        const clubMember = profile?.email ? emailToClubMemberMap.get(profile.email.toLowerCase()) : null;
+        const key = clubMember ? `historical_${clubMember.id}` : userId;
+
+        if (!memberMap.has(key)) {
+          memberMap.set(key, {
+            id: key,
             name: profile?.name || "Inconnu",
-            memberCode: profile?.code || "",
+            memberCode: clubMember?.member_id || profile?.code || "",
             outings: [],
             totalPresences: 0,
             isEncadrant: profile?.isEncadrant || false
           });
         }
-        const member = memberMap.get(userId)!;
-        member.outings.push({
-          id: r.outing.id,
-          title: r.outing.title,
-          date: r.outing.date_time
-        });
-        member.totalPresences++;
+        const member = memberMap.get(key)!;
+        if (!member.outings.some((o: any) => o.id === r.outing.id)) {
+          member.outings.push({
+            id: r.outing.id,
+            title: r.outing.title,
+            date: r.outing.date_time
+          });
+          member.totalPresences++;
+        }
       });
 
       // Process historical participants (using club_members_directory member_id as key)
