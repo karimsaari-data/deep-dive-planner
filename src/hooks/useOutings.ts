@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { celebrate } from "@/lib/confetti";
 
 export type OutingType = "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution";
 export type BookingStatus = "confirmé" | "annulé" | "en_attente";
@@ -417,6 +418,7 @@ export const useCreateReservation = () => {
         toast.info("Vous êtes sur liste d'attente");
       } else {
         toast.success("Inscription confirmée !");
+        celebrate();
       }
     },
     onError: (error: Error) => {
