@@ -17,6 +17,7 @@ import { Navigate } from "react-router-dom";
 const Souvenirs = () => {
   const { user, loading: authLoading } = useAuth();
   const [search, setSearch] = useState("");
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
   const { data: pastOutings, isLoading } = useQuery({
     queryKey: ["past-outings-souvenirs", user?.id],
@@ -258,11 +259,15 @@ const Souvenirs = () => {
                         </h4>
                         <div className="grid grid-cols-2 gap-3">
                           {outing.photos.map((photo: string, idx: number) => (
-                            <div key={idx} className="aspect-video rounded-lg overflow-hidden bg-muted">
+                            <div
+                              key={idx}
+                              className="aspect-video rounded-lg overflow-hidden bg-muted cursor-zoom-in"
+                              onClick={(e) => { e.stopPropagation(); setZoomedPhoto(photo); }}
+                            >
                               <img
                                 src={photo}
                                 alt={`Photo ${idx + 1}`}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                               />
                             </div>
                           ))}
@@ -315,6 +320,13 @@ const Souvenirs = () => {
           )}
         </div>
       </section>
+
+      {/* Photo lightbox */}
+      <Dialog open={!!zoomedPhoto} onOpenChange={(open) => !open && setZoomedPhoto(null)}>
+        <DialogContent className="max-w-4xl p-2 bg-black/90 border-0 [&>button]:text-white">
+          <img src={zoomedPhoto ?? ""} alt="Photo agrandie" className="w-full h-auto max-h-[85vh] object-contain rounded" />
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

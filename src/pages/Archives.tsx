@@ -34,6 +34,7 @@ const Archives = () => {
   const [reportDraft, setReportDraft] = useState<string>("");
   const [editingHistoricalOuting, setEditingHistoricalOuting] = useState<any | null>(null);
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
+  const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -692,11 +693,15 @@ const Archives = () => {
                                 {outing.photos && outing.photos.length > 0 ? (
                                   <div className="grid grid-cols-2 gap-3">
                                     {outing.photos.map((photo: string, idx: number) => (
-                                      <div key={idx} className="aspect-video rounded-lg overflow-hidden bg-muted">
+                                      <div
+                                        key={idx}
+                                        className="aspect-video rounded-lg overflow-hidden bg-muted cursor-zoom-in"
+                                        onClick={() => setZoomedPhoto(photo)}
+                                      >
                                         <img
                                           src={photo}
                                           alt={`Photo ${idx + 1}`}
-                                          className="w-full h-full object-cover"
+                                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                                         />
                                       </div>
                                     ))}
@@ -774,11 +779,15 @@ const Archives = () => {
                     {outing.photos && outing.photos.length > 0 && (
                       <div className="grid grid-cols-4 gap-2 mb-3">
                         {outing.photos.map((photo: string, idx: number) => (
-                          <div key={idx} className="aspect-square rounded-md overflow-hidden bg-muted min-w-0">
+                          <div
+                            key={idx}
+                            className="aspect-square rounded-md overflow-hidden bg-muted min-w-0 cursor-zoom-in"
+                            onClick={() => setZoomedPhoto(photo)}
+                          >
                             <img
                               src={photo}
                               alt={`Photo ${idx + 1}`}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover hover:scale-105 transition-transform duration-200"
                             />
                           </div>
                         ))}
@@ -816,6 +825,13 @@ const Archives = () => {
           onOpenChange={(open) => { if (!open) setEditingHistoricalOuting(null); }}
         />
       )}
+
+      {/* Photo lightbox */}
+      <Dialog open={!!zoomedPhoto} onOpenChange={(open) => !open && setZoomedPhoto(null)}>
+        <DialogContent className="max-w-4xl p-2 bg-black/90 border-0 [&>button]:text-white">
+          <img src={zoomedPhoto ?? ""} alt="Photo agrandie" className="w-full h-auto max-h-[85vh] object-contain rounded" />
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

@@ -62,7 +62,7 @@ const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
           <div className="flex flex-col items-center gap-3 pt-2">
-            <Avatar className="h-28 w-28">
+            <Avatar className="h-36 w-36">
               {member.avatar_url && <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />}
               <AvatarFallback className={`${getAvatarColor(member.first_name + member.last_name)} text-foreground font-bold text-3xl`}>
                 {getInitials(member.first_name, member.last_name)}
