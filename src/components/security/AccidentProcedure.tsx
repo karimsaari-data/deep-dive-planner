@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { FicheAccidentGenerator } from "@/components/pdf/FicheAccidentGenerator";
 
 /** Couleurs par étape — classes Tailwind littérales (pas de concaténation dynamique) */
@@ -335,21 +334,25 @@ export const AccidentProcedure = () => {
               </a>
             ))}
 
-            {/* Placeholder pour le formulaire PDF à venir */}
-            <div className="flex flex-col items-start rounded-lg border border-dashed p-4 text-muted-foreground">
+            {/* Formulaire CERFA de déclaration d'accident (PDF téléchargeable) */}
+            <a
+              href="/files/declaration-accident-cerfa-15796.pdf"
+              download="Declaration_Accident_CERFA_15796.pdf"
+              className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-muted/50"
+            >
               <div className="mb-1 flex items-center gap-2">
-                <FolderArchive className="h-4 w-4" />
-                <span className="font-semibold">Formulaire FSGT (PDF)</span>
+                <FolderArchive className="h-4 w-4 text-primary" />
+                <span className="font-semibold">Formulaire de déclaration (CERFA 15796*02)</span>
               </div>
-              <p className="mb-3 flex-1 text-xs">
-                Emplacement prêt à recevoir le formulaire officiel de déclaration d'accident
-                une fois le fichier fourni.
+              <p className="mb-3 flex-1 text-xs text-muted-foreground">
+                Formulaire officiel de déclaration d'accident corporel à compléter
+                et à transmettre à l'assurance.
               </p>
-              <Button variant="outline" size="sm" className="gap-2" disabled>
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                Télécharger le PDF
                 <Download className="h-3.5 w-3.5" />
-                Bientôt disponible
-              </Button>
-            </div>
+              </span>
+            </a>
           </div>
         </CardContent>
       </Card>
