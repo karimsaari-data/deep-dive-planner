@@ -17,6 +17,7 @@ import {
   Shield,
   ArrowDown,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -55,6 +56,9 @@ import MarineMiniMap from "@/components/locations/MarineMiniMap";
 import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { Anchor, Satellite } from "lucide-react";
 import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
+import { useViewMode } from "@/contexts/ViewModeContext";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
 import { useCarpools } from "@/hooks/useCarpools";
@@ -98,6 +102,9 @@ const OutingView = () => {
   const updateCarpool = useUpdateReservationCarpool();
   const { data: apneaLevels } = useApneaLevels();
   const { data: carpools } = useCarpools(id ?? "");
+  const { isOrganizer } = useUserRole();
+  const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
+  const { isMemberPreview } = useViewMode();
 
   // Set of user ids who already have a seat booked in a carpool for this outing
   const bookedPassengerIds = new Set(
@@ -196,6 +203,14 @@ const OutingView = () => {
 
   const isCoInstructor = outing.co_instructors?.some(ci => ci.user_id === user.id) ?? false;
   const coInstructorIds = new Set((outing.co_instructors ?? []).map(ci => ci.user_id));
+
+  // Encadrant de cette sortie (ou encadrant/organisateur global) — voit la procédure accident
+  const isEncadrant =
+    !isMemberPreview &&
+    (isOrganizer ||
+      isEncadrantFromDirectory ||
+      isCoInstructor ||
+      user.id === organizerId);
 
   const handleOpenCarpoolEdit = () => {
     setEditCarpoolOption((userReservation?.carpool_option as CarpoolOption) ?? "none");
@@ -587,6 +602,30 @@ const OutingView = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* En cas d'accident — encadrants uniquement */}
+          {isEncadrant && (
+            <Card className="shadow-card mb-6 border-red-300 dark:border-red-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                  <AlertTriangle className="h-5 w-5" />
+                  En cas d'accident
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Procédure à respecter (sécuriser, compte-rendu, déclarations FSGT/SDJES…)
+                  et déclarations d'accident pour les encadrants.
+                </p>
+                <Link to="/security?tab=accident">
+                  <Button variant="outline" className="w-full gap-2 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30">
+                    <Shield className="h-4 w-4" />
+                    Voir la procédure & les déclarations
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 3. Participants list - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
           <Card className="shadow-card mb-6">

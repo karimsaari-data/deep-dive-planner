@@ -27,7 +27,7 @@ const Header = () => {
   const canTogglePreview = realIsEncadrant || isAdmin;
 
   // Pages accessibles uniquement en vue membre (cachées pour les encadrants)
-  const memberOnlyRoutes = ["/souvenirs", "/security"];
+  const memberOnlyRoutes = ["/souvenirs"];
   const handleTogglePreview = () => {
     const isLeavingMemberView = isMemberPreview && memberOnlyRoutes.includes(location.pathname);
     toggleMemberPreview();
@@ -43,8 +43,11 @@ const Header = () => {
     // For encadrants: hide Souvenirs to save space for more important tools
     if (!isEncadrant) {
       items.push({ to: "/souvenirs", label: "Souvenirs", icon: Image });
-      items.push({ to: "/security", label: "Sécurité", icon: Shield });
     }
+
+    // Sécurité : visible par tous. Les encadrants y trouvent en plus la
+    // procédure « En cas d'accident » et les déclarations.
+    items.push({ to: "/security", label: "Sécurité", icon: Shield });
 
     items.push({ to: "/map", label: "Carte", icon: MapIcon });
     items.push({ to: "/weather", label: "Météo", icon: CloudSun });
