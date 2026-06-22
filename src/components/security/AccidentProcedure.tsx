@@ -169,7 +169,7 @@ const declarations = [
   {
     title: "Déclaration SDJES",
     desc: "Déclaration obligatoire sous 48 h en cas d'accident grave (hospitalisation, urgences, risque vital…).",
-    href: "https://www.education.gouv.fr/les-services-departementaux-de-la-jeunesse-de-l-engagement-et-des-sports-sdjes-307510",
+    href: "https://www.ac-aix-marseille.fr/direction-des-services-departementaux-de-l-education-nationale-des-bouches-du-rhone-121577",
     cta: "Contacts SDJES",
   },
 ];
