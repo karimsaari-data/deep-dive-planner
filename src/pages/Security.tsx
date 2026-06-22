@@ -1,9 +1,14 @@
 import { Shield } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FicheSecuriteGenerator } from "@/components/pdf/FicheSecuriteGenerator";
+import { AccidentProcedure } from "@/components/security/AccidentProcedure";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
+import { useViewMode } from "@/contexts/ViewModeContext";
 
 const securityPages = [
   { id: 1, image: "/files/security/Fiche sécurité_Page_1.png", title: "Prévenir" },
@@ -13,6 +18,16 @@ const securityPages = [
 ];
 
 const Security = () => {
+  const { isOrganizer } = useUserRole();
+  const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
+  const { isMemberPreview } = useViewMode();
+  const [searchParams] = useSearchParams();
+
+  // Onglet « En cas d'accident » réservé aux encadrants (masqué en vue membre simulée)
+  const isEncadrant = !isMemberPreview && (isOrganizer || isEncadrantFromDirectory);
+  const defaultTab =
+    isEncadrant && searchParams.get("tab") === "accident" ? "accident" : "securite";
+
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4 max-w-5xl">
@@ -37,10 +52,11 @@ const Security = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="securite">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="mb-6">
             <TabsTrigger value="securite">🤿 Sécurité en Apnée</TabsTrigger>
             <TabsTrigger value="regles">🛡️ Règles Team Oxygen</TabsTrigger>
+            {isEncadrant && <TabsTrigger value="accident">🚑 En cas d'accident</TabsTrigger>}
           </TabsList>
 
           {/* Tab 1: original security images */}
@@ -221,6 +237,13 @@ const Security = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Tab 3: Accident procedure (encadrants only) */}
+          {isEncadrant && (
+            <TabsContent value="accident">
+              <AccidentProcedure />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </Layout>
