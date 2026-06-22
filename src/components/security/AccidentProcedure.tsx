@@ -163,8 +163,8 @@ const declarations = [
   {
     title: "Déclaration d'accident FSGT",
     desc: "Formulaire à remplir pour tout accident corporel d'un licencié FSGT, à envoyer à l'assurance sous 5 jours ouvrés.",
-    href: "https://www.fsgt.org",
-    cta: "Espace assurance FSGT",
+    href: "https://connexion.marsh.com/client/declarationfsgt",
+    cta: "Espace déclaration FSGT",
   },
   {
     title: "Déclaration SDJES",
