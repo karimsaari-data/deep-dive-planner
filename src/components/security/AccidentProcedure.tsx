@@ -364,19 +364,20 @@ export const AccidentProcedure = () => {
               </div>
             ))}
 
-            {/* Formulaire CERFA de déclaration d'accident (PDF téléchargeable) */}
+            {/* Fiche de signalement EAPS (CERFA 15796) — destinée au SDJES/DDCS, pas à l'assurance */}
             <a
               href="/files/declaration-accident-cerfa-15796.pdf"
-              download="Declaration_Accident_CERFA_15796.pdf"
+              download="Fiche_Signalement_Accident_EAPS_CERFA_15796.pdf"
               className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-muted/50"
             >
               <div className="mb-1 flex items-center gap-2">
                 <FolderArchive className="h-4 w-4 text-primary" />
-                <span className="font-semibold">Formulaire de déclaration (CERFA 15796*02)</span>
+                <span className="font-semibold">Fiche de signalement d'accident/incident grave (EAPS) — CERFA 15796*02</span>
               </div>
               <p className="mb-3 flex-1 text-xs text-muted-foreground">
-                Formulaire officiel de déclaration d'accident corporel à compléter
-                et à transmettre à l'assurance.
+                Fiche de signalement et d'enquête d'accident ou incident grave dans un EAPS,
+                à adresser au service départemental de l'État chargé des sports (DDCS/DDCSPP / SDJES)
+                du lieu de l'accident — pas à l'assurance.
               </p>
               <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
                 Télécharger le PDF
