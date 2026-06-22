@@ -25,8 +25,14 @@ const Security = () => {
 
   // Onglet « En cas d'accident » réservé aux encadrants (masqué en vue membre simulée)
   const isEncadrant = !isMemberPreview && (isOrganizer || isEncadrantFromDirectory);
-  const defaultTab =
-    isEncadrant && searchParams.get("tab") === "accident" ? "accident" : "securite";
+  // Pour les encadrants, « En cas d'accident » est l'onglet le plus important : affiché par défaut.
+  const defaultTab = isEncadrant
+    ? searchParams.get("tab") === "securite"
+      ? "securite"
+      : searchParams.get("tab") === "regles"
+        ? "regles"
+        : "accident"
+    : "securite";
 
   return (
     <Layout>
@@ -53,11 +59,17 @@ const Security = () => {
         </div>
 
         <Tabs defaultValue={defaultTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="securite">🤿 Sécurité en Apnée</TabsTrigger>
-            <TabsTrigger value="regles">🛡️ Règles Team Oxygen</TabsTrigger>
-            {isEncadrant && <TabsTrigger value="accident">🚑 En cas d'accident</TabsTrigger>}
-          </TabsList>
+          {/* Scrollable sur mobile pour éviter tout débordement horizontal */}
+          <div className="mb-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="w-max">
+              {/* Pour les encadrants, « En cas d'accident » est prioritaire : placé en premier */}
+              {isEncadrant && (
+                <TabsTrigger value="accident" className="shrink-0">🚑 En cas d'accident</TabsTrigger>
+              )}
+              <TabsTrigger value="securite" className="shrink-0">🤿 Sécurité en Apnée</TabsTrigger>
+              <TabsTrigger value="regles" className="shrink-0">🛡️ Règles Team Oxygen</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Tab 1: original security images */}
           <TabsContent value="securite">

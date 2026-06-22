@@ -206,7 +206,7 @@ const Header = () => {
           className="border-t border-white/5 p-2 lg:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ background: "rgba(1,12,28,0.95)" }}
         >
-          <div className="flex w-max mx-auto gap-1">
+          <div className="flex w-max gap-1">
             {navItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button
