@@ -14,9 +14,11 @@ import {
   FolderArchive,
   Lock,
   Download,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FicheAccidentGenerator } from "@/components/pdf/FicheAccidentGenerator";
 
 /** Couleurs par étape — classes Tailwind littérales (pas de concaténation dynamique) */
@@ -195,8 +197,14 @@ export const AccidentProcedure = () => {
         </CardContent>
       </Card>
 
-      {/* Télécharger PDF */}
-      <div className="flex justify-end">
+      {/* Téléchargements : affiche d'origine + PDF généré */}
+      <div className="flex flex-wrap justify-end gap-2">
+        <a href="/files/procedure-accident-apnee.jpg" download="Procedure_Accident_Apnee_TeamOxygen.jpg">
+          <Button variant="outline" className="gap-2">
+            <ImageIcon className="h-4 w-4" />
+            Télécharger l'affiche
+          </Button>
+        </a>
         <FicheAccidentGenerator />
       </div>
 
