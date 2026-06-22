@@ -8,6 +8,7 @@ import {
   Clock,
   AlertTriangle,
   Phone,
+  Mail,
   ExternalLink,
   FileText,
   FolderArchive,
@@ -170,7 +171,13 @@ const declarations = [
     title: "Déclaration SDJES",
     desc: "Déclaration obligatoire sous 48 h en cas d'accident grave (hospitalisation, urgences, risque vital…).",
     href: "https://www.ac-aix-marseille.fr/direction-des-services-departementaux-de-l-education-nationale-des-bouches-du-rhone-121577",
-    cta: "Contacts SDJES",
+    cta: "DSDEN des Bouches-du-Rhône",
+    contact: {
+      phone: "04 91 99 66 66",
+      phoneHref: "tel:+33491996666",
+      phoneNote: "(de 8h30 à 17h00)",
+      email: "ce.ia13@ac-aix-marseille.fr",
+    },
   },
 ];
 
@@ -315,23 +322,46 @@ export const AccidentProcedure = () => {
 
           <div className="grid gap-3 sm:grid-cols-2">
             {declarations.map((d) => (
-              <a
+              <div
                 key={d.title}
-                href={d.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                className="flex flex-col rounded-lg border p-4"
               >
                 <div className="mb-1 flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   <span className="font-semibold">{d.title}</span>
                 </div>
                 <p className="mb-3 flex-1 text-xs text-muted-foreground">{d.desc}</p>
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+                <a
+                  href={d.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                >
                   {d.cta}
                   <ExternalLink className="h-3.5 w-3.5" />
-                </span>
-              </a>
+                </a>
+                {d.contact && (
+                  <div className="mt-3 space-y-1 border-t pt-3 text-xs text-muted-foreground">
+                    <a
+                      href={d.contact.phoneHref}
+                      className="flex items-center gap-2 hover:text-foreground"
+                    >
+                      <Phone className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>
+                        {d.contact.phone}{" "}
+                        <span className="text-muted-foreground">{d.contact.phoneNote}</span>
+                      </span>
+                    </a>
+                    <a
+                      href={`mailto:${d.contact.email}`}
+                      className="flex items-center gap-2 break-all hover:text-foreground"
+                    >
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>{d.contact.email}</span>
+                    </a>
+                  </div>
+                )}
+              </div>
             ))}
 
             {/* Formulaire CERFA de déclaration d'accident (PDF téléchargeable) */}
