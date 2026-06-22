@@ -1,7 +1,13 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
@@ -34,11 +40,26 @@ const Header = () => {
     if (isLeavingMemberView) navigate("/");
   };
 
-  const navItems = useMemo(() => {
+  // Entrées toujours visibles (usage quotidien)
+  const primaryItems = useMemo(() => {
     const items = [
       { to: "/", label: "Sorties", icon: Waves },
       { to: "/reservations", label: "Mes Réservations", icon: Calendar },
+      { to: "/map", label: "Carte", icon: MapIcon },
+      { to: "/weather", label: "Météo", icon: CloudSun },
+      { to: "/trombinoscope", label: "Trombi", icon: Users },
     ];
+
+    if (isAdmin) {
+      items.push({ to: "/admin", label: "Administration", icon: Settings });
+    }
+
+    return items;
+  }, [isAdmin]);
+
+  // Entrées regroupées dans le menu « Plus »
+  const moreItems = useMemo(() => {
+    const items: { to: string; label: string; icon: typeof Waves }[] = [];
 
     // For encadrants: hide Souvenirs to save space for more important tools
     if (!isEncadrant) {
@@ -49,9 +70,6 @@ const Header = () => {
     // procédure « En cas d'accident » et les déclarations.
     items.push({ to: "/security", label: "Sécurité", icon: Shield });
 
-    items.push({ to: "/map", label: "Carte", icon: MapIcon });
-    items.push({ to: "/weather", label: "Météo", icon: CloudSun });
-
     if (isEncadrant) {
       items.push({ to: "/equipment", label: "Matériel", icon: Package });
     }
@@ -61,14 +79,14 @@ const Header = () => {
       items.push({ to: "/archives", label: "Archives", icon: FileText });
     }
 
-    items.push({ to: "/trombinoscope", label: "Trombi", icon: Users });
-
-    if (isAdmin) {
-      items.push({ to: "/admin", label: "Administration", icon: Settings });
-    }
-
     return items;
-  }, [effectiveIsOrganizer, isAdmin, isEncadrant]);
+  }, [effectiveIsOrganizer, isEncadrant]);
+
+  // Liste complète à plat (utilisée pour la nav mobile défilante)
+  const navItems = useMemo(
+    () => [...primaryItems, ...moreItems],
+    [primaryItems, moreItems]
+  );
 
   // Reset mobile nav scroll when user/role changes
   useEffect(() => {
@@ -92,7 +110,7 @@ const Header = () => {
 
         {user && (
           <nav className="hidden flex-1 items-center justify-center gap-1 overflow-hidden lg:flex">
-            {navItems.map(({ to, label, icon: Icon }) => (
+            {primaryItems.map(({ to, label, icon: Icon }) => (
               <Link key={to} to={to}>
                 <Button
                   variant="ghost"
@@ -108,6 +126,36 @@ const Header = () => {
                 </Button>
               </Link>
             ))}
+
+            {moreItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "gap-1.5 transition-all text-white/70 hover:text-white hover:bg-white/10 px-2",
+                      moreItems.some((i) => isActive(i.to)) && "bg-white/15 text-white"
+                    )}
+                    title="Plus"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="hidden xl:inline">Plus</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {moreItems.map(({ to, label, icon: Icon }) => (
+                    <DropdownMenuItem key={to} asChild>
+                      <Link to={to} className={cn("gap-2 cursor-pointer", isActive(to) && "bg-accent")}>
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </nav>
         )}
 
