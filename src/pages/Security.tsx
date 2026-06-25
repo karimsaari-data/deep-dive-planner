@@ -1,4 +1,4 @@
-import { Shield } from "lucide-react";
+import { Shield, Phone, Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,6 +68,7 @@ const Security = () => {
               )}
               <TabsTrigger value="securite" className="shrink-0">🤿 Sécurité en Apnée</TabsTrigger>
               <TabsTrigger value="regles" className="shrink-0">🛡️ Règles Team Oxygen</TabsTrigger>
+              <TabsTrigger value="alerte" className="shrink-0">📞 Procédure d'alerte</TabsTrigger>
             </TabsList>
           </div>
 
@@ -246,6 +247,42 @@ const Security = () => {
                   </div>
                   <FicheSecuriteGenerator />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab: Procédure d'alerte CROSS (affiche FFESSM) */}
+          <TabsContent value="alerte">
+            <Card className="mb-6 border-0 bg-gradient-to-r from-red-700 via-red-600 to-orange-600 text-white">
+              <CardContent className="flex items-center justify-center gap-3 py-4 text-center">
+                <Phone className="h-5 w-5 shrink-0" />
+                <p className="text-base font-bold uppercase tracking-wide">
+                  Accident de plongée : alerter sans délai le CROSS — 196 ou VHF canal 16
+                </p>
+                <Phone className="h-5 w-5 shrink-0" />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end mb-4">
+              <a
+                href="/files/security/procedure-alerte-cross.jpg"
+                download="Procedure_Alerte_CROSS_FFESSM.jpg"
+              >
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Télécharger l'affiche
+                </Button>
+              </a>
+            </div>
+
+            <Card className="overflow-hidden shadow-lg">
+              <CardContent className="p-0">
+                <img
+                  src="/files/security/procedure-alerte-cross.jpg"
+                  alt="Accident de plongée : procédure d'alerte (FFESSM) — alerter le CROSS par téléphone (196) ou par VHF (canal 16)"
+                  className="w-full h-auto object-contain"
+                  loading="lazy"
+                />
               </CardContent>
             </Card>
           </TabsContent>
