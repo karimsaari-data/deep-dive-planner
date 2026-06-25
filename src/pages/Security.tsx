@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FicheSecuriteGenerator } from "@/components/pdf/FicheSecuriteGenerator";
 import { AccidentProcedure } from "@/components/security/AccidentProcedure";
