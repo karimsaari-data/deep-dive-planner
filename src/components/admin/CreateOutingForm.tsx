@@ -24,6 +24,7 @@ import { useLocations } from "@/hooks/useLocations";
 import { useBoats } from "@/hooks/useBoats";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApneaLevels } from "@/hooks/useApneaLevels";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ interface CreateOutingFormProps {
 
 const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose }: CreateOutingFormProps) => {
   const { user } = useAuth();
+  const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const createOuting = useCreateOuting();
   const { data: locations } = useLocations();
   const { data: boats } = useBoats();
@@ -145,60 +147,99 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
     }
   }, [isNaturalEnvironment, form]);
 
-  // Fetch user's apnea level and determine max participants limit
+  // Calculate the effective participant limit: organizer level + co-instructors (mirrors DB trigger).
+  // Organizers and admins (BP) have no certification-based limit.
   useEffect(() => {
-    const fetchUserLevel = async () => {
-      if (!user?.id || !apneaLevels) return;
+    const recalculateLimit = async () => {
+      if (!user?.id || !apneaLevels || roleLoading) return;
 
-      // Get current season year
+      if (isOrganizer || isAdmin) {
+        setMaxParticipantsLimit(100);
+        return;
+      }
+
       const currentSeasonYear = new Date().getMonth() >= 8
         ? new Date().getFullYear() + 1
         : new Date().getFullYear();
 
-      // Get user's email from profiles
-      const { data: profile } = await supabase
+      const getLimitForUserId = async (userId: string): Promise<number | null> => {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", userId)
+          .single();
+        if (!profile?.email) return null;
+
+        const { data: dirEntry } = await supabase
+          .from("club_members_directory")
+          .select("id")
+          .eq("email", profile.email.toLowerCase())
+          .single();
+        if (!dirEntry?.id) return null;
+
+        const { data: mys } = await supabase
+          .from("membership_yearly_status")
+          .select("apnea_level")
+          .eq("member_id", dirEntry.id)
+          .eq("season_year", currentSeasonYear)
+          .single();
+        if (!mys?.apnea_level) return null;
+
+        const level = apneaLevels.find(l => l.code === mys.apnea_level);
+        return level?.max_participants_encadrement ?? null;
+      };
+
+      // Get organizer's own limit
+      const { data: organizerProfile } = await supabase
         .from("profiles")
         .select("email")
         .eq("id", user.id)
         .single();
+      if (!organizerProfile?.email) return;
 
-      if (!profile?.email) return;
-
-      // Get directory entry
-      const { data: directoryEntry } = await supabase
+      const { data: organizerDirEntry } = await supabase
         .from("club_members_directory")
         .select("id")
-        .eq("email", profile.email.toLowerCase())
+        .eq("email", organizerProfile.email.toLowerCase())
         .single();
+      if (!organizerDirEntry?.id) return;
 
-      if (!directoryEntry?.id) return;
-
-      // Get apnea level from membership_yearly_status
-      const { data: membershipStatus } = await supabase
+      const { data: organizerMys } = await supabase
         .from("membership_yearly_status")
         .select("apnea_level")
-        .eq("member_id", directoryEntry.id)
+        .eq("member_id", organizerDirEntry.id)
         .eq("season_year", currentSeasonYear)
         .single();
 
-      if (membershipStatus?.apnea_level) {
-        setUserApneaLevel(membershipStatus.apnea_level);
+      if (!organizerMys?.apnea_level) return;
+      setUserApneaLevel(organizerMys.apnea_level);
 
-        // Find the level in apnea_levels to get max_participants_encadrement
-        const levelInfo = apneaLevels.find(l => l.code === membershipStatus.apnea_level);
-        const limit = levelInfo?.max_participants_encadrement || 100;
-        setMaxParticipantsLimit(limit);
+      const organizerLevelInfo = apneaLevels.find(l => l.code === organizerMys.apnea_level);
+      const organizerLimit = organizerLevelInfo?.max_participants_encadrement;
 
-        // Update max_participants if current value exceeds limit
-        const currentMax = form.getValues("max_participants");
-        if (currentMax > limit) {
-          form.setValue("max_participants", limit);
+      if (!organizerLimit) {
+        setMaxParticipantsLimit(100);
+        return;
+      }
+
+      // Sum co-instructors' limits (mirrors the DB trigger recalculate_outing_max_participants)
+      let total = organizerLimit;
+      for (const ci of selectedCoInstructors) {
+        const ciLimit = await getLimitForUserId(ci.id);
+        if (ciLimit != null) {
+          total += ciLimit;
         }
+      }
+
+      setMaxParticipantsLimit(total);
+      const currentMax = form.getValues("max_participants");
+      if (currentMax > total) {
+        form.setValue("max_participants", total);
       }
     };
 
-    fetchUserLevel();
-  }, [user, form, apneaLevels]);
+    recalculateLimit();
+  }, [user, form, apneaLevels, isOrganizer, isAdmin, roleLoading, selectedCoInstructors]);
 
   // Pre-fill location when props change
   useEffect(() => {
@@ -629,7 +670,10 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                     </FormControl>
                     {userApneaLevel && maxParticipantsLimit < 100 && (
                       <FormDescription className="text-xs text-muted-foreground">
-                        Limité à {maxParticipantsLimit} participants pour votre niveau ({userApneaLevel})
+                        Limité à {maxParticipantsLimit} participant{maxParticipantsLimit > 1 ? "s" : ""}
+                        {selectedCoInstructors.length > 0
+                          ? " (encadrement combiné)"
+                          : ` pour votre niveau (${userApneaLevel})`}
                       </FormDescription>
                     )}
                     <FormMessage />
