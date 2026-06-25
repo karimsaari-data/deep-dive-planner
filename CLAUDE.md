@@ -115,6 +115,8 @@ VITE_SUPABASE_URL           # Supabase API URL
 
 ⚠️ L'application est en production. Ne jamais pousser directement sur main.
 
+> **Par défaut : aller jusqu'à la prod.** Toute demande de modification de l'utilisateur sous-entend systématiquement d'aller jusqu'au bout du process ci-dessous (branche → commit → push → PR → merge sur main → déploiement Vercel), sans redemander de confirmation. Ne s'arrêter avant la fin que si l'utilisateur le précise explicitement.
+
 ### Process obligatoire pour tout changement
 
 1. **Créer une branche** avec un nom explicite :
