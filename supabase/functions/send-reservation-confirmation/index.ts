@@ -116,7 +116,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Processing ${type} confirmation for outing: ${outing.title}`);
 
-    const dateFormatted = new Date(outing.date_time).toLocaleDateString("fr-FR", {
+    const dateFormatted = new Date(outing.date_time).toLocaleString("fr-FR", {
+      timeZone: "Europe/Paris",
       weekday: "long",
       year: "numeric",
       month: "long",

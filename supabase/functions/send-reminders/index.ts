@@ -144,7 +144,8 @@ const handler = async (req: Request): Promise<Response> => {
         continue;
       }
 
-      const dateFormatted = new Date(outing.date_time).toLocaleDateString("fr-FR", {
+      const dateFormatted = new Date(outing.date_time).toLocaleString("fr-FR", {
+        timeZone: "Europe/Paris",
         weekday: "long",
         year: "numeric",
         month: "long",

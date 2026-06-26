@@ -139,7 +139,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Found ${reservations?.length ?? 0} reservations to notify`);
 
-    const dateFormatted = new Date(outing.date_time).toLocaleDateString("fr-FR", {
+    const dateFormatted = new Date(outing.date_time).toLocaleString("fr-FR", {
+      timeZone: "Europe/Paris",
       weekday: "long",
       year: "numeric",
       month: "long",
