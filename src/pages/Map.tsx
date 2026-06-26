@@ -44,7 +44,7 @@ const MAP_ZONES = [
   { name: "Côte Bleue", lat: 43.3308, lon: 5.1047, zoom: 12 },
   { name: "Marseille", lat: 43.2965, lon: 5.3698, zoom: 11 },
   { name: "La Ciotat", lat: 43.1748, lon: 5.6048, zoom: 12 },
-  { name: "Hyères", lat: 43.0333, lon: 6.1500, zoom: 12 },
+  { name: "Hyères", lat: 43.0050, lon: 6.3200, zoom: 11 },
 ];
 
 const getTypeIcon = (type: string | null) => {
