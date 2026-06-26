@@ -40,6 +40,13 @@ L.Icon.Default.mergeOptions({
 const DEFAULT_CENTER: [number, number] = [43.2965, 5.3698];
 const DEFAULT_ZOOM = 11;
 
+const MAP_ZONES = [
+  { name: "Côte Bleue", lat: 43.3308, lon: 5.1047, zoom: 12 },
+  { name: "Marseille", lat: 43.2965, lon: 5.3698, zoom: 11 },
+  { name: "La Ciotat", lat: 43.1748, lon: 5.6048, zoom: 12 },
+  { name: "Hyères", lat: 43.0333, lon: 6.1500, zoom: 12 },
+];
+
 const getTypeIcon = (type: string | null) => {
   switch (type) {
     case "Mer":
@@ -488,6 +495,22 @@ const Map = () => {
               Visualisez tous les lieux de plongée enregistrés
               {isOrganizer && " • Cliquez sur la carte pour ajouter un lieu"}
             </p>
+          </div>
+
+          {/* Zone shortcuts */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            {MAP_ZONES.map((zone) => (
+              <Button
+                key={zone.name}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={() => mapInstanceRef.current?.setView([zone.lat, zone.lon], zone.zoom)}
+              >
+                <Navigation className="h-3.5 w-3.5" />
+                {zone.name}
+              </Button>
+            ))}
           </div>
 
           <div className="grid gap-8 lg:grid-cols-4">
