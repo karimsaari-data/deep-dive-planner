@@ -29,6 +29,7 @@ const LOCATIONS = [
   { name: "Marseille", lat: 43.2965, lon: 5.3698 },
   { name: "La Ciotat", lat: 43.1748, lon: 5.6048 },
   { name: "Côte Bleue", lat: 43.3308, lon: 5.1047 },
+  { name: "Hyères", lat: 43.0333, lon: 6.1500 },
 ];
 
 interface MarineWeatherData {
