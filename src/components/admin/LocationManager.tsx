@@ -595,7 +595,7 @@ const LocationManager = () => {
             </Collapsible>
 
             {/* ===== SECTION 3: PDF Cartography (collapsible) ===== */}
-            {editingLocation && editingLocation.latitude && editingLocation.longitude && (
+            {editingLocation && (
               <Collapsible>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" className="w-full justify-start gap-2 text-base font-medium">
