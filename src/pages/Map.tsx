@@ -87,6 +87,7 @@ const Map = () => {
   const [userPosition, setUserPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeZone, setActiveZone] = useState<typeof MAP_ZONES[number] | null>(null);
   const { isOrganizer } = useUserRole();
   const navigate = useNavigate();
 
@@ -117,16 +118,25 @@ const Map = () => {
     });
   }, [locations, userPosition]);
 
-  // Filter locations based on search query
+  // Filter locations based on search query and active zone
   const filteredLocations = useMemo(() => {
-    if (!searchQuery.trim()) return sortedLocations;
+    let result = sortedLocations;
+
+    if (activeZone) {
+      result = result.filter((loc) => {
+        if (!loc.latitude || !loc.longitude) return false;
+        return calculateDistance(activeZone.lat, activeZone.lon, loc.latitude, loc.longitude) <= 15;
+      });
+    }
+
+    if (!searchQuery.trim()) return result;
     const query = searchQuery.toLowerCase();
-    return sortedLocations.filter((location) =>
+    return result.filter((location) =>
       location.name.toLowerCase().includes(query) ||
       location.address?.toLowerCase().includes(query) ||
       location.type?.toLowerCase().includes(query)
     );
-  }, [sortedLocations, searchQuery]);
+  }, [sortedLocations, searchQuery, activeZone]);
 
   // Get user position on mount
   useEffect(() => {
@@ -502,15 +512,29 @@ const Map = () => {
             {MAP_ZONES.map((zone) => (
               <Button
                 key={zone.name}
-                variant="outline"
+                variant={activeZone?.name === zone.name ? "default" : "outline"}
                 size="sm"
                 className="gap-2"
-                onClick={() => mapInstanceRef.current?.setView([zone.lat, zone.lon], zone.zoom)}
+                onClick={() => {
+                  mapInstanceRef.current?.setView([zone.lat, zone.lon], zone.zoom);
+                  setActiveZone(activeZone?.name === zone.name ? null : zone);
+                }}
               >
                 <Navigation className="h-3.5 w-3.5" />
                 {zone.name}
               </Button>
             ))}
+            {activeZone && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={() => setActiveZone(null)}
+              >
+                <X className="h-3.5 w-3.5" />
+                Tous les sites
+              </Button>
+            )}
           </div>
 
           <div className="grid gap-8 lg:grid-cols-4">
@@ -558,7 +582,9 @@ const Map = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
-                    Sites enregistrés ({locations?.length ?? 0})
+                    {activeZone
+                      ? `${activeZone.name} (${filteredLocations.length})`
+                      : `Sites enregistrés (${locations?.length ?? 0})`}
                   </CardTitle>
                   <div className="relative mt-3">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
