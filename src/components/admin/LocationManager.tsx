@@ -30,6 +30,8 @@ const locationSchema = z.object({
   maps_url: z.string().url("URL invalide").optional().or(z.literal("")),
   photo_url: z.string().url("URL invalide").optional().or(z.literal("")),
   max_depth: z.coerce.number().min(0).max(200).optional().or(z.literal("")),
+  latitude: z.coerce.number().min(-90).max(90).optional().or(z.literal("")),
+  longitude: z.coerce.number().min(-180).max(180).optional().or(z.literal("")),
   comments: z.string().max(2000).optional(),
 });
 
@@ -118,6 +120,8 @@ const LocationManager = () => {
       maps_url: "",
       photo_url: "",
       max_depth: "",
+      latitude: "",
+      longitude: "",
       comments: "",
     },
   });
@@ -131,6 +135,8 @@ const LocationManager = () => {
       maps_url: location.maps_url || "",
       photo_url: location.photo_url || "",
       max_depth: location.max_depth ?? "",
+      latitude: location.latitude ?? "",
+      longitude: location.longitude ?? "",
       comments: location.comments || "",
     });
     setPreviewUrl(location.photo_url || null);
@@ -149,6 +155,8 @@ const LocationManager = () => {
       maps_url: "",
       photo_url: "",
       max_depth: "",
+      latitude: "",
+      longitude: "",
       comments: "",
     });
     setPreviewUrl(null);
@@ -255,6 +263,8 @@ const LocationManager = () => {
       maps_url: data.maps_url || undefined,
       photo_url: data.photo_url || undefined,
       max_depth: data.max_depth ? Number(data.max_depth) : undefined,
+      latitude: data.latitude ? Number(data.latitude) : undefined,
+      longitude: data.longitude ? Number(data.longitude) : undefined,
       comments: data.comments || undefined,
       satellite_map_url: satelliteMapUrl || undefined,
       bathymetric_map_url: bathymetricMapUrl || undefined,
@@ -557,6 +567,32 @@ const LocationManager = () => {
                         </FormItem>
                       )}
                     />
+
+                    <div className="space-y-2">
+                      <Label>Coordonnées GPS</Label>
+                      <Input
+                        placeholder="ex: 42.98927327491422, 6.394938177847953"
+                        value={
+                          form.watch("latitude") && form.watch("longitude")
+                            ? `${form.watch("latitude")}, ${form.watch("longitude")}`
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value.trim();
+                          const match = val.match(/^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/);
+                          if (match) {
+                            form.setValue("latitude", match[1]);
+                            form.setValue("longitude", match[2]);
+                          } else if (!val) {
+                            form.setValue("latitude", "");
+                            form.setValue("longitude", "");
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Copiez les coordonnées depuis Google Maps (clic droit → coordonnées)
+                      </p>
+                    </div>
 
                     <FormField
                       control={form.control}
