@@ -523,11 +523,11 @@ const Map = () => {
                     className="h-[75vh] w-full"
                     style={{ zIndex: 0 }}
                   />
-                  {/* Geolocation button */}
+                  {/* Geolocation button — offset below Leaflet layer control (~90px) */}
                   <Button
                     variant="secondary"
                     size="icon"
-                    className="absolute top-2.5 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
+                    className="absolute top-24 right-2.5 z-[1000] bg-white shadow-md hover:bg-gray-100"
                     onClick={centerOnUser}
                     disabled={isLocating}
                     title="Ma position"
