@@ -30,7 +30,7 @@ const locationSchema = z.object({
   maps_url: z.string().url("URL invalide").optional().or(z.literal("")),
   photo_url: z.string().url("URL invalide").optional().or(z.literal("")),
   max_depth: z.coerce.number().min(0).max(200).optional().or(z.literal("")),
-  comments: z.string().max(500).optional(),
+  comments: z.string().max(2000).optional(),
 });
 
 type LocationFormData = z.infer<typeof locationSchema>;
@@ -568,8 +568,8 @@ const LocationManager = () => {
                             <Textarea
                               placeholder="Infos complémentaires, accès, particularités..."
                               {...field}
-                              className="resize-none"
-                              rows={3}
+                              className="resize-y"
+                              rows={6}
                             />
                           </FormControl>
                           <FormMessage />
