@@ -130,14 +130,20 @@ const handler = async (req: Request): Promise<Response> => {
     const icsText = await response.text();
     const events = parseICS(icsText);
 
-    // Keep events from 7 days ago to 6 months ahead
-    const past = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const future = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000);
+    // Hide events that are already over, keep anything up to 6 months ahead.
+    const now = Date.now();
+    const future = now + 180 * 24 * 60 * 60 * 1000;
 
     const filtered = events
       .filter((e) => {
-        const start = new Date(e.startDate);
-        return start >= past && start <= future;
+        const start = new Date(e.startDate).getTime();
+        // An event is "past" once it has ENDED, not once it has started.
+        // For all-day events DTEND is exclusive (midnight after the last day),
+        // so endDate is the correct cutoff. Multi-day events (e.g. "Blue Week")
+        // therefore disappear when they finish instead of lingering because
+        // their start date is still recent. Fall back to startDate when no end.
+        const end = e.endDate ? new Date(e.endDate).getTime() : start;
+        return end >= now && start <= future;
       })
       .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
