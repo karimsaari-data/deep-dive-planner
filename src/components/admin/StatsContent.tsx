@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck, FileDown } from "lucide-react";
+import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck, FileDown, ListChecks } from "lucide-react";
 import { PDFReportGenerator } from "@/components/pdf/PDFReportGenerator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -43,6 +43,25 @@ interface OrganizerMonthly {
   total: number;
 }
 
+interface OutingListItem {
+  id: string;
+  title: string;
+  date_time: string;
+  end_date: string | null;
+  outing_type: string;
+  max_participants: number;
+  is_past: boolean;
+  participant_count: number;
+}
+
+const TYPE_BADGE_CLASS: Record<string, string> = {
+  Mer: "bg-sky-100 text-sky-800 border-sky-200",
+  Fosse: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  Piscine: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  Étang: "bg-teal-100 text-teal-800 border-teal-200",
+  Dépollution: "bg-emerald-100 text-emerald-800 border-emerald-200",
+};
+
 interface StatsContentProps {
   isAdmin: boolean;
 }
@@ -72,6 +91,19 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       }
       
       return data as unknown as ClubStats;
+    },
+    enabled: isAdmin,
+  });
+
+  // Fetch the full list of outings for the year (date, name, type, participants)
+  const { data: outingsList, isLoading: outingsLoading } = useQuery({
+    queryKey: ["outings-list", selectedYear],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_outings_list", {
+        p_year: selectedYear,
+      });
+      if (error) throw error;
+      return (data as unknown as OutingListItem[]) ?? [];
     },
     enabled: isAdmin,
   });
@@ -602,10 +634,11 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
           <TabsTrigger value="demographics">Démographie</TabsTrigger>
           <TabsTrigger value="members">Participation</TabsTrigger>
+          <TabsTrigger value="outings">Sorties</TabsTrigger>
           <TabsTrigger value="organizers">Encadrants</TabsTrigger>
         </TabsList>
 
@@ -1024,6 +1057,74 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
         </TabsContent>
 
         {/* Organizers Tab */}
+        <TabsContent value="outings">
+          {outingsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-primary" />
+                  Liste des sorties en {selectedYear}
+                  {outingsList && outingsList.length > 0 && (
+                    <Badge variant="secondary" className="ml-1">{outingsList.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!outingsList || outingsList.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Aucune sortie cette année</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[110px]">Date</TableHead>
+                          <TableHead className="min-w-[180px]">Nom</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="text-center">Participants</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {outingsList.map((outing) => {
+                          const start = new Date(outing.date_time);
+                          const end = outing.end_date ? new Date(outing.end_date) : null;
+                          const isMultiDay = end && end.toDateString() !== start.toDateString();
+                          return (
+                            <TableRow key={outing.id}>
+                              <TableCell className="whitespace-nowrap text-sm">
+                                {start.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                                {isMultiDay && (
+                                  <span className="text-muted-foreground">
+                                    {" "}→ {end!.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">{outing.title}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={TYPE_BADGE_CLASS[outing.outing_type] ?? ""}>
+                                  {outing.outing_type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary" className="min-w-[28px]">
+                                  {outing.participant_count}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         <TabsContent value="organizers">
           {organizersLoading ? (
             <div className="flex items-center justify-center py-12">
