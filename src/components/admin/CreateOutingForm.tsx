@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints, MapPin, Users, X } from "lucide-react";
+import { CalendarIcon, Plus, Share2, Check, Copy, ShieldAlert, Car, Minus, Ship, Footprints, MapPin, Users, X, ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,46 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const [selectedCoInstructors, setSelectedCoInstructors] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
   const [coInstructorSearch, setCoInstructorSearch] = useState("");
   const [coInstructorPickerOpen, setCoInstructorPickerOpen] = useState(false);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setIsUploadingCover(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `outings/cover-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("outings_gallery")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("outings_gallery")
+        .getPublicUrl(filePath);
+
+      setCoverImageUrl(publicUrl);
+      toast.success("Image ajoutée");
+    } catch (error) {
+      console.error("Cover upload error:", error);
+      toast.error("Erreur lors de l'upload : " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsUploadingCover(false);
+      event.target.value = "";
+    }
+  };
 
   const { data: allMembers } = useQuery({
     queryKey: ["encadrants-picker"],
@@ -294,6 +334,12 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
         onSuccess: async (newOuting) => {
           form.reset();
           if (newOuting?.id) {
+            if (coverImageUrl) {
+              await supabase
+                .from("outings")
+                .update({ cover_image_url: coverImageUrl })
+                .eq("id", newOuting.id);
+            }
             if (selectedCoInstructors.length > 0) {
               await supabase.from("outing_co_instructors").insert(
                 selectedCoInstructors.map((ci) => ({ outing_id: newOuting.id, user_id: ci.id }))
@@ -304,6 +350,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               );
             }
             setSelectedCoInstructors([]);
+            setCoverImageUrl(null);
             setCreatedOutingId(newOuting.id);
             setShowShareDialog(true);
           }
@@ -381,6 +428,49 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                 </FormItem>
               )}
             />
+
+            {/* Image de couverture (optionnelle) */}
+            <FormItem>
+              <FormLabel>Image de la sortie (optionnel)</FormLabel>
+              <FormDescription className="text-xs">
+                Si vide, la photo du lieu sera utilisée.
+              </FormDescription>
+              {coverImageUrl ? (
+                <div className="relative mt-1 overflow-hidden rounded-lg border border-border">
+                  <img src={coverImageUrl} alt="Aperçu" className="h-36 w-full object-cover" />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={() => setCoverImageUrl(null)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label
+                  className={cn(
+                    "mt-1 flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground transition-colors hover:bg-muted/50",
+                    isUploadingCover && "pointer-events-none opacity-60"
+                  )}
+                >
+                  {isUploadingCover ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-5 w-5" />
+                  )}
+                  <span>{isUploadingCover ? "Envoi..." : "Ajouter une image (max 5 Mo)"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverUpload}
+                    disabled={isUploadingCover}
+                  />
+                </label>
+              )}
+            </FormItem>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField

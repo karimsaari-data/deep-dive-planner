@@ -50,6 +50,7 @@ export interface Outing {
   outing_type: OutingType;
   max_participants: number;
   session_report: string | null;
+  cover_image_url: string | null;
   water_entry_time: string | null;
   water_exit_time: string | null;
   created_at: string;
