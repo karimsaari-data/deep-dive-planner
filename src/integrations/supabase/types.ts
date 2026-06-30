@@ -515,6 +515,7 @@ export type Database = {
         Row: {
           boat_id: string | null
           created_at: string | null
+          cover_image_url: string | null
           date_time: string
           description: string | null
           dive_mode: string | null
@@ -541,6 +542,7 @@ export type Database = {
         Insert: {
           boat_id?: string | null
           created_at?: string | null
+          cover_image_url?: string | null
           date_time: string
           description?: string | null
           dive_mode?: string | null
@@ -567,6 +569,7 @@ export type Database = {
         Update: {
           boat_id?: string | null
           created_at?: string | null
+          cover_image_url?: string | null
           date_time?: string
           description?: string | null
           dive_mode?: string | null

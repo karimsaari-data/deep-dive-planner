@@ -86,6 +86,8 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const Icon = typeIcons[outing.outing_type];
   const WeatherIcon = weatherIcons[outing.outing_type];
   const locationPhoto = (outing.location_details as any)?.photo_url || null;
+  // Priority: outing's own cover image → location photo → placeholder
+  const coverImage = outing.cover_image_url || locationPhoto;
   const locationCoords = {
     latitude: outing.location_details?.latitude,
     longitude: outing.location_details?.longitude,
@@ -117,7 +119,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
       {/* Location photo header */}
       <div className="relative h-32 overflow-hidden">
         <img
-          src={locationPhoto || PLACEHOLDER_IMAGE}
+          src={coverImage || PLACEHOLDER_IMAGE}
           alt={displayLocation}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
           loading="lazy"

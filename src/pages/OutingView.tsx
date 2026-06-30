@@ -188,7 +188,8 @@ const OutingView = () => {
   const isFull = confirmedReservations.length >= outing.max_participants;
   
   const locationDetails = outing.location_details as any;
-  const locationPhoto = locationDetails?.photo_url || null;
+  // Priority: outing's own cover image → location photo → placeholder
+  const locationPhoto = (outing as any).cover_image_url || locationDetails?.photo_url || null;
   const locationCoords = {
     latitude: locationDetails?.latitude,
     longitude: locationDetails?.longitude,
