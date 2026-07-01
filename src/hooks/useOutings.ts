@@ -696,6 +696,7 @@ export const useUpdateOuting = () => {
       location_id?: string | null;
       outing_type?: OutingType;
       max_participants?: number;
+      cover_image_url?: string | null;
     }) => {
       const { error } = await supabase
         .from("outings")

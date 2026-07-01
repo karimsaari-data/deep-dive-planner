@@ -551,16 +551,8 @@ const OutingDetail = () => {
                 </AlertDialog>
               )}
             </div>
-            {coverImage && (
-              <div className="mb-4 overflow-hidden rounded-xl border border-border/50">
-                <img
-                  src={coverImage}
-                  alt={outing.title}
-                  className="h-48 w-full object-cover sm:h-56"
-                  loading="lazy"
-                />
-              </div>
-            )}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+              <div className="min-w-0 lg:flex-1">
             <h1 className="text-3xl font-bold text-foreground">{outing.title}</h1>
             <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -714,6 +706,18 @@ const OutingDetail = () => {
                 </div>
               );
             })()}
+              </div>
+              {coverImage && (
+                <div className="order-first lg:order-last lg:w-72 xl:w-80 lg:flex-shrink-0">
+                  <img
+                    src={coverImage}
+                    alt={outing.title}
+                    className="aspect-[4/3] w-full rounded-xl border border-border/50 object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 1. Weather summary banner at top */}

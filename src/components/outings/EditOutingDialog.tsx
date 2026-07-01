@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, Pencil } from "lucide-react";
+import { CalendarIcon, Pencil, ImagePlus, Loader2, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +63,46 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
   const [isDateOpen, setIsDateOpen] = useState(false);
   const updateOuting = useUpdateOuting();
   const { data: locations } = useLocations();
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>((outing as any).cover_image_url ?? null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setIsUploadingCover(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `outings/cover-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("outings_gallery")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("outings_gallery")
+        .getPublicUrl(filePath);
+
+      setCoverImageUrl(publicUrl);
+      toast.success("Image ajoutée");
+    } catch (error) {
+      console.error("Cover upload error:", error);
+      toast.error("Erreur lors de l'upload : " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsUploadingCover(false);
+      event.target.value = "";
+    }
+  };
 
   const outingDate = new Date(outing.date_time);
   const endDate = outing.end_date ? new Date(outing.end_date) : null;
@@ -84,6 +126,7 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
 
   useEffect(() => {
     if (open) {
+      setCoverImageUrl((outing as any).cover_image_url ?? null);
       form.reset({
         title: outing.title,
         description: outing.description || "",
@@ -135,6 +178,7 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
         location_id: data.location_id || null,
         outing_type: data.outing_type as OutingType,
         max_participants: data.max_participants,
+        cover_image_url: coverImageUrl,
       },
       {
         onSuccess: () => {
@@ -197,6 +241,46 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                 </FormItem>
               )}
             />
+
+            {/* Image de couverture (optionnelle) */}
+            <FormItem>
+              <FormLabel>Image de la sortie (optionnel)</FormLabel>
+              {coverImageUrl ? (
+                <div className="relative mt-1 overflow-hidden rounded-lg border border-border">
+                  <img src={coverImageUrl} alt="Aperçu" className="h-36 w-full object-cover" />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={() => setCoverImageUrl(null)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label
+                  className={cn(
+                    "mt-1 flex h-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground transition-colors hover:bg-muted/50",
+                    isUploadingCover && "pointer-events-none opacity-60"
+                  )}
+                >
+                  {isUploadingCover ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-5 w-5" />
+                  )}
+                  <span>{isUploadingCover ? "Envoi..." : "Ajouter une image (max 5 Mo)"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverUpload}
+                    disabled={isUploadingCover}
+                  />
+                </label>
+              )}
+            </FormItem>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <FormField
