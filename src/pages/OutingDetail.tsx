@@ -250,6 +250,8 @@ const OutingDetail = () => {
   const isPast = outingDate < now;
   
   const mapsUrl = outing.location_details?.maps_url;
+  // Cover image: outing's own image → location photo (no generic placeholder here)
+  const coverImage = (outing as any).cover_image_url || (outing.location_details as any)?.photo_url || null;
   const hasActiveReservations = confirmedReservations.length > 0 || waitlistedReservations.length > 0;
   
   // Check if user is the organizer, co-instructor or admin of this outing
@@ -549,6 +551,16 @@ const OutingDetail = () => {
                 </AlertDialog>
               )}
             </div>
+            {coverImage && (
+              <div className="mb-4 overflow-hidden rounded-xl border border-border/50">
+                <img
+                  src={coverImage}
+                  alt={outing.title}
+                  className="h-48 w-full object-cover sm:h-56"
+                  loading="lazy"
+                />
+              </div>
+            )}
             <h1 className="text-3xl font-bold text-foreground">{outing.title}</h1>
             <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground">
               <div className="flex items-center gap-2">
