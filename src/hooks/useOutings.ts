@@ -655,6 +655,28 @@ export const useCancelOuting = () => {
   });
 };
 
+export const useAdminRemoveReservation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ outingId, userId, message }: { outingId: string; userId: string; message?: string }) => {
+      const { error } = await supabase.functions.invoke("send-outing-notification", {
+        body: { outingId, type: "removal", targetUserId: userId, reason: message },
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      toast.success("Participant retiré et notifié par email");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors du retrait du participant");
+    },
+  });
+};
+
 export const useDeleteOuting = () => {
   const queryClient = useQueryClient();
 

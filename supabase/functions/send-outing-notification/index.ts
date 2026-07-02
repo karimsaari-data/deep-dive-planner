@@ -42,8 +42,9 @@ async function sendEmail(to: string, toName: string, subject: string, html: stri
 
 interface NotificationRequest {
   outingId: string;
-  type: "cancellation" | "reminder";
+  type: "cancellation" | "reminder" | "removal";
   reason?: string;
+  targetUserId?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -82,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`User ${user.id} attempting notification request`);
 
-    const { outingId, type, reason }: NotificationRequest = await req.json();
+    const { outingId, type, reason, targetUserId }: NotificationRequest = await req.json();
 
     // Use service role for data queries
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -120,6 +121,81 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log(`Processing ${type} notification for outing: ${outingId} by user ${user.id}`);
+
+    // Single-participant removal (e.g. not selected in a lottery draw)
+    if (type === "removal") {
+      if (!targetUserId) {
+        return new Response(
+          JSON.stringify({ error: "targetUserId is required for a removal notification" }),
+          { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const { data: reservation, error: resError } = await supabase
+        .from("reservations")
+        .select(`id, status, profile:profiles(email, first_name, last_name)`)
+        .eq("outing_id", outingId)
+        .eq("user_id", targetUserId)
+        .in("status", ["confirmé", "en_attente"])
+        .maybeSingle();
+
+      if (resError) {
+        console.error("Error fetching reservation:", resError);
+        throw resError;
+      }
+
+      if (!reservation) {
+        return new Response(
+          JSON.stringify({ error: "Réservation active introuvable pour ce participant" }),
+          { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const { error: updateError } = await supabase
+        .from("reservations")
+        .update({ status: "annulé", cancelled_at: new Date().toISOString() })
+        .eq("id", reservation.id);
+
+      if (updateError) {
+        console.error("Error updating reservation:", updateError);
+        throw updateError;
+      }
+
+      const dateFormattedRemoval = new Date(outing.date_time).toLocaleDateString("fr-FR", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const profile = reservation.profile as any;
+      let emailSent = false;
+      if (profile?.email) {
+        const fullName = `${profile.first_name} ${profile.last_name}`;
+        const subject = `Votre place pour la sortie : ${outing.title}`;
+        const defaultMessage = `Votre place pour la sortie <strong>${outing.title}</strong> prévue le ${dateFormattedRemoval} n'a malheureusement pas pu être maintenue.`;
+        const htmlContent = `
+          <h1>Concernant votre inscription</h1>
+          <p>Bonjour ${profile.first_name},</p>
+          <p>${reason || defaultMessage}</p>
+          <p>Nous espérons vous retrouver lors d'une prochaine sortie !</p>
+          <p>L'équipe Team Oxygen</p>
+        `;
+        try {
+          await sendEmail(profile.email, fullName, subject, htmlContent);
+          emailSent = true;
+        } catch (emailError) {
+          console.error(`Failed to send removal email to ${profile.email}:`, emailError);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, notified: emailSent ? 1 : 0 }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // Get all reservations with user profiles (confirmed and waitlisted)
     const { data: reservations, error: resError } = await supabase
