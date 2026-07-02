@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car, Lock, Gauge } from "lucide-react";
+import { MapPin, Calendar, Users, User, Waves, Droplets, Building, TreePine, Trash2, Clock, Sun, CloudSun, Cloud, Car, Lock, Gauge, Ship } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -142,6 +142,12 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
           {outing.is_staff_only && (
             <Badge className="bg-amber-500 text-white text-xs shadow-lg">
               PRIVÉ STAFF
+            </Badge>
+          )}
+          {outing.dive_mode === "boat" && (
+            <Badge className="bg-sky-700 text-white text-xs shadow-lg gap-1">
+              <Ship className="h-3 w-3" />
+              Bateau
             </Badge>
           )}
           <Badge variant="secondary" className="text-xs shadow-lg">
