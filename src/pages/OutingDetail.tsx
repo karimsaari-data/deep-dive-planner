@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format, differenceInHours } from "date-fns";
 import { fr } from "date-fns/locale";
-import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle, UserPlus, X, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Calendar, Users, Navigation, Clock, XCircle, Car, UserCheck, AlertTriangle, CloudRain, CheckCircle2, Share2, Copy, Check, Phone, Lock, FileText, Unlock, Shield, ArrowDown, Gauge, Download, Mail, MessageCircle, UserPlus, UserMinus, X, Trash2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { formatFullName } from "@/lib/formatName";
 
@@ -35,7 +35,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation } from "@/hooks/useOutings";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -70,6 +70,7 @@ const OutingDetail = () => {
   const updatePresence = useUpdateReservationPresence();
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
+  const adminRemoveReservation = useAdminRemoveReservation();
   const deleteOuting = useDeleteOuting();
   const archiveOuting = useArchiveOuting();
   const lockPOSS = useLockPOSS();
@@ -113,6 +114,12 @@ const OutingDetail = () => {
   const [selectedContact, setSelectedContact] = useState<{
     firstName: string; lastName: string; avatarUrl: string | null; email: string | null; phone: string | null;
   } | null>(null);
+  const [participantToRemove, setParticipantToRemove] = useState<{
+    userId: string; name: string;
+  } | null>(null);
+  const [removeMessage, setRemoveMessage] = useState(
+    "Le nombre de demandes pour cette sortie a dépassé le nombre de places disponibles. Un tirage au sort a été effectué et vous n'avez malheureusement pas été retenu(e) cette fois-ci."
+  );
 
   // Compute derived values for the query
   const outingDate = outing ? new Date(outing.date_time) : new Date();
@@ -260,6 +267,8 @@ const OutingDetail = () => {
   const canManageOuting = isOutingOrganizer || isCoInstructor || isAdmin;
   const canEditPresenceAndReport = canManageOuting;
   const canCancelOuting = canManageOuting;
+  // Reservation UPDATE is only allowed by admins or the outing's organizer (RLS), not co-instructors
+  const canRemoveParticipant = isAdmin || isOutingOrganizer;
   
   // Check if outing can be archived (past, not already archived)
   const hasAttendanceMarked = confirmedReservations.some(r => r.is_present);
@@ -271,6 +280,14 @@ const OutingDetail = () => {
 
   const handleCancelOuting = () => {
     cancelOuting.mutate({ outingId: outing.id, reason: cancelReason });
+  };
+
+  const handleRemoveParticipant = () => {
+    if (!participantToRemove) return;
+    adminRemoveReservation.mutate(
+      { outingId: outing.id, userId: participantToRemove.userId, message: removeMessage },
+      { onSuccess: () => setParticipantToRemove(null) }
+    );
   };
 
   const handleArchiveOuting = () => {
@@ -852,22 +869,41 @@ const OutingDetail = () => {
                     </div>
                   </div>
 
-                  {canMarkAttendance && canEditPresenceAndReport && (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={reservation.is_present}
-                        onCheckedChange={(checked) =>
-                          updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
+                  <div className="flex items-center gap-2">
+                    {canMarkAttendance && canEditPresenceAndReport && (
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={reservation.is_present}
+                          onCheckedChange={(checked) =>
+                            updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
+                          }
+                        />
+                        <span className="text-sm text-muted-foreground">Présent</span>
+                      </div>
+                    )}
+                    {canMarkAttendance && !canEditPresenceAndReport && (
+                      <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
+                        {reservation.is_present ? "Présent" : "Absent"}
+                      </Badge>
+                    )}
+                    {!isPast && canRemoveParticipant && !isOrg && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        title="Retirer ce participant"
+                        onClick={() =>
+                          setParticipantToRemove({
+                            userId: reservation.user_id,
+                            name: formatFullName(profile?.first_name, profile?.last_name),
+                          })
                         }
-                      />
-                      <span className="text-sm text-muted-foreground">Présent</span>
-                    </div>
-                  )}
-                  {canMarkAttendance && !canEditPresenceAndReport && (
-                    <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
-                      {reservation.is_present ? "Présent" : "Absent"}
-                    </Badge>
-                  )}
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             };
@@ -1168,6 +1204,41 @@ const OutingDetail = () => {
           </Dialog>
         );
       })()}
+
+      {/* Remove participant dialog */}
+      <AlertDialog open={!!participantToRemove} onOpenChange={(open) => !open && setParticipantToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Retirer {participantToRemove?.name} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Sa place sera libérée et il/elle sera notifié(e) par email. Cette action est utile par exemple après un tirage au sort pour retirer les personnes non retenues.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Label htmlFor="removeMessage">Message envoyé au participant</Label>
+            <Textarea
+              id="removeMessage"
+              value={removeMessage}
+              onChange={(e) => setRemoveMessage(e.target.value)}
+              className="mt-2"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveParticipant}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={adminRemoveReservation.isPending}
+            >
+              {adminRemoveReservation.isPending ? "Retrait..." : "Retirer et notifier"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 };
