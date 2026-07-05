@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatFullName } from "@/lib/formatName";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Shield, Star } from "lucide-react";
+import ParticipantPhotoDialog from "./ParticipantPhotoDialog";
 
 interface ParticipantAvatarProps {
   firstName: string;
@@ -35,44 +37,56 @@ const ParticipantAvatar = ({
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   const fullName = formatFullName(firstName, lastName);
   const isEncadrant = memberStatus === "Encadrant";
+  const [isZoomed, setIsZoomed] = useState(false);
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="relative inline-block">
-            <Avatar className={`${sizeClasses[size]} border-2 ${isOrganizer ? "border-amber-400" : "border-background"} shadow-sm`}>
-              <AvatarImage src={avatarUrl ?? undefined} alt={fullName} />
-              <AvatarFallback className={`text-xs font-medium ${isOrganizer ? "bg-amber-100 text-amber-800" : "bg-primary/10 text-primary"}`}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            {isOrganizer ? (
-              <div
-                className={`absolute ${badgeSizeClasses[size]} flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background`}
-              >
-                <Star className="h-2 w-2 fill-white" />
-              </div>
-            ) : isEncadrant ? (
-              <div
-                className={`absolute ${badgeSizeClasses[size]} flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background`}
-              >
-                <Shield className="h-2.5 w-2.5" />
-              </div>
-            ) : null}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-medium">{fullName}</p>
-          {isOrganizer && (
-            <p className="text-xs text-amber-500">Organisateur</p>
-          )}
-          {isEncadrant && (
-            <p className="text-xs text-amber-500">Encadrant</p>
-          )}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="relative inline-block cursor-pointer focus:outline-none"
+              onClick={() => setIsZoomed(true)}
+            >
+              <Avatar className={`${sizeClasses[size]} border-2 ${isOrganizer ? "border-amber-400" : "border-background"} shadow-sm`}>
+                <AvatarImage src={avatarUrl ?? undefined} alt={fullName} />
+                <AvatarFallback className={`text-xs font-medium ${isOrganizer ? "bg-amber-100 text-amber-800" : "bg-primary/10 text-primary"}`}>
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              {isOrganizer ? (
+                <div
+                  className={`absolute ${badgeSizeClasses[size]} flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background`}
+                >
+                  <Star className="h-2 w-2 fill-white" />
+                </div>
+              ) : isEncadrant ? (
+                <div
+                  className={`absolute ${badgeSizeClasses[size]} flex items-center justify-center rounded-full bg-amber-500 text-white ring-2 ring-background`}
+                >
+                  <Shield className="h-2.5 w-2.5" />
+                </div>
+              ) : null}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-medium">{fullName}</p>
+            {isOrganizer && (
+              <p className="text-xs text-amber-500">Organisateur</p>
+            )}
+            {isEncadrant && (
+              <p className="text-xs text-amber-500">Encadrant</p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <ParticipantPhotoDialog
+        participant={isZoomed ? { firstName, lastName, avatarUrl } : null}
+        onClose={() => setIsZoomed(false)}
+      />
+    </>
   );
 };
 
