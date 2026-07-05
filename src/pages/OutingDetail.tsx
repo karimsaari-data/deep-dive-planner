@@ -40,6 +40,7 @@ import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import EmergencySOSModal from "@/components/emergency/EmergencySOSModal";
+import ParticipantPhotoFrame from "@/components/participants/ParticipantPhotoFrame";
 import { FicheEvacuationGenerator } from "@/components/pdf/FicheEvacuationGenerator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -1159,15 +1160,14 @@ const OutingDetail = () => {
         const phone = selectedContact.phone ? normalizePhone(selectedContact.phone) : null;
         return (
           <Dialog open={!!selectedContact} onOpenChange={(open) => !open && setSelectedContact(null)}>
-            <DialogContent className="sm:max-w-xs">
+            <DialogContent className="sm:max-w-sm">
               <DialogHeader>
                 <div className="flex flex-col items-center gap-3 pt-2">
-                  <Avatar className="h-36 w-36">
-                    {selectedContact.avatarUrl && <AvatarImage src={selectedContact.avatarUrl} />}
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-3xl">
-                      {selectedContact.firstName.charAt(0)}{selectedContact.lastName.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <ParticipantPhotoFrame
+                    firstName={selectedContact.firstName}
+                    lastName={selectedContact.lastName}
+                    avatarUrl={selectedContact.avatarUrl}
+                  />
                   <DialogTitle className="text-center leading-tight">
                     <p className="font-semibold">{selectedContact.firstName}</p>
                     <p className="text-sm font-normal text-muted-foreground">{selectedContact.lastName}</p>

@@ -15,6 +15,7 @@ import { Users, Crown, GraduationCap, UserCircle, Mail, Phone, MessageCircle, Se
 import { Input } from "@/components/ui/input";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import { getFishLevel, FISH_LEVELS } from "@/hooks/useTrombinoscope";
+import ParticipantPhotoFrame from "@/components/participants/ParticipantPhotoFrame";
 
 // Generate a pastel color from initials
 const getAvatarColor = (name: string): string => {
@@ -59,15 +60,14 @@ const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
 
   return (
     <Dialog open={!!member} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-xs">
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <div className="flex flex-col items-center gap-3 pt-2">
-            <Avatar className="h-36 w-36">
-              {member.avatar_url && <AvatarImage src={member.avatar_url} alt={`${member.first_name} ${member.last_name}`} />}
-              <AvatarFallback className={`${getAvatarColor(member.first_name + member.last_name)} text-foreground font-bold text-3xl`}>
-                {getInitials(member.first_name, member.last_name)}
-              </AvatarFallback>
-            </Avatar>
+            <ParticipantPhotoFrame
+              firstName={member.first_name}
+              lastName={member.last_name}
+              avatarUrl={member.avatar_url}
+            />
             <DialogTitle className="text-center leading-tight">
               <p className="font-semibold">{formatFirstName(member.first_name)}</p>
               <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
