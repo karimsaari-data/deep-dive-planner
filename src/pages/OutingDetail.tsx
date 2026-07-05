@@ -1161,18 +1161,18 @@ const OutingDetail = () => {
           <Dialog open={!!selectedContact} onOpenChange={(open) => !open && setSelectedContact(null)}>
             <DialogContent className="sm:max-w-xs">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
+                <div className="flex flex-col items-center gap-3 pt-2">
+                  <Avatar className="h-36 w-36">
                     {selectedContact.avatarUrl && <AvatarImage src={selectedContact.avatarUrl} />}
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-3xl">
                       {selectedContact.firstName.charAt(0)}{selectedContact.lastName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="text-left leading-tight">
+                  <DialogTitle className="text-center leading-tight">
                     <p className="font-semibold">{selectedContact.firstName}</p>
                     <p className="text-sm font-normal text-muted-foreground">{selectedContact.lastName}</p>
-                  </div>
-                </DialogTitle>
+                  </DialogTitle>
+                </div>
               </DialogHeader>
               <div className="flex gap-3 pt-2 justify-center">
                 {selectedContact.email && (

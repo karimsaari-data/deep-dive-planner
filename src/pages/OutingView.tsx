@@ -62,6 +62,7 @@ import { useViewMode } from "@/contexts/ViewModeContext";
 
 import CarpoolSection from "@/components/carpool/CarpoolSection";
 import { useCarpools } from "@/hooks/useCarpools";
+import ParticipantPhotoDialog from "@/components/participants/ParticipantPhotoDialog";
 
 /** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
 const extractDepth = (prerogatives: string | null): string | null => {
@@ -123,6 +124,9 @@ const OutingView = () => {
   const [showCarpoolEdit, setShowCarpoolEdit] = useState(false);
   const [editCarpoolOption, setEditCarpoolOption] = useState<CarpoolOption>("none");
   const [editCarpoolSeats, setEditCarpoolSeats] = useState(1);
+  const [zoomedParticipant, setZoomedParticipant] = useState<{
+    firstName: string; lastName: string; avatarUrl: string | null;
+  } | null>(null);
 
   const handleCarpoolOptionChange = (value: CarpoolOption) => {
     setCarpoolOption(value);
@@ -659,8 +663,16 @@ const OutingView = () => {
                             : "border-border bg-muted/30"
                         }`}
                       >
-                        <div className="relative">
-                          <Avatar className="h-10 w-10">
+                        <button
+                          type="button"
+                          className="relative focus:outline-none"
+                          onClick={() => profile && setZoomedParticipant({
+                            firstName: profile.first_name ?? "",
+                            lastName: profile.last_name ?? "",
+                            avatarUrl: profile.avatar_url ?? null,
+                          })}
+                        >
+                          <Avatar className="h-10 w-10 transition-opacity hover:opacity-80">
                             <AvatarImage src={profile?.avatar_url ?? undefined} />
                             <AvatarFallback className={`text-sm ${isOrg || isCoInstr ? "bg-amber-200 text-amber-800" : "bg-primary/10 text-primary"}`}>
                               {initials}
@@ -671,7 +683,7 @@ const OutingView = () => {
                               <Shield className="h-3 w-3 text-white" />
                             </div>
                           )}
-                        </div>
+                        </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-foreground truncate">
@@ -805,6 +817,11 @@ const OutingView = () => {
           )}
         </div>
       </section>
+
+      <ParticipantPhotoDialog
+        participant={zoomedParticipant}
+        onClose={() => setZoomedParticipant(null)}
+      />
     </Layout>
   );
 };
