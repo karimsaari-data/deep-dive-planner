@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Waypoint, getWaypointLabel } from "@/hooks/useWaypoints";
+import { OutingType } from "@/hooks/useOutings";
 import logoTeamOxygen from "@/assets/logo-team-oxygen-transparent.png";
 
 // Types for POSS generation
@@ -53,6 +54,7 @@ export interface POSSData {
   outingTitle: string;
   outingDateTime: string;
   outingLocation: string;
+  outingType: OutingType;
   diveMode: "boat" | "shore" | null;
   location: POSSLocation | null;
   boat: POSSBoat | null;
@@ -60,6 +62,9 @@ export interface POSSData {
   participants: POSSParticipant[];
   organizerName: string;
   organizerLevel: string | null;
+  organizerLevelName: string | null;
+  organizerMaxDepthEaa: number | null;
+  organizerMaxDepthEao: number | null;
   organizerPhone: string | null;
   coInstructors: POSSCoInstructor[];
   waterEntryTime: string | null;
@@ -145,26 +150,6 @@ const formatPhone = (raw: string | null | undefined): string => {
   return frenchPhoneGroups(digits);
 };
 
-// Helper: Get max depth based on instructor level (FSGT)
-const getMaxDepthForLevel = (apneaLevel: string | null): number | null => {
-  if (!apneaLevel) return null;
-
-  const level = apneaLevel.toUpperCase().trim();
-
-  // FSGT levels - profondeur max autorisée pour l'encadrement
-  if (level.includes("EA1")) return 6;
-  if (level.includes("EA2")) return 15;  // ⚠️ EA2 = 15m (pas 20m)
-  if (level.includes("EA3")) return 40;
-  if (level.includes("EA4")) return 60;
-
-  // FFESSM levels (if needed)
-  if (level.includes("E1")) return 20;
-  if (level.includes("E2")) return 40;
-  if (level.includes("E3") || level.includes("E4")) return 60;
-
-  return null;
-};
-
 // Helper: Calculate session duration
 const calculateDuration = (entryTime: string | null, exitTime: string | null): string => {
   if (!entryTime || !exitTime) return "N/A";
@@ -189,7 +174,7 @@ const calculateDuration = (entryTime: string | null, exitTime: string | null): s
 
 // Main POSS Generator
 export const generatePOSS = async (data: POSSData): Promise<void> => {
-  const { outingTitle, outingDateTime, outingLocation, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, organizerPhone, coInstructors, waterEntryTime, waterExitTime, weather } = data;
+  const { outingTitle, outingDateTime, outingLocation, outingType, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, organizerLevelName, organizerMaxDepthEaa, organizerMaxDepthEao, organizerPhone, coInstructors, waterEntryTime, waterExitTime, weather } = data;
   
   const doc = new jsPDF({
     orientation: "landscape",
@@ -315,8 +300,19 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   // ====================
   // URGENCE + PROFONDEUR MAX - MISE EN ÉVIDENCE
   // ====================
-  const maxDepth = getMaxDepthForLevel(organizerLevel);
-  const maxDepthStr = maxDepth ? `${maxDepth}m` : "N/A";
+  // Profondeur max encadrée = limite du niveau du DP (apnea_levels), croisée avec
+  // la profondeur max du site si elle est plus restrictive. Même logique que sur
+  // les cartes de sortie et la fiche détaillée (OutingCard / OutingDetail).
+  const isOpenWater = outingType === "Mer" || outingType === "Étang" || outingType === "Dépollution";
+  const organizerMaxDepth = isOpenWater ? organizerMaxDepthEao : organizerMaxDepthEaa;
+  const locationMaxDepth = location?.max_depth ?? null;
+  const effectiveMaxDepth = organizerMaxDepth && locationMaxDepth
+    ? Math.min(organizerMaxDepth, locationMaxDepth)
+    : organizerMaxDepth || locationMaxDepth;
+  const maxDepthStr = effectiveMaxDepth ? `${effectiveMaxDepth}m` : "N/A";
+  const encadrementLabel = isOpenWater ? "EAO" : "EAA";
+  const levelLabel = organizerLevelName || organizerLevel || "encadrant";
+
   const bandHeight = 9;
   const halfWidth = (contentWidth - 4) / 2;
 
@@ -329,10 +325,23 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
 
   // Profondeur max (droite)
   drawBox(doc, margin + halfWidth + 4, y, halfWidth, bandHeight, { fill: "#fee2e2", stroke: "#dc2626", lineWidth: 1.2 });
-  doc.text(`PROFONDEUR MAX (${organizerLevel || "encadrant"}) : ${maxDepthStr}`, margin + halfWidth + 4 + halfWidth / 2, y + 6, { align: "center" });
+  doc.text(`PROFONDEUR MAX (${levelLabel}) : ${maxDepthStr}`, margin + halfWidth + 4 + halfWidth / 2, y + 6, { align: "center" });
   doc.setTextColor("#000000");
 
-  y += bandHeight + 4;
+  y += bandHeight + 3;
+
+  if (effectiveMaxDepth) {
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7.5);
+    doc.setTextColor("#666666");
+    const noticeText = `Les apnéistes peuvent avoir des prérogatives personnelles plus profondes, mais dans le cadre d'une activité organisée par le club avec un DP « ${levelLabel} », la zone encadrée doit rester dans la limite ${encadrementLabel} de ${effectiveMaxDepth} m.`;
+    const noticeLines = doc.splitTextToSize(noticeText, contentWidth);
+    doc.text(noticeLines, margin, y + 2.5);
+    y += noticeLines.length * 3 + 3;
+    doc.setTextColor("#000000");
+  }
+
+  y += 1;
 
   // ====================
   // B. CARTOGRAPHIE OPÉRATIONNELLE
