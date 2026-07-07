@@ -71,6 +71,7 @@ export interface Outing {
   organizer_max_depth_eaa?: number | null;
   organizer_max_depth_eao?: number | null;
   organizer_max_participants?: number | null;
+  organizer_level_name?: string | null;
   location_details?: {
     id: string;
     name: string;
@@ -91,6 +92,53 @@ export interface Outing {
     home_port: string | null;
   } | null;
   reservations?: Reservation[];
+}
+
+// Résout le niveau d'apnée courant (saison en cours) d'un ensemble d'utilisateurs
+// via membership_yearly_status (source de vérité), avec repli sur profiles.apnea_level
+// si l'utilisateur n'a pas de statut de saison enregistré.
+async function resolveCurrentSeasonApneaLevels(
+  userIds: (string | null | undefined)[]
+): Promise<Map<string, string | null>> {
+  const uniqueIds = [...new Set(userIds.filter((id): id is string => !!id))];
+  const result = new Map<string, string | null>();
+  if (uniqueIds.length === 0) return result;
+
+  const currentSeasonYear = new Date().getMonth() >= 8
+    ? new Date().getFullYear() + 1
+    : new Date().getFullYear();
+
+  const { data: profileRows } = await supabase
+    .from("profiles")
+    .select("id, email, apnea_level")
+    .in("id", uniqueIds);
+
+  const emailByUserId = new Map((profileRows || []).map((p: any) => [p.id, p.email?.toLowerCase()]));
+  const fallbackLevelByUserId = new Map((profileRows || []).map((p: any) => [p.id, p.apnea_level]));
+  const emails = [...emailByUserId.values()].filter(Boolean);
+
+  const { data: dirMembers } = emails.length
+    ? await supabase.from("club_members_directory").select("id, email").in("email", emails)
+    : { data: [] };
+  const dirIdByEmail = new Map((dirMembers || []).map((d: any) => [d.email.toLowerCase(), d.id]));
+
+  const memberIds = [...dirIdByEmail.values()];
+  const { data: seasonLevels } = memberIds.length
+    ? await supabase
+        .from("membership_yearly_status")
+        .select("member_id, apnea_level")
+        .eq("season_year", currentSeasonYear)
+        .in("member_id", memberIds)
+    : { data: [] };
+  const levelByMemberId = new Map((seasonLevels || []).map((s: any) => [s.member_id, s.apnea_level]));
+
+  for (const userId of uniqueIds) {
+    const email = emailByUserId.get(userId);
+    const memberId = email ? dirIdByEmail.get(email) : null;
+    const seasonLevel = memberId ? levelByMemberId.get(memberId) : null;
+    result.set(userId, seasonLevel ?? fallbackLevelByUserId.get(userId) ?? null);
+  }
+  return result;
 }
 
 export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived = false) => {
@@ -128,7 +176,12 @@ export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived
         }
         return endDate > now;
       }) ?? [];
-      
+
+      // Niveau d'apnée courant (saison en cours) de chaque organisateur, résolu en une passe
+      const organizerLevels = await resolveCurrentSeasonApneaLevels(
+        upcomingOutings.map((o) => o.organizer_id)
+      );
+
       // Fetch real confirmed counts and organizer max depths
       const outingsWithCounts = await Promise.all(
         upcomingOutings.map(async (outing) => {
@@ -142,28 +195,33 @@ export const useOutings = (typeFilter?: OutingType | null, includePastUnarchived
           let maxDepthEaa = null;
           let maxDepthEao = null;
           let maxParticipants = null;
+          let levelName = null;
 
-          if (outing.organizer?.apnea_level) {
+          const organizerLevel = outing.organizer_id ? organizerLevels.get(outing.organizer_id) : null;
+          if (organizerLevel) {
             const { data: levelData } = await supabase
               .from('apnea_levels')
-              .select('profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement')
-              .eq('code', outing.organizer.apnea_level)
+              .select('name, profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement')
+              .eq('code', organizerLevel)
               .maybeSingle();
 
             if (levelData) {
               maxDepthEaa = levelData.profondeur_max_eaa;
               maxDepthEao = levelData.profondeur_max_eao;
               maxParticipants = levelData.max_participants_encadrement;
+              levelName = levelData.name;
             }
           }
 
           return {
             ...outing,
+            organizer: outing.organizer ? { ...outing.organizer, apnea_level: organizerLevel } : outing.organizer,
             confirmed_count: countData ?? 0,
             waitlist_count: waitlistData ?? 0,
             organizer_max_depth_eaa: maxDepthEaa,
             organizer_max_depth_eao: maxDepthEao,
             organizer_max_participants: maxParticipants,
+            organizer_level_name: levelName,
           };
         })
       );
@@ -205,66 +263,35 @@ export const useOuting = (outingId: string) => {
 
       if (error) throw error;
 
-      // Enrich reservations with apnea_level from membership_yearly_status (authoritative source)
-      if (data?.reservations?.length) {
-        const currentSeasonYear = new Date().getMonth() >= 8
-          ? new Date().getFullYear() + 1
-          : new Date().getFullYear();
+      // Résout le niveau d'apnée courant (saison en cours) des réservataires et de l'organisateur en une passe
+      const seasonLevels = await resolveCurrentSeasonApneaLevels([
+        ...(data?.reservations?.map((r: any) => r.user_id) ?? []),
+        data?.organizer_id,
+      ]);
 
-        const userIds = data.reservations.map((r: any) => r.user_id);
-
-        // Get emails from profiles to join with directory
-        const { data: profileEmails } = await supabase
-          .from("profiles")
-          .select("id, email")
-          .in("id", userIds);
-
-        const emailByUserId = new Map((profileEmails || []).map((p: any) => [p.id, p.email?.toLowerCase()]));
-
-        // Get directory member IDs
-        const emails = [...emailByUserId.values()].filter(Boolean);
-        const { data: dirMembers } = await supabase
-          .from("club_members_directory")
-          .select("id, email")
-          .in("email", emails);
-
-        const dirIdByEmail = new Map((dirMembers || []).map((d: any) => [d.email.toLowerCase(), d.id]));
-
-        // Get current season levels
-        const memberIds = [...dirIdByEmail.values()];
-        const { data: seasonLevels } = memberIds.length
-          ? await supabase
-              .from("membership_yearly_status")
-              .select("member_id, apnea_level")
-              .eq("season_year", currentSeasonYear)
-              .in("member_id", memberIds)
-          : { data: [] };
-
-        const levelByMemberId = new Map((seasonLevels || []).map((s: any) => [s.member_id, s.apnea_level]));
-
-        // Patch each reservation's profile.apnea_level
-        for (const r of data.reservations as any[]) {
-          const email = emailByUserId.get(r.user_id);
-          const memberId = email ? dirIdByEmail.get(email) : null;
-          const seasonLevel = memberId ? levelByMemberId.get(memberId) : null;
-          if (seasonLevel && r.profile) {
-            r.profile.apnea_level = seasonLevel;
-          }
+      for (const r of (data?.reservations as any[]) ?? []) {
+        const seasonLevel = seasonLevels.get(r.user_id);
+        if (seasonLevel && r.profile) {
+          r.profile.apnea_level = seasonLevel;
         }
       }
 
       // Fetch organizer max depths and max participants if organizer has apnea_level
-      if (data && data.organizer?.apnea_level) {
+      const organizerLevel = data?.organizer_id ? seasonLevels.get(data.organizer_id) : null;
+      if (data && organizerLevel) {
+        data.organizer = data.organizer ? { ...data.organizer, apnea_level: organizerLevel } : data.organizer;
+
         const { data: levelData } = await supabase
           .from('apnea_levels')
-          .select('profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement')
-          .eq('code', data.organizer.apnea_level)
+          .select('name, profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement')
+          .eq('code', organizerLevel)
           .maybeSingle();
 
         if (levelData) {
           (data as any).organizer_max_depth_eaa = levelData.profondeur_max_eaa;
           (data as any).organizer_max_depth_eao = levelData.profondeur_max_eao;
           (data as any).organizer_max_participants = levelData.max_participants_encadrement;
+          (data as any).organizer_level_name = levelData.name;
         }
       }
 
@@ -843,11 +870,45 @@ export const useCoInstructedOutings = () => {
           return endDate > now || recentPastUnarchived;
         });
 
+      const organizerLevels = await resolveCurrentSeasonApneaLevels(
+        outings.map((o) => o.organizer_id)
+      );
+
       const outingsWithCounts = await Promise.all(
         outings.map(async (outing) => {
           const { data: countData } = await supabase
             .rpc("get_outing_confirmed_count", { outing_uuid: outing.id });
-          return { ...outing, confirmed_count: countData ?? 0 };
+
+          let maxDepthEaa = null;
+          let maxDepthEao = null;
+          let maxParticipants = null;
+          let levelName = null;
+
+          const organizerLevel = outing.organizer_id ? organizerLevels.get(outing.organizer_id) : null;
+          if (organizerLevel) {
+            const { data: levelData } = await supabase
+              .from("apnea_levels")
+              .select("name, profondeur_max_eaa, profondeur_max_eao, max_participants_encadrement")
+              .eq("code", organizerLevel)
+              .maybeSingle();
+
+            if (levelData) {
+              maxDepthEaa = levelData.profondeur_max_eaa;
+              maxDepthEao = levelData.profondeur_max_eao;
+              maxParticipants = levelData.max_participants_encadrement;
+              levelName = levelData.name;
+            }
+          }
+
+          return {
+            ...outing,
+            organizer: outing.organizer ? { ...outing.organizer, apnea_level: organizerLevel } : outing.organizer,
+            confirmed_count: countData ?? 0,
+            organizer_max_depth_eaa: maxDepthEaa,
+            organizer_max_depth_eao: maxDepthEao,
+            organizer_max_participants: maxParticipants,
+            organizer_level_name: levelName,
+          };
         })
       );
 

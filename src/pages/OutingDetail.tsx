@@ -645,12 +645,21 @@ const OutingDetail = () => {
                     ? Math.min(organizerMaxDepth, locationMaxDepth)
                     : organizerMaxDepth || locationMaxDepth;
 
+                  const encadrementLabel = isOpenWater ? "EAO" : "EAA";
+
                   return effectiveMaxDepth ? (
-                    <div className="flex items-center gap-2">
-                      <Gauge className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm font-medium text-amber-700">
-                        Profondeur max encadrement : {effectiveMaxDepth}m {isOpenWater ? "(eau ouverte)" : "(eau artificielle)"}
-                      </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Gauge className="h-4 w-4 text-amber-600" />
+                        <span className="text-sm font-medium text-amber-700">
+                          Profondeur max encadrement : {effectiveMaxDepth}m {isOpenWater ? "(eau ouverte)" : "(eau artificielle)"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Les apnéistes peuvent avoir des prérogatives personnelles plus profondes, mais dans le
+                        cadre d'une activité organisée par le club avec un DP « {outing.organizer_level_name ?? outing.organizer.apnea_level} »,
+                        la zone encadrée doit rester dans la limite {encadrementLabel} de {effectiveMaxDepth} m.
+                      </p>
                     </div>
                   ) : null;
                 })()}
