@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Outing } from "@/hooks/useOutings";
+import { Outing, resolveCurrentSeasonApneaLevels } from "@/hooks/useOutings";
 import { Waypoint } from "@/hooks/useWaypoints";
 import { generatePOSS, POSSData, POSSParticipant, POSSLocation, POSSBoat } from "@/components/poss/POSSGenerator";
 import { toast } from "sonner";
@@ -33,40 +33,34 @@ export const usePOSSGenerator = () => {
       const confirmedReservations = outing.reservations?.filter(r => r.status === "confirmé") || [];
       const participants: POSSParticipant[] = [];
 
-      // Get organizer's profile to fetch their apnea level and personal phone
+      // Get organizer's phone, current-season apnea level and encadrement depth limits
       let organizerApneaLevel: string | null = null;
+      let organizerLevelName: string | null = null;
+      let organizerMaxDepthEaa: number | null = null;
+      let organizerMaxDepthEao: number | null = null;
       let organizerPhone: string | null = null;
       if (outing.organizer_id) {
         const { data: organizerProfile } = await supabase
           .from("profiles")
-          .select("email, apnea_level, phone")
+          .select("phone")
           .eq("id", outing.organizer_id)
           .single();
+        organizerPhone = organizerProfile?.phone || null;
 
-        if (organizerProfile) {
-          organizerPhone = organizerProfile.phone || null;
-          // Try to get the most current apnea level from membership_yearly_status
-          const { data: organizerDirectory } = await supabase
-            .from("club_members_directory")
-            .select("id")
-            .eq("email", organizerProfile.email.toLowerCase())
-            .single();
+        const seasonLevels = await resolveCurrentSeasonApneaLevels([outing.organizer_id]);
+        organizerApneaLevel = seasonLevels.get(outing.organizer_id) || null;
 
-          if (organizerDirectory) {
-            const currentSeasonYear = new Date().getMonth() >= 8
-              ? new Date().getFullYear() + 1
-              : new Date().getFullYear();
+        if (organizerApneaLevel) {
+          const { data: levelData } = await supabase
+            .from("apnea_levels")
+            .select("name, profondeur_max_eaa, profondeur_max_eao")
+            .eq("code", organizerApneaLevel)
+            .maybeSingle();
 
-            const { data: organizerStatus } = await supabase
-              .from("membership_yearly_status")
-              .select("apnea_level")
-              .eq("member_id", organizerDirectory.id)
-              .eq("season_year", currentSeasonYear)
-              .single();
-
-            organizerApneaLevel = organizerStatus?.apnea_level || organizerProfile.apnea_level;
-          } else {
-            organizerApneaLevel = organizerProfile.apnea_level;
+          if (levelData) {
+            organizerLevelName = levelData.name;
+            organizerMaxDepthEaa = levelData.profondeur_max_eaa;
+            organizerMaxDepthEao = levelData.profondeur_max_eao;
           }
         }
       }
@@ -170,6 +164,7 @@ export const usePOSSGenerator = () => {
         outingTitle: outing.title,
         outingDateTime: outing.date_time,
         outingLocation: outing.location,
+        outingType: outing.outing_type,
         diveMode: outing.dive_mode || null,
         location: locationData,
         boat: boatData,
@@ -177,6 +172,9 @@ export const usePOSSGenerator = () => {
         participants,
         organizerName,
         organizerLevel: organizerApneaLevel,
+        organizerLevelName,
+        organizerMaxDepthEaa,
+        organizerMaxDepthEao,
         organizerPhone,
         coInstructors,
         waterEntryTime: outing.water_entry_time || null,

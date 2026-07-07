@@ -97,7 +97,7 @@ export interface Outing {
 // Résout le niveau d'apnée courant (saison en cours) d'un ensemble d'utilisateurs
 // via membership_yearly_status (source de vérité), avec repli sur profiles.apnea_level
 // si l'utilisateur n'a pas de statut de saison enregistré.
-async function resolveCurrentSeasonApneaLevels(
+export async function resolveCurrentSeasonApneaLevels(
   userIds: (string | null | undefined)[]
 ): Promise<Map<string, string | null>> {
   const uniqueIds = [...new Set(userIds.filter((id): id is string => !!id))];
