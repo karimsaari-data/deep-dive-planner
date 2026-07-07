@@ -45,17 +45,24 @@ const Header = () => {
     const items = [
       { to: "/", label: "Sorties", icon: Waves },
       { to: "/reservations", label: "Mes Réservations", icon: Calendar },
+    ];
+
+    if (effectiveIsOrganizer) {
+      items.push({ to: "/mes-sorties", label: "Mes Sorties", icon: FileText });
+    }
+
+    items.push(
       { to: "/map", label: "Carte", icon: MapIcon },
       { to: "/weather", label: "Météo", icon: CloudSun },
       { to: "/trombinoscope", label: "Trombi", icon: Users },
-    ];
+    );
 
     if (isAdmin) {
       items.push({ to: "/admin", label: "Administration", icon: Settings });
     }
 
     return items;
-  }, [isAdmin]);
+  }, [isAdmin, effectiveIsOrganizer]);
 
   // Entrées regroupées dans le menu « Plus »
   const moreItems = useMemo(() => {
@@ -75,7 +82,6 @@ const Header = () => {
     }
 
     if (effectiveIsOrganizer) {
-      items.push({ to: "/mes-sorties", label: "Mes Sorties", icon: Calendar });
       items.push({ to: "/archives", label: "Archives", icon: FileText });
     }
 
