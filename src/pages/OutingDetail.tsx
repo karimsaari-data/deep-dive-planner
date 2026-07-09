@@ -53,6 +53,14 @@ import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { Anchor, Satellite } from "lucide-react";
 import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 
+/** Motifs d'annulation proposés en un clic (le champ reste éditable pour un motif libre) */
+const CANCEL_REASONS = [
+  "Météo défavorable",
+  "Nombre d'inscrits insuffisant",
+  "Encadrant indisponible",
+  "Problème logistique",
+];
+
 /** Extract max depth from prerogatives string */
 const extractDepth = (prerogatives: string | null): string | null => {
   if (!prerogatives) return null;
@@ -547,12 +555,25 @@ const OutingDetail = () => {
                     </AlertDialogHeader>
                     <div className="py-4">
                       <Label htmlFor="cancelReason">Motif d'annulation</Label>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {CANCEL_REASONS.map((reason) => (
+                          <Button
+                            key={reason}
+                            type="button"
+                            variant={cancelReason === reason ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setCancelReason(reason)}
+                          >
+                            {reason}
+                          </Button>
+                        ))}
+                      </div>
                       <Input
                         id="cancelReason"
                         value={cancelReason}
                         onChange={(e) => setCancelReason(e.target.value)}
-                        placeholder="Météo défavorable, autre..."
-                        className="mt-2"
+                        placeholder="Météo défavorable, nombre d'inscrits insuffisant, autre..."
+                        className="mt-3"
                       />
                     </div>
                     <AlertDialogFooter>
