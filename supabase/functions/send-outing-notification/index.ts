@@ -47,6 +47,33 @@ interface NotificationRequest {
   targetUserId?: string;
 }
 
+/**
+ * Adapte le corps du mail d'annulation au motif choisi par l'organisateur.
+ * Renvoie le HTML des paragraphes situés entre la salutation et la formule de fin.
+ * Les motifs connus donnent un message dédié ; un motif libre garde une phrase
+ * générique suivie d'une ligne « Motif : … ».
+ */
+function buildCancellationBody(reason: string | undefined, title: string, dateFormatted: string): string {
+  const outingRef = `la sortie <strong>${title}</strong> prévue le ${dateFormatted}`;
+  const normalized = (reason ?? "").trim().toLowerCase();
+
+  switch (normalized) {
+    case "météo défavorable":
+      return `<p>Nous sommes au regret de vous informer que ${outingRef} est annulée en raison de conditions météo défavorables. La sécurité de tous reste notre priorité.</p>`;
+    case "nombre d'inscrits insuffisant":
+      return `<p>Nous sommes au regret de vous informer que ${outingRef} est annulée faute d'un nombre suffisant d'inscrits pour la maintenir dans de bonnes conditions.</p>`;
+    case "encadrant indisponible":
+      return `<p>Nous sommes au regret de vous informer que ${outingRef} est annulée en raison de l'indisponibilité de l'encadrant.</p>`;
+    case "problème logistique":
+      return `<p>Nous sommes au regret de vous informer que ${outingRef} est annulée pour un problème logistique.</p>`;
+    default: {
+      const base = `<p>Nous sommes au regret de vous informer que ${outingRef} a été annulée.</p>`;
+      const motif = reason?.trim() ? `<p><strong>Motif :</strong> ${reason.trim()}</p>` : "";
+      return base + motif;
+    }
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -238,8 +265,7 @@ const handler = async (req: Request): Promise<Response> => {
         ? `
           <h1>Sortie annulée</h1>
           <p>Bonjour ${profile.first_name},</p>
-          <p>Nous sommes au regret de vous informer que la sortie <strong>${outing.title}</strong> prévue le ${dateFormatted} a été annulée.</p>
-          ${reason ? `<p><strong>Motif :</strong> ${reason}</p>` : ""}
+          ${buildCancellationBody(reason, outing.title, dateFormatted)}
           <p>Lieu : ${outing.location_details?.name || outing.location}</p>
           <p>Nous espérons vous retrouver lors d'une prochaine sortie !</p>
           <p>L'équipe Team Oxygen</p>
