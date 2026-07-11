@@ -585,7 +585,7 @@ export const useSetReservationGroup = () => {
       queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de l'affectation de la palanquée");
+      toast.error(error.message || "Erreur lors de l'affectation du groupe");
     },
   });
 };
