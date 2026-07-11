@@ -994,37 +994,6 @@ const OutingDetail = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {sortedConfirmed.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">Aucun inscrit</p>
-              ) : (
-                <div className="space-y-3">
-                  {confirmedInstructors.length > 0 && (
-                    <>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 flex items-center gap-1.5 px-1">
-                        <Shield className="h-3.5 w-3.5" />
-                        Encadrant{confirmedInstructors.length > 1 ? "s" : ""} ({confirmedInstructors.length})
-                      </p>
-                      <div className="space-y-2">
-                        {confirmedInstructors.map(renderRow)}
-                      </div>
-                    </>
-                  )}
-                  {confirmedParticipants.length > 0 && (
-                    <>
-                      {confirmedInstructors.length > 0 && (
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 px-1 pt-1">
-                          <Users className="h-3.5 w-3.5" />
-                          Participants ({confirmedParticipants.length})
-                        </p>
-                      )}
-                      <div className="space-y-2">
-                        {confirmedParticipants.map(renderRow)}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
               {(() => {
                 const assigned = sortedConfirmed.filter((r) => r.group_number != null);
                 if (assigned.length === 0) return null;
@@ -1033,7 +1002,7 @@ const OutingDetail = () => {
                 );
                 const unassignedCount = sortedConfirmed.length - assigned.length;
                 return (
-                  <div className="mt-6 border-t border-border/50 pt-4">
+                  <div className="mb-6 border-b border-border/50 pb-4">
                     <h4 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
                       <Users className="h-4 w-4 text-primary" />
                       Groupes
@@ -1075,6 +1044,37 @@ const OutingDetail = () => {
                   </div>
                 );
               })()}
+
+              {sortedConfirmed.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">Aucun inscrit</p>
+              ) : (
+                <div className="space-y-3">
+                  {confirmedInstructors.length > 0 && (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 flex items-center gap-1.5 px-1">
+                        <Shield className="h-3.5 w-3.5" />
+                        Encadrant{confirmedInstructors.length > 1 ? "s" : ""} ({confirmedInstructors.length})
+                      </p>
+                      <div className="space-y-2">
+                        {confirmedInstructors.map(renderRow)}
+                      </div>
+                    </>
+                  )}
+                  {confirmedParticipants.length > 0 && (
+                    <>
+                      {confirmedInstructors.length > 0 && (
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 px-1 pt-1">
+                          <Users className="h-3.5 w-3.5" />
+                          Participants ({confirmedParticipants.length})
+                        </p>
+                      )}
+                      <div className="space-y-2">
+                        {confirmedParticipants.map(renderRow)}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {waitlistedReservations.length > 0 && (
                 <div className="mt-6">
