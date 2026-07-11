@@ -367,15 +367,14 @@ const OutingDetail = () => {
     (apneaLevels || []).map(l => [l.code, l])
   );
 
-  // Sort participants: organizer first, then encadrants (team encadrant), then others.
-  // "Team encadrant" = this outing's organizer, its co-encadrants, or a member whose
-  // member_status is "Encadrant" (admin-controlled). Holding an instructor-level diving
-  // qualification (apnea level flagged is_instructor) does NOT make someone an encadrant
-  // of the outing — e.g. a BPJEPS holder who is a simple member stays in the participants.
+  // Sort participants: organizer first, then encadrants of this outing, then others.
+  // Un encadrant de la sortie = son organisateur ou l'un de ses co-encadrants
+  // désignés. Le statut de membre "Encadrant" ou une qualification d'instructeur
+  // (ex. BPJEPS, FSGT EA2) ne suffit pas : un encadrant qui participe comme simple
+  // plongeur reste dans la liste des participants.
   const isReservationEncadrant = (r: typeof confirmedReservations[number]) => {
     if (r.user_id === outing.organizer_id) return true;
-    if (outing.co_instructors?.some((ci) => ci.user_id === r.user_id)) return true;
-    return r.profile?.member_status === "Encadrant";
+    return outing.co_instructors?.some((ci) => ci.user_id === r.user_id) ?? false;
   };
   const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
     const aIsOrganizer = a.user_id === outing.organizer_id;
@@ -851,15 +850,15 @@ const OutingDetail = () => {
 
           {/* 2. Participants - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
           {(() => {
-            // A person is an encadrant of this outing if they are its organizer, one of its
-            // co-encadrants, or a member of the encadrant team (member_status = 'Encadrant',
-            // admin-controlled, always up to date). A diving qualification alone (apnea level
-            // flagged is_instructor) does NOT make someone an encadrant — e.g. a BPJEPS holder
-            // who is a simple member stays in the participants list.
+            // Un encadrant DE CETTE SORTIE est son organisateur ou l'un de ses
+            // co-encadrants désignés. Ni le statut de membre "Encadrant", ni une
+            // qualification d'instructeur (ex. BPJEPS, FSGT EA2) ne suffisent : un
+            // encadrant qui participe comme simple plongeur n'encadre pas cette
+            // sortie. Il ne doit donc compter ni dans la capacité d'accueil (somme
+            // des prérogatives des encadrants) ni parmi les encadrants affichés.
             const isEncadrant = (r: typeof sortedConfirmed[number]) => {
               if (r.user_id === outing.organizer_id) return true;
-              if (outing.co_instructors?.some((ci) => ci.user_id === r.user_id)) return true;
-              return r.profile?.member_status === "Encadrant";
+              return outing.co_instructors?.some((ci) => ci.user_id === r.user_id) ?? false;
             };
 
             // Separate confirmed reservations into instructors and regular participants
