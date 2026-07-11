@@ -675,6 +675,7 @@ export type Database = {
           carpool_option: Database["public"]["Enums"]["carpool_option"] | null
           carpool_seats: number | null
           created_at: string | null
+          group_number: number | null
           id: string
           is_present: boolean | null
           outing_id: string
@@ -686,6 +687,7 @@ export type Database = {
           carpool_option?: Database["public"]["Enums"]["carpool_option"] | null
           carpool_seats?: number | null
           created_at?: string | null
+          group_number?: number | null
           id?: string
           is_present?: boolean | null
           outing_id: string
@@ -697,6 +699,7 @@ export type Database = {
           carpool_option?: Database["public"]["Enums"]["carpool_option"] | null
           carpool_seats?: number | null
           created_at?: string | null
+          group_number?: number | null
           id?: string
           is_present?: boolean | null
           outing_id?: string
@@ -794,11 +797,18 @@ export type Database = {
         Args: { outing_uuid: string }
         Returns: {
           avatar_url: string
+          created_at: string
           first_name: string
+          group_number: number
           id: string
           last_name: string
           member_status: string
+          status: string
         }[]
+      }
+      set_reservation_group: {
+        Args: { p_group_number: number; p_reservation_id: string }
+        Returns: undefined
       }
       get_trombinoscope_members: {
         Args: never

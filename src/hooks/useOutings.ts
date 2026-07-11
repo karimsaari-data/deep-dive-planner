@@ -17,6 +17,7 @@ export interface Reservation {
   carpool_option: CarpoolOption;
   carpool_seats: number;
   is_present: boolean;
+  group_number: number | null;
   created_at: string;
   profile?: {
     first_name: string;
@@ -253,6 +254,7 @@ export const useOuting = (outingId: string) => {
             carpool_seats,
             cancelled_at,
             is_present,
+            group_number,
             created_at,
             profile:profiles(first_name, last_name, email, apnea_level, avatar_url, member_status)
           )
@@ -309,6 +311,7 @@ export interface OutingParticipant {
   member_status: string | null;
   status?: BookingStatus;
   created_at?: string;
+  group_number?: number | null;
 }
 
 export const useMyReservations = () => {
@@ -555,6 +558,34 @@ export const useUpdateReservationPresence = () => {
     },
     onError: (error: Error) => {
       toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};
+
+export const useSetReservationGroup = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      reservationId,
+      groupNumber,
+    }: {
+      reservationId: string;
+      groupNumber: number | null;
+    }) => {
+      const { error } = await supabase.rpc("set_reservation_group", {
+        p_reservation_id: reservationId,
+        p_group_number: groupNumber,
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["my-reservations"] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'affectation de la palanquée");
     },
   });
 };
