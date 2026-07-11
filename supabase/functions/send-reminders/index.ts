@@ -104,10 +104,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Starting reminder check...");
 
-    // Find outings happening in the next 24-26 hours that haven't had reminders sent
+    // Find upcoming outings (within the next 24h) that haven't had reminders sent yet.
+    // Using a rolling [now, now+24h] window (rather than a narrow 24-26h band) makes the
+    // job robust to its scheduling cadence: an hourly cron reminds each outing as soon as
+    // it enters the 24h window, and the reminder_sent flag guarantees a single send.
     const now = new Date();
     const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const in26Hours = new Date(now.getTime() + 26 * 60 * 60 * 1000);
 
     const { data: upcomingOutings, error: outingsError } = await supabase
       .from("outings")
@@ -116,8 +118,8 @@ const handler = async (req: Request): Promise<Response> => {
         location_details:locations(name, address)
       `)
       .eq("reminder_sent", false)
-      .gte("date_time", in24Hours.toISOString())
-      .lte("date_time", in26Hours.toISOString());
+      .gte("date_time", now.toISOString())
+      .lte("date_time", in24Hours.toISOString());
 
     if (outingsError) {
       console.error("Error fetching outings:", outingsError);
