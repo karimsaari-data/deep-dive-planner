@@ -71,6 +71,21 @@ const CANCEL_REASONS = [
 /** Numéros de groupes proposés lors de l'affectation des inscrits */
 const GROUP_NUMBERS = [1, 2, 3, 4, 5, 6];
 
+/**
+ * Palette de teintes douces pour différencier visuellement les groupes.
+ * On évite l'ambre et le bleu (déjà utilisés pour organisateur / encadrant).
+ * Classes écrites en toutes lettres pour que Tailwind les conserve.
+ */
+const GROUP_COLORS = [
+  { card: "border-teal-300 bg-teal-50 dark:border-teal-800 dark:bg-teal-950/30", label: "text-teal-700 dark:text-teal-300" },
+  { card: "border-violet-300 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/30", label: "text-violet-700 dark:text-violet-300" },
+  { card: "border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30", label: "text-rose-700 dark:text-rose-300" },
+  { card: "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30", label: "text-emerald-700 dark:text-emerald-300" },
+  { card: "border-orange-300 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30", label: "text-orange-700 dark:text-orange-300" },
+  { card: "border-sky-300 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/30", label: "text-sky-700 dark:text-sky-300" },
+];
+const groupColor = (n: number) => GROUP_COLORS[(n - 1) % GROUP_COLORS.length];
+
 /** Extract max depth from prerogatives string */
 const extractDepth = (prerogatives: string | null): string | null => {
   if (!prerogatives) return null;
@@ -1011,8 +1026,8 @@ const OutingDetail = () => {
                       {groupNumbers.map((n) => {
                         const members = assigned.filter((r) => r.group_number === n);
                         return (
-                          <div key={n} className="rounded-lg border border-border bg-muted/30 p-3">
-                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                          <div key={n} className={cn("rounded-lg border p-3", groupColor(n).card)}>
+                            <p className={cn("mb-2 text-xs font-semibold uppercase tracking-wide", groupColor(n).label)}>
                               Groupe {n} ({members.length})
                             </p>
                             <div className="space-y-1.5">
