@@ -538,14 +538,14 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   const coNames = new Set(coInstructors.map((c) => norm(c.name)));
   const orgNorm = norm(organizerName);
-  const roleOf = (p: POSSParticipant): "RESP." | "Encadrant" | "" => {
+  const roleOf = (p: POSSParticipant): "RESP." | "Co-enc." | "" => {
     const full = norm(`${p.first_name} ${p.last_name}`);
     const reversed = norm(`${p.last_name} ${p.first_name}`);
     if (full === orgNorm || reversed === orgNorm) return "RESP.";
-    if (coNames.has(full) || coNames.has(reversed)) return "Encadrant";
+    if (coNames.has(full) || coNames.has(reversed)) return "Co-enc.";
     return "";
   };
-  const roleRank = (r: string) => (r === "RESP." ? 0 : r === "Encadrant" ? 1 : 2);
+  const roleRank = (r: string) => (r === "RESP." ? 0 : r === "Co-enc." ? 1 : 2);
 
   // La colonne « Groupe » n'est ajoutée que si des groupes ont été composés
   // pour cette sortie, afin de ne pas afficher une colonne vide sinon.
@@ -577,7 +577,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
         : "-",
     ];
     if (hasGroups) {
-      row.splice(1, 0, p.group_number ? `Groupe ${p.group_number}` : "—");
+      row.splice(0, 0, p.group_number ? `Groupe ${p.group_number}` : "—");
     }
     return row;
   });
@@ -586,12 +586,12 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     ? ["", "", "Aucun participant", "", "", ""]
     : ["", "Aucun participant", "", "", ""];
   const head = hasGroups
-    ? [["Rôle", "Groupe", "NOM", "Prénom", "Niveau", "Contact Urgence"]]
+    ? [["Groupe", "Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]]
     : [["Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]];
   const columnStyles = hasGroups
     ? {
-        0: { cellWidth: 22, fontStyle: "bold" as const, halign: "center" as const },
-        1: { cellWidth: 24, fontStyle: "bold" as const, halign: "center" as const },
+        0: { cellWidth: 24, fontStyle: "bold" as const, halign: "center" as const },
+        1: { cellWidth: 22, fontStyle: "bold" as const, halign: "center" as const },
         2: { cellWidth: 38, fontStyle: "bold" as const },
         3: { cellWidth: 30 },
         4: { cellWidth: 40 },
@@ -629,13 +629,14 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
         if (role === "RESP.") {
           data.cell.styles.fillColor = "#fef3c7"; // jaune = responsable
           data.cell.styles.fontStyle = "bold";
-        } else if (role === "Encadrant") {
-          data.cell.styles.fillColor = "#dbeafe"; // bleu = encadrant
+        } else if (role === "Co-enc.") {
+          data.cell.styles.fillColor = "#dbeafe"; // bleu = co-encadrant
           data.cell.styles.fontStyle = "bold";
         }
-        // La cellule « Groupe » prend la couleur du groupe (prioritaire sur le
-        // rôle), créant une bande colorée par groupe puisque le tableau est trié.
-        if (hasGroups && data.column.index === 1 && entry.p.group_number != null) {
+        // La cellule « Groupe » (1re colonne) prend la couleur du groupe
+        // (prioritaire sur le rôle), créant une bande colorée par groupe
+        // puisque le tableau est trié.
+        if (hasGroups && data.column.index === 0 && entry.p.group_number != null) {
           data.cell.styles.fillColor = groupPdfColor(entry.p.group_number);
           data.cell.styles.fontStyle = "bold";
         }
@@ -651,8 +652,8 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setFontSize(8);
   doc.setTextColor("#666666");
   const legendText = hasGroups
-    ? "Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant  |  colonne Groupe colorée = composition des groupes"
-    : "Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant";
+    ? "Légende : surligné jaune = Responsable POSS  |  surligné bleu = Co-encadrant  |  colonne Groupe colorée = composition des groupes"
+    : "Légende : surligné jaune = Responsable POSS  |  surligné bleu = Co-encadrant";
   doc.text(legendText, margin, y);
   doc.setTextColor("#000000");
 
