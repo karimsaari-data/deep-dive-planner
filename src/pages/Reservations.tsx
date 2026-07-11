@@ -139,7 +139,7 @@ const Reservations = () => {
                             </div>
                           </div>
 
-                          {/* Ma palanquée */}
+                          {/* Mon groupe */}
                           {(() => {
                             const me = (reservation.participants ?? []).find((p) => p.id === user?.id);
                             if (!me?.group_number) return null;
@@ -153,7 +153,7 @@ const Reservations = () => {
                               <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
                                 <div className="flex items-center gap-1.5 text-sm font-semibold text-primary">
                                   <Users className="h-4 w-4" />
-                                  Ma palanquée : Palanquée {me.group_number}
+                                  Mon groupe : Groupe {me.group_number}
                                 </div>
                                 {mates.length > 0 && (
                                   <p className="mt-1 text-xs text-muted-foreground">

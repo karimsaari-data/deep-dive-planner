@@ -68,8 +68,8 @@ const CANCEL_REASONS = [
   "Problème logistique",
 ];
 
-/** Numéros de palanquées proposés lors de l'affectation des inscrits */
-const PALANQUEE_NUMBERS = [1, 2, 3, 4, 5, 6];
+/** Numéros de groupes proposés lors de l'affectation des inscrits */
+const GROUP_NUMBERS = [1, 2, 3, 4, 5, 6];
 
 /** Extract max depth from prerogatives string */
 const extractDepth = (prerogatives: string | null): string | null => {
@@ -930,13 +930,13 @@ const OutingDetail = () => {
                         }
                       >
                         <SelectTrigger className="h-8 w-[130px] text-xs">
-                          <SelectValue placeholder="Palanquée" />
+                          <SelectValue placeholder="Groupe" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Sans palanquée</SelectItem>
-                          {PALANQUEE_NUMBERS.map((n) => (
+                          <SelectItem value="none">Sans groupe</SelectItem>
+                          {GROUP_NUMBERS.map((n) => (
                             <SelectItem key={n} value={String(n)}>
-                              Palanquée {n}
+                              Groupe {n}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1036,7 +1036,7 @@ const OutingDetail = () => {
                   <div className="mt-6 border-t border-border/50 pt-4">
                     <h4 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
                       <Users className="h-4 w-4 text-primary" />
-                      Palanquées
+                      Groupes
                     </h4>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {groupNumbers.map((n) => {
@@ -1044,7 +1044,7 @@ const OutingDetail = () => {
                         return (
                           <div key={n} className="rounded-lg border border-border bg-muted/30 p-3">
                             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
-                              Palanquée {n} ({members.length})
+                              Groupe {n} ({members.length})
                             </p>
                             <div className="space-y-1.5">
                               {members.map((r) => (
@@ -1069,7 +1069,7 @@ const OutingDetail = () => {
                     </div>
                     {unassignedCount > 0 && (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {unassignedCount} inscrit{unassignedCount > 1 ? "s" : ""} sans palanquée
+                        {unassignedCount} inscrit{unassignedCount > 1 ? "s" : ""} sans groupe
                       </p>
                     )}
                   </div>
