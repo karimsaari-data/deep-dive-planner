@@ -13,6 +13,7 @@ export interface POSSParticipant {
   apnea_level: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  group_number: number | null;
 }
 
 export interface POSSLocation {
@@ -540,26 +541,68 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   };
   const roleRank = (r: string) => (r === "RESP." ? 0 : r === "Encadrant" ? 1 : 2);
 
-  // Encadrants d'abord (responsable, puis co-encadrants), puis les autres
-  // plongeurs ; chaque groupe conserve son ordre d'origine.
+  // La colonne « Groupe » n'est ajoutée que si des groupes ont été composés
+  // pour cette sortie, afin de ne pas afficher une colonne vide sinon.
+  const hasGroups = participants.some((p) => p.group_number != null);
+
+  // Si des groupes existent : on regroupe les plongeurs par groupe (les non
+  // affectés en dernier), et dans chaque groupe l'encadrant apparaît en tête.
+  // Sinon : encadrants d'abord (responsable puis co-encadrants), puis les
+  // autres plongeurs, chaque groupe conservant son ordre d'origine.
   const sortedParticipants = participants
     .map((p, idx) => ({ p, role: roleOf(p), idx }))
-    .sort((a, b) => roleRank(a.role) - roleRank(b.role) || a.idx - b.idx);
+    .sort((a, b) => {
+      if (hasGroups) {
+        const ga = a.p.group_number ?? Infinity;
+        const gb = b.p.group_number ?? Infinity;
+        if (ga !== gb) return ga - gb;
+      }
+      return roleRank(a.role) - roleRank(b.role) || a.idx - b.idx;
+    });
 
-  const participantData = sortedParticipants.map(({ p, role }) => [
-    role,
-    p.last_name?.toUpperCase() || "",
-    p.first_name || "",
-    p.apnea_level || "-",
-    p.emergency_contact_phone
-      ? `${p.emergency_contact_name || ""} ${formatPhone(p.emergency_contact_phone)}`.trim()
-      : "-",
-  ]);
+  const participantData = sortedParticipants.map(({ p, role }) => {
+    const row = [
+      role,
+      p.last_name?.toUpperCase() || "",
+      p.first_name || "",
+      p.apnea_level || "-",
+      p.emergency_contact_phone
+        ? `${p.emergency_contact_name || ""} ${formatPhone(p.emergency_contact_phone)}`.trim()
+        : "-",
+    ];
+    if (hasGroups) {
+      row.splice(1, 0, p.group_number ? `Groupe ${p.group_number}` : "—");
+    }
+    return row;
+  });
+
+  const emptyRow = hasGroups
+    ? ["", "", "Aucun participant", "", "", ""]
+    : ["", "Aucun participant", "", "", ""];
+  const head = hasGroups
+    ? [["Rôle", "Groupe", "NOM", "Prénom", "Niveau", "Contact Urgence"]]
+    : [["Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]];
+  const columnStyles = hasGroups
+    ? {
+        0: { cellWidth: 22, fontStyle: "bold" as const, halign: "center" as const },
+        1: { cellWidth: 24, fontStyle: "bold" as const, halign: "center" as const },
+        2: { cellWidth: 38, fontStyle: "bold" as const },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 40 },
+        5: { cellWidth: "auto" as const },
+      }
+    : {
+        0: { cellWidth: 26, fontStyle: "bold" as const, halign: "center" as const },
+        1: { cellWidth: 40, fontStyle: "bold" as const },
+        2: { cellWidth: 32 },
+        3: { cellWidth: 42 },
+        4: { cellWidth: "auto" as const },
+      };
 
   autoTable(doc, {
     startY: y,
-    head: [["Rôle", "NOM", "Prénom", "Niveau", "Contact Urgence"]],
-    body: participantData.length > 0 ? participantData : [["", "Aucun participant", "", "", ""]],
+    head,
+    body: participantData.length > 0 ? participantData : [emptyRow],
     theme: "striped",
     headStyles: {
       fillColor: [14, 165, 233],
@@ -571,13 +614,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
       fontSize: 9,
       cellPadding: 3
     },
-    columnStyles: {
-      0: { cellWidth: 26, fontStyle: "bold", halign: "center" },
-      1: { cellWidth: 40, fontStyle: "bold" },
-      2: { cellWidth: 32 },
-      3: { cellWidth: 42 },
-      4: { cellWidth: "auto" },
-    },
+    columnStyles,
     didParseCell: (data) => {
       if (data.section === "body" && data.row.index < sortedParticipants.length) {
         const role = sortedParticipants[data.row.index].role;

@@ -105,6 +105,7 @@ export const usePOSSGenerator = () => {
                 apnea_level: dirEntry?.apnea_level || res.profile.apnea_level,
                 emergency_contact_name: dirEntry?.emergency_contact_name || null,
                 emergency_contact_phone: dirEntry?.emergency_contact_phone || null,
+                group_number: res.group_number,
               });
             }
           }
