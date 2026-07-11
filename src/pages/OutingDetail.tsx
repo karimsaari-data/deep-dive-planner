@@ -840,7 +840,7 @@ const OutingDetail = () => {
               return (
                 <div
                   key={reservation.id}
-                  className={`flex items-center justify-between rounded-lg border p-3 ${
+                  className={`flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between ${
                     isOrg
                       ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-700"
                       : isInstructor
@@ -848,7 +848,7 @@ const OutingDetail = () => {
                         : "border-border bg-muted/30"
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <button
                       type="button"
                       className="relative focus:outline-none"
@@ -872,8 +872,8 @@ const OutingDetail = () => {
                         </div>
                       )}
                     </button>
-                    <div>
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <p className="font-medium text-foreground">
                           {formatFullName(profile?.first_name, profile?.last_name)}
                         </p>
@@ -918,7 +918,7 @@ const OutingDetail = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0 sm:justify-end">
                     {!isPast && canManageOuting && (
                       <Select
                         value={reservation.group_number ? String(reservation.group_number) : "none"}
