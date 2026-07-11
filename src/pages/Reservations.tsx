@@ -139,6 +139,31 @@ const Reservations = () => {
                             </div>
                           </div>
 
+                          {/* Ma palanquée */}
+                          {(() => {
+                            const me = (reservation.participants ?? []).find((p) => p.id === user?.id);
+                            if (!me?.group_number) return null;
+                            const mates = (reservation.participants ?? []).filter(
+                              (p) =>
+                                p.group_number === me.group_number &&
+                                p.id !== user?.id &&
+                                p.status !== "en_attente"
+                            );
+                            return (
+                              <div className="mt-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                                <div className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+                                  <Users className="h-4 w-4" />
+                                  Ma palanquée : Palanquée {me.group_number}
+                                </div>
+                                {mates.length > 0 && (
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    Avec {mates.map((p) => p.first_name).join(", ")}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })()}
+
                           {/* Participants trombinoscope */}
                           {(() => {
                             // Co-instructors always shown as encadrants regardless of profile member_status

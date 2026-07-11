@@ -33,9 +33,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation, useSetReservationGroup } from "@/hooks/useOutings";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -61,6 +68,9 @@ const CANCEL_REASONS = [
   "Problème logistique",
 ];
 
+/** Numéros de palanquées proposés lors de l'affectation des inscrits */
+const PALANQUEE_NUMBERS = [1, 2, 3, 4, 5, 6];
+
 /** Extract max depth from prerogatives string */
 const extractDepth = (prerogatives: string | null): string | null => {
   if (!prerogatives) return null;
@@ -77,6 +87,7 @@ const OutingDetail = () => {
   const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const { data: outing, isLoading } = useOuting(id ?? "");
   const updatePresence = useUpdateReservationPresence();
+  const setReservationGroup = useSetReservationGroup();
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
   const adminRemoveReservation = useAdminRemoveReservation();
@@ -908,6 +919,29 @@ const OutingDetail = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {!isPast && canManageOuting && (
+                      <Select
+                        value={reservation.group_number ? String(reservation.group_number) : "none"}
+                        onValueChange={(v) =>
+                          setReservationGroup.mutate({
+                            reservationId: reservation.id,
+                            groupNumber: v === "none" ? null : Number(v),
+                          })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[130px] text-xs">
+                          <SelectValue placeholder="Palanquée" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sans palanquée</SelectItem>
+                          {PALANQUEE_NUMBERS.map((n) => (
+                            <SelectItem key={n} value={String(n)}>
+                              Palanquée {n}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     {canMarkAttendance && canEditPresenceAndReport && (
                       <div className="flex items-center gap-2">
                         <Checkbox
@@ -990,6 +1024,57 @@ const OutingDetail = () => {
                   )}
                 </div>
               )}
+
+              {(() => {
+                const assigned = sortedConfirmed.filter((r) => r.group_number != null);
+                if (assigned.length === 0) return null;
+                const groupNumbers = [...new Set(assigned.map((r) => r.group_number as number))].sort(
+                  (a, b) => a - b
+                );
+                const unassignedCount = sortedConfirmed.length - assigned.length;
+                return (
+                  <div className="mt-6 border-t border-border/50 pt-4">
+                    <h4 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <Users className="h-4 w-4 text-primary" />
+                      Palanquées
+                    </h4>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {groupNumbers.map((n) => {
+                        const members = assigned.filter((r) => r.group_number === n);
+                        return (
+                          <div key={n} className="rounded-lg border border-border bg-muted/30 p-3">
+                            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                              Palanquée {n} ({members.length})
+                            </p>
+                            <div className="space-y-1.5">
+                              {members.map((r) => (
+                                <div key={r.id} className="flex items-center gap-1.5 text-sm">
+                                  {isEncadrant(r) && (
+                                    <Shield className="h-3.5 w-3.5 flex-shrink-0 text-amber-500" />
+                                  )}
+                                  <span className="text-foreground">
+                                    {formatFullName(r.profile?.first_name, r.profile?.last_name)}
+                                  </span>
+                                  {r.profile?.apnea_level && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      {r.profile.apnea_level}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {unassignedCount > 0 && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {unassignedCount} inscrit{unassignedCount > 1 ? "s" : ""} sans palanquée
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {waitlistedReservations.length > 0 && (
                 <div className="mt-6">
