@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Outing, resolveCurrentSeasonApneaLevels } from "@/hooks/useOutings";
 import { Waypoint } from "@/hooks/useWaypoints";
@@ -10,6 +11,8 @@ interface UsePOSSGeneratorParams {
 }
 
 export const usePOSSGenerator = () => {
+  const queryClient = useQueryClient();
+
   const generate = async ({ outing, organizerName }: UsePOSSGeneratorParams) => {
     if (!outing) {
       toast.error("Données de sortie manquantes");
@@ -183,8 +186,33 @@ export const usePOSSGenerator = () => {
         weather: null, // TODO: integrate weather data from API
       };
 
-      // Generate the PDF
-      await generatePOSS(possData);
+      // Generate the PDF (téléchargé localement + blob renvoyé pour archivage)
+      const { blob } = await generatePOSS(possData);
+
+      // Archive le PDF dans le Storage privé et référence-le sur la sortie, afin
+      // que les participants inscrits puissent le consulter sans le régénérer.
+      try {
+        const filePath = `${outing.id}/poss.pdf`;
+        const { error: uploadError } = await supabase.storage
+          .from("poss")
+          .upload(filePath, blob, { upsert: true, contentType: "application/pdf" });
+
+        if (uploadError) throw uploadError;
+
+        const { error: updateError } = await supabase
+          .from("outings")
+          .update({ poss_path: filePath, poss_generated_at: new Date().toISOString() })
+          .eq("id", outing.id);
+
+        if (updateError) throw updateError;
+
+        queryClient.invalidateQueries({ queryKey: ["outing"] });
+        queryClient.invalidateQueries({ queryKey: ["outings"] });
+      } catch (storageError) {
+        // Le PDF a bien été téléchargé localement ; seul l'archivage a échoué.
+        console.error("Error archiving POSS:", storageError);
+        toast.warning("POSS téléchargé, mais son archivage pour les participants a échoué.");
+      }
 
       toast.success("POSS généré avec succès !");
     } catch (error) {

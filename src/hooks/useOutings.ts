@@ -59,6 +59,8 @@ export interface Outing {
   is_archived?: boolean;
   is_staff_only?: boolean;
   is_poss_locked?: boolean;
+  poss_path?: string | null;
+  poss_generated_at?: string | null;
   dive_mode?: "boat" | "shore" | null;
   boat_id?: string | null;
   confirmed_count?: number; // Real count from SECURITY DEFINER function
