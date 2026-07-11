@@ -52,15 +52,28 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Authorization check: cron secret, service role key, or admin user
+    // Authorization check: cron secret, service role key, internal cron token, or admin user
     const authHeader = req.headers.get("Authorization");
-    
+    const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    // Internal cron token: a random secret stored in Vault and sent by the pg_cron job.
+    // Validated via the service-role-only RPC public.check_reminders_token so the token
+    // never needs to be configured as a function env var.
+    let cronTokenValid = false;
+    if (bearer) {
+      const svc = createClient(supabaseUrl, supabaseServiceKey);
+      const { data } = await svc.rpc("check_reminders_token", { p_token: bearer });
+      cronTokenValid = data === true;
+    }
+
     // Check for cron secret authorization
     if (CRON_SECRET && authHeader === `Bearer ${CRON_SECRET}`) {
       console.log("Authorized via CRON_SECRET");
     } else if (authHeader === `Bearer ${supabaseServiceKey}`) {
       // Allow service role key for internal cron calls
       console.log("Authorized via SERVICE_ROLE_KEY (cron job)");
+    } else if (cronTokenValid) {
+      console.log("Authorized via internal cron token (Vault)");
     } else if (authHeader) {
       // Check for admin user authorization
       const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
