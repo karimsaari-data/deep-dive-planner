@@ -323,11 +323,15 @@ const OutingDetail = () => {
     (apneaLevels || []).map(l => [l.code, l])
   );
 
-  // Sort participants: organizer first, then instructors (by member_status OR apnea level), then others
+  // Sort participants: organizer first, then encadrants (team encadrant), then others.
+  // "Team encadrant" = this outing's organizer, its co-encadrants, or a member whose
+  // member_status is "Encadrant" (admin-controlled). Holding an instructor-level diving
+  // qualification (apnea level flagged is_instructor) does NOT make someone an encadrant
+  // of the outing — e.g. a BPJEPS holder who is a simple member stays in the participants.
   const isReservationEncadrant = (r: typeof confirmedReservations[number]) => {
-    if (r.profile?.member_status === "Encadrant") return true;
-    const li = apneaLevelMap.get(r.profile?.apnea_level ?? "");
-    return li?.is_instructor ?? false;
+    if (r.user_id === outing.organizer_id) return true;
+    if (outing.co_instructors?.some((ci) => ci.user_id === r.user_id)) return true;
+    return r.profile?.member_status === "Encadrant";
   };
   const sortedConfirmed = [...confirmedReservations].sort((a, b) => {
     const aIsOrganizer = a.user_id === outing.organizer_id;
@@ -791,12 +795,15 @@ const OutingDetail = () => {
 
           {/* 2. Participants - enriched with instructor icons, organizer highlighted, apnea levels & depth */}
           {(() => {
-            // A person is an encadrant if their member_status = 'Encadrant' (admin-controlled, always up to date)
-            // OR if their apnea level is flagged as instructor in the apnea_levels table.
+            // A person is an encadrant of this outing if they are its organizer, one of its
+            // co-encadrants, or a member of the encadrant team (member_status = 'Encadrant',
+            // admin-controlled, always up to date). A diving qualification alone (apnea level
+            // flagged is_instructor) does NOT make someone an encadrant — e.g. a BPJEPS holder
+            // who is a simple member stays in the participants list.
             const isEncadrant = (r: typeof sortedConfirmed[number]) => {
-              if (r.profile?.member_status === "Encadrant") return true;
-              const li = apneaLevelMap.get(r.profile?.apnea_level ?? "");
-              return li?.is_instructor ?? false;
+              if (r.user_id === outing.organizer_id) return true;
+              if (outing.co_instructors?.some((ci) => ci.user_id === r.user_id)) return true;
+              return r.profile?.member_status === "Encadrant";
             };
 
             // Separate confirmed reservations into instructors and regular participants
