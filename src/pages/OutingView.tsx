@@ -264,10 +264,10 @@ const OutingView = () => {
     if (aIsCoInstr && !bIsCoInstr) return -1;
     if (!aIsCoInstr && bIsCoInstr) return 1;
 
-    const aLevel = apneaLevelMap.get(a.profile?.apnea_level ?? "");
-    const bLevel = apneaLevelMap.get(b.profile?.apnea_level ?? "");
-    const aIsInstructor = aLevel?.is_instructor ?? false;
-    const bIsInstructor = bLevel?.is_instructor ?? false;
+    // Encadrant team members (member_status "Encadrant") before regular participants.
+    // A diving qualification alone does not make someone an encadrant of the outing.
+    const aIsInstructor = a.profile?.member_status === "Encadrant";
+    const bIsInstructor = b.profile?.member_status === "Encadrant";
     if (aIsInstructor && !bIsInstructor) return -1;
     if (!aIsInstructor && bIsInstructor) return 1;
     return 0;
@@ -651,7 +651,10 @@ const OutingView = () => {
                     const isOrg = reservation.user_id === organizerId;
                     const isCoInstr = coInstructorIds.has(reservation.user_id);
                     const levelInfo = apneaLevelMap.get(profile?.apnea_level ?? "");
-                    const isInstructor = levelInfo?.is_instructor ?? false;
+                    // Encadrant marker = team membership (organizer, co-encadrant, or
+                    // member_status "Encadrant"), NOT merely holding an instructor-level
+                    // diving qualification (e.g. a BPJEPS holder who is a simple member).
+                    const isInstructor = isOrg || isCoInstr || profile?.member_status === "Encadrant";
                     const depth = !isInstructor ? extractDepth(levelInfo?.prerogatives ?? null) : null;
 
                     return (
