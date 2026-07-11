@@ -179,8 +179,16 @@ const calculateDuration = (entryTime: string | null, exitTime: string | null): s
 const GROUP_PDF_COLORS = ["#ccfbf1", "#ede9fe", "#ffe4e6", "#d1fae5", "#ffedd5", "#e0f2fe"];
 const groupPdfColor = (n: number) => GROUP_PDF_COLORS[(n - 1) % GROUP_PDF_COLORS.length];
 
+// Résultat de la génération : le PDF téléchargé localement est aussi renvoyé
+// sous forme de blob (+ nom de fichier) pour pouvoir être archivé dans le
+// Storage et rendu accessible aux participants depuis l'appli.
+export interface POSSResult {
+  blob: Blob;
+  fileName: string;
+}
+
 // Main POSS Generator
-export const generatePOSS = async (data: POSSData): Promise<void> => {
+export const generatePOSS = async (data: POSSData): Promise<POSSResult> => {
   const { outingTitle, outingDateTime, outingLocation, outingType, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, organizerLevelName, organizerMaxDepthEaa, organizerMaxDepthEao, organizerPhone, coInstructors, waterEntryTime, waterExitTime, weather } = data;
   
   const doc = new jsPDF({
@@ -870,4 +878,7 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   const siteName = location?.name?.replace(/\s+/g, "_") || "Sortie";
   const fileName = `POSS_${siteName}_${format(new Date(outingDateTime), "yyyy-MM-dd")}.pdf`;
   doc.save(fileName);
+
+  // Renvoie aussi le PDF pour archivage dans le Storage (accès participants).
+  return { blob: doc.output("blob"), fileName };
 };

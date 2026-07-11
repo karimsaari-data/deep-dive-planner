@@ -532,6 +532,8 @@ export type Database = {
           organizer_member_id: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
           photos: string[] | null
+          poss_generated_at: string | null
+          poss_path: string | null
           reminder_sent: boolean | null
           session_report: string | null
           title: string
@@ -559,6 +561,8 @@ export type Database = {
           organizer_member_id?: string | null
           outing_type: Database["public"]["Enums"]["outing_type"]
           photos?: string[] | null
+          poss_generated_at?: string | null
+          poss_path?: string | null
           reminder_sent?: boolean | null
           session_report?: string | null
           title: string
@@ -586,6 +590,8 @@ export type Database = {
           organizer_member_id?: string | null
           outing_type?: Database["public"]["Enums"]["outing_type"]
           photos?: string[] | null
+          poss_generated_at?: string | null
+          poss_path?: string | null
           reminder_sent?: boolean | null
           session_report?: string | null
           title?: string

@@ -303,6 +303,7 @@ const OutingDetail = () => {
   // Check if user is the organizer, co-instructor or admin of this outing
   const isOutingOrganizer = user?.id === outing.organizer_id;
   const isCoInstructor = outing.co_instructors?.some((ci) => ci.user_id === user?.id) ?? false;
+  const isConfirmedParticipant = confirmedReservations.some((r) => r.user_id === user?.id);
   const canManageOuting = isOutingOrganizer || isCoInstructor || isAdmin;
   const canEditPresenceAndReport = canManageOuting;
   const canCancelOuting = canManageOuting;
@@ -315,6 +316,19 @@ const OutingDetail = () => {
 
   const handleSaveReport = () => {
     updateSessionReport.mutate({ outingId: outing.id, sessionReport });
+  };
+
+  // Ouvre le POSS archivé (bucket privé) via une URL signée temporaire.
+  const handleViewPOSS = async () => {
+    if (!outing.poss_path) return;
+    const { data, error } = await supabase.storage
+      .from("poss")
+      .createSignedUrl(outing.poss_path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error("Impossible d'ouvrir le POSS.");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleCancelOuting = () => {
@@ -448,6 +462,18 @@ const OutingDetail = () => {
                 <Download className="h-4 w-4" />
                 Fiche Sécurité
               </Button>
+              {/* Voir le POSS archivé - participants inscrits + encadrement */}
+              {outing.poss_path && (canEditPresenceAndReport || isConfirmedParticipant) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleViewPOSS}
+                >
+                  <FileText className="h-4 w-4" />
+                  Voir le POSS
+                </Button>
+              )}
               {/* Fiche évacuation - encadrants uniquement */}
               {canManageOuting && <FicheEvacuationGenerator compact />}
               {!isPast && canCancelOuting && (
