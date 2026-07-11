@@ -173,6 +173,12 @@ const calculateDuration = (entryTime: string | null, exitTime: string | null): s
   return `${minutes}min`;
 };
 
+// Teintes des groupes pour le tableau des participants (mêmes couleurs que
+// le récap à l'écran : teal, violet, rose, émeraude, orange, ciel). Niveau
+// -100 pour rester lisible en noir tout en étant distinguable à l'impression.
+const GROUP_PDF_COLORS = ["#ccfbf1", "#ede9fe", "#ffe4e6", "#d1fae5", "#ffedd5", "#e0f2fe"];
+const groupPdfColor = (n: number) => GROUP_PDF_COLORS[(n - 1) % GROUP_PDF_COLORS.length];
+
 // Main POSS Generator
 export const generatePOSS = async (data: POSSData): Promise<void> => {
   const { outingTitle, outingDateTime, outingLocation, outingType, diveMode, location, boat, waypoints, participants, organizerName, organizerLevel, organizerLevelName, organizerMaxDepthEaa, organizerMaxDepthEao, organizerPhone, coInstructors, waterEntryTime, waterExitTime, weather } = data;
@@ -617,12 +623,20 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
     columnStyles,
     didParseCell: (data) => {
       if (data.section === "body" && data.row.index < sortedParticipants.length) {
-        const role = sortedParticipants[data.row.index].role;
+        const entry = sortedParticipants[data.row.index];
+        const role = entry.role;
+        // Surlignage du rôle sur toute la ligne
         if (role === "RESP.") {
           data.cell.styles.fillColor = "#fef3c7"; // jaune = responsable
           data.cell.styles.fontStyle = "bold";
         } else if (role === "Encadrant") {
           data.cell.styles.fillColor = "#dbeafe"; // bleu = encadrant
+          data.cell.styles.fontStyle = "bold";
+        }
+        // La cellule « Groupe » prend la couleur du groupe (prioritaire sur le
+        // rôle), créant une bande colorée par groupe puisque le tableau est trié.
+        if (hasGroups && data.column.index === 1 && entry.p.group_number != null) {
+          data.cell.styles.fillColor = groupPdfColor(entry.p.group_number);
           data.cell.styles.fontStyle = "bold";
         }
       }
@@ -636,7 +650,10 @@ export const generatePOSS = async (data: POSSData): Promise<void> => {
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   doc.setTextColor("#666666");
-  doc.text("Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant", margin, y);
+  const legendText = hasGroups
+    ? "Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant  |  colonne Groupe colorée = composition des groupes"
+    : "Légende : surligné jaune = Responsable POSS  |  surligné bleu = Encadrant";
+  doc.text(legendText, margin, y);
   doc.setTextColor("#000000");
 
   // Force new page after participants to maintain consistent layout
