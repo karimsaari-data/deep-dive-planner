@@ -865,13 +865,20 @@ const OutingDetail = () => {
             const confirmedInstructors = sortedConfirmed.filter(isEncadrant);
             const confirmedParticipants = sortedConfirmed.filter(r => !isEncadrant(r));
 
-            // Effective max = sum of each instructor's max_participants_encadrement
-            const effectiveMax = confirmedInstructors.length > 0
+            // Capacité théorique d'encadrement = somme des prérogatives
+            // (max_participants_encadrement) des encadrants effectivement présents.
+            const encadrementCapacity = confirmedInstructors.length > 0
               ? confirmedInstructors.reduce((sum, r) => {
                   const li = apneaLevelMap.get(r.profile?.apnea_level ?? "");
                   return sum + (li?.max_participants_encadrement ?? outing.max_participants);
                 }, 0)
               : outing.max_participants;
+            // La limite saisie par l'organisateur (outing.max_participants) fait foi :
+            // on ne dépasse jamais ce plafond, même si les prérogatives d'encadrement
+            // autorisent davantage. Sans ce Math.min, la page de détail affichait la
+            // capacité réglementaire (ex. 20 pour un BPJEPS) au lieu de la limite
+            // réellement fixée (ex. 5), d'où l'incohérence carte (/5) vs détail (/20).
+            const effectiveMax = Math.min(encadrementCapacity, outing.max_participants);
 
             const renderRow = (reservation: typeof sortedConfirmed[number]) => {
               const profile = reservation.profile;
