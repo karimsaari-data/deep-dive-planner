@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import NavigationButton from "@/components/locations/NavigationButton";
 import WeatherBadge from "@/components/weather/WeatherBadge";
+import ParticipantPhotoDialog from "@/components/participants/ParticipantPhotoDialog";
 import { formatFullName } from "@/lib/formatName";
 
 interface CarpoolInfo {
@@ -62,6 +63,11 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [carpoolOption, setCarpoolOption] = useState<CarpoolOption>("none");
   const [carpoolSeats, setCarpoolSeats] = useState(1);
+  const [selectedParticipant, setSelectedParticipant] = useState<{
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string | null;
+  } | null>(null);
 
   const handleCarpoolOptionChange = (value: CarpoolOption) => {
     setCarpoolOption(value);
@@ -72,9 +78,14 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
 
   // Co-instructors have confirmed reservations — confirmed_count already includes them
   const currentParticipants = outing.confirmed_count ?? 0;
-  const confirmedParticipantNames = (outing.reservations ?? [])
+  const confirmedParticipants = (outing.reservations ?? [])
     .filter((r) => r.status === "confirmé" && r.profile)
-    .map((r) => formatFullName(r.profile!.first_name, r.profile!.last_name));
+    .map((r) => ({
+      firstName: r.profile!.first_name,
+      lastName: r.profile!.last_name,
+      avatarUrl: r.profile!.avatar_url,
+      fullName: formatFullName(r.profile!.first_name, r.profile!.last_name),
+    }));
   const isFull = currentParticipants >= outing.max_participants;
   const userReservation = outing.reservations?.find((r) => r.user_id === user?.id && r.status !== "annulé");
   const isRegistered = !!userReservation;
@@ -259,7 +270,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
 
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
-            {confirmedParticipantNames.length > 0 ? (
+            {confirmedParticipants.length > 0 ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <button
@@ -272,8 +283,22 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
                 <PopoverContent side="bottom" align="start" className="w-auto max-w-[220px] p-3">
                   <p className="text-xs font-medium text-muted-foreground mb-1.5">Participants inscrits</p>
                   <ul className="text-sm space-y-0.5">
-                    {confirmedParticipantNames.map((name) => (
-                      <li key={name}>{name}</li>
+                    {confirmedParticipants.map((participant) => (
+                      <li key={participant.fullName}>
+                        <button
+                          type="button"
+                          className="text-left w-full cursor-pointer hover:text-primary hover:underline transition-colors"
+                          onClick={() =>
+                            setSelectedParticipant({
+                              firstName: participant.firstName,
+                              lastName: participant.lastName,
+                              avatarUrl: participant.avatarUrl,
+                            })
+                          }
+                        >
+                          {participant.fullName}
+                        </button>
+                      </li>
                     ))}
                   </ul>
                 </PopoverContent>
@@ -431,6 +456,11 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
           </p>
         )}
       </CardFooter>
+
+      <ParticipantPhotoDialog
+        participant={selectedParticipant}
+        onClose={() => setSelectedParticipant(null)}
+      />
     </Card>
   );
 };
