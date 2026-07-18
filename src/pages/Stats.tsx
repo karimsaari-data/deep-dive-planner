@@ -148,6 +148,11 @@ const Stats = () => {
         member.totalPresences++;
       });
 
+      // Sort each member's outings by date, most recent first
+      memberMap.forEach((member) => {
+        member.outings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      });
+
       return Array.from(memberMap.values()).sort((a, b) => b.totalPresences - a.totalPresences);
     },
     enabled: isAdmin,
