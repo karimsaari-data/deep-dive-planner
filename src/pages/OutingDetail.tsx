@@ -90,6 +90,23 @@ const groupColor = (n: number) => GROUP_COLORS[(n - 1) % GROUP_COLORS.length];
 const GROUP_ACCENTS = ["#14b8a6", "#8b5cf6", "#f43f5e", "#10b981", "#f97316", "#0ea5e9"];
 const groupAccent = (n: number) => GROUP_ACCENTS[(n - 1) % GROUP_ACCENTS.length];
 
+/** Durée passée dans l'eau (mise à l'eau → sortie de l'eau), formatée "Xh YY" */
+const formatWaterDuration = (
+  entry: string | null | undefined,
+  exit: string | null | undefined
+): string | null => {
+  if (!entry || !exit) return null;
+  const [eh, em] = entry.slice(0, 5).split(":").map(Number);
+  const [xh, xm] = exit.slice(0, 5).split(":").map(Number);
+  let minutes = xh * 60 + xm - (eh * 60 + em);
+  if (minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} h`;
+  return `${h} h ${String(m).padStart(2, "0")}`;
+};
+
 /** Extract max depth from prerogatives string */
 const extractDepth = (prerogatives: string | null): string | null => {
   if (!prerogatives) return null;
@@ -687,7 +704,10 @@ const OutingDetail = () => {
                 {[
                   { label: "RDV", time: format(new Date(outing.date_time), "HH'h'mm", { locale: fr }), color: "bg-primary", desc: "Arrivée & équipement" },
                   ...(outing.water_entry_time ? [{ label: "Mise à l'eau", time: outing.water_entry_time.slice(0,5).replace(":", "h"), color: "bg-cyan-500", desc: "Début de session" }] : []),
-                  ...(outing.water_exit_time ? [{ label: "Sortie de l'eau", time: outing.water_exit_time.slice(0,5).replace(":", "h"), color: "bg-blue-500", desc: "Fin de session" }] : []),
+                  ...(outing.water_exit_time ? [(() => {
+                    const waterDuration = formatWaterDuration(outing.water_entry_time, outing.water_exit_time);
+                    return { label: "Sortie de l'eau", time: outing.water_exit_time.slice(0,5).replace(":", "h"), color: "bg-blue-500", desc: waterDuration ? `Fin de session · ${waterDuration} dans l'eau` : "Fin de session" };
+                  })()] : []),
                   ...(outing.end_date ? [{ label: "Fin RDV", time: format(new Date(outing.end_date), "HH'h'mm", { locale: fr }), color: "bg-muted-foreground", desc: "Rangement & départ" }] : []),
                 ].map((step, i, arr) => (
                   <div key={step.label} className="flex items-stretch gap-3">
