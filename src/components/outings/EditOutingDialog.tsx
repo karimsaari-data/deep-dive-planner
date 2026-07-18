@@ -54,6 +54,13 @@ const toTimeValue = (t: string | null | undefined): string | null => {
   return t.length === 5 ? t + ":00" : t;
 };
 
+// Add minutes to a "HH:MM" time, wrapping at 24h
+const addMinutes = (time: string, minutes: number): string => {
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+
 interface EditOutingDialogProps {
   outing: Outing;
 }
@@ -376,7 +383,21 @@ const EditOutingDialog = ({ outing }: EditOutingDialogProps) => {
                   <FormItem>
                     <FormLabel>Heure sortie eau</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input
+                        type="time"
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value);
+                          // Recalcule la fin du RDV (sortie de l'eau + 30 min pour rangement & départ)
+                          if (value) {
+                            form.setValue("endTime", addMinutes(value, 30), {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            });
+                          }
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
