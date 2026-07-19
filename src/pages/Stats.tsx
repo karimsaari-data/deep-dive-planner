@@ -43,6 +43,7 @@ interface OrganizerMonthly {
   name: string;
   months: number[];
   total: number;
+  outings: Array<{ id: string; title: string; date: string; role: string }>;
 }
 
 interface OutingListItem {
@@ -176,7 +177,8 @@ const Stats = () => {
           id: p.id,
           name: formatFullName(p.first_name, p.last_name),
           months: Array(12).fill(0),
-          total: 0
+          total: 0,
+          outings: []
         });
       });
 
@@ -193,12 +195,30 @@ const Stats = () => {
             id: row.profile_id,
             name: row.encadrant_name,
             months: Array(12).fill(0),
-            total: 0
+            total: 0,
+            outings: []
           });
         }
         const entry = organizerMap.get(row.profile_id)!;
         entry.months[row.month_index] += Number(row.outing_count);
         entry.total += Number(row.outing_count);
+      });
+
+      // Fetch the detailed list of outings per encadrant (sorted by date desc server-side)
+      const { data: detailRows, error: detailError } = await supabase
+        .rpc("get_encadrant_outings_detail", { p_year: selectedYear });
+      if (detailError) throw detailError;
+
+      (detailRows ?? []).forEach((row: { profile_id: string; outing_id: string; title: string; date_time: string; role: string }) => {
+        const entry = organizerMap.get(row.profile_id);
+        if (entry) {
+          entry.outings.push({
+            id: row.outing_id,
+            title: row.title,
+            date: row.date_time,
+            role: row.role,
+          });
+        }
       });
 
       return Array.from(organizerMap.values()).sort((a, b) => b.total - a.total);
@@ -895,7 +915,39 @@ const Stats = () => {
                           <TableBody>
                             {organizerMonthly?.map((organizer) => (
                               <TableRow key={organizer.id}>
-                                <TableCell className="font-medium">{organizer.name}</TableCell>
+                                <TableCell className="font-medium">
+                                  {organizer.outings.length > 0 ? (
+                                    <Dialog>
+                                      <DialogTrigger asChild>
+                                        <button className="text-left font-medium text-primary underline-offset-4 hover:underline">
+                                          {organizer.name}
+                                        </button>
+                                      </DialogTrigger>
+                                      <DialogContent>
+                                        <DialogHeader>
+                                          <DialogTitle>Sorties encadrées par {organizer.name}</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                                          {organizer.outings.map((outing) => (
+                                            <div key={`${outing.id}-${outing.role}`} className="flex items-center justify-between gap-2 border border-border rounded-lg p-3">
+                                              <div className="flex items-center gap-2 min-w-0">
+                                                <span className="font-medium truncate">{outing.title}</span>
+                                                {outing.role === "co_instructor" && (
+                                                  <Badge variant="outline" className="shrink-0 text-xs">Co-enc.</Badge>
+                                                )}
+                                              </div>
+                                              <Badge variant="outline" className="shrink-0">
+                                                {new Date(outing.date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                                              </Badge>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </DialogContent>
+                                    </Dialog>
+                                  ) : (
+                                    organizer.name
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-center">
                                   <Badge variant="default">{organizer.total}</Badge>
                                 </TableCell>
