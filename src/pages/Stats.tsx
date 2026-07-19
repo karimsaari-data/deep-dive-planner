@@ -377,12 +377,12 @@ const Stats = () => {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="dashboard">Tableau de bord</TabsTrigger>
-              <TabsTrigger value="demographics">Démographie</TabsTrigger>
-              <TabsTrigger value="members">Participation</TabsTrigger>
-              <TabsTrigger value="outings">Sorties</TabsTrigger>
-              <TabsTrigger value="organizers">Encadrants</TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5">
+              <TabsTrigger value="dashboard" className="whitespace-normal text-center">Tableau de bord</TabsTrigger>
+              <TabsTrigger value="demographics" className="whitespace-normal text-center">Démographie</TabsTrigger>
+              <TabsTrigger value="members" className="whitespace-normal text-center">Participation</TabsTrigger>
+              <TabsTrigger value="outings" className="whitespace-normal text-center">Sorties</TabsTrigger>
+              <TabsTrigger value="organizers" className="whitespace-normal text-center">Encadrants</TabsTrigger>
             </TabsList>
 
             {/* Dashboard Tab */}
