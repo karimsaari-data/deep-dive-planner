@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    { "source": "/outing/:id", "destination": "/api/outing?id=:id" },
+    { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
   ]
 }
