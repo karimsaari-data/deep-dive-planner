@@ -64,6 +64,23 @@ import CarpoolSection from "@/components/carpool/CarpoolSection";
 import { useCarpools } from "@/hooks/useCarpools";
 import ParticipantPhotoDialog from "@/components/participants/ParticipantPhotoDialog";
 
+/** Compute the in-water duration between water entry and exit times */
+const formatWaterDuration = (
+  entry: string | null | undefined,
+  exit: string | null | undefined
+): string | null => {
+  if (!entry || !exit) return null;
+  const [eh, em] = entry.slice(0, 5).split(":").map(Number);
+  const [xh, xm] = exit.slice(0, 5).split(":").map(Number);
+  const minutes = xh * 60 + xm - (eh * 60 + em);
+  if (minutes <= 0) return null;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} h`;
+  return `${h} h ${String(m).padStart(2, "0")}`;
+};
+
 /** Extract max depth from prerogatives string, e.g. "-40m / 80m dynamique" -> "-40m" */
 const extractDepth = (prerogatives: string | null): string | null => {
   if (!prerogatives) return null;
@@ -331,6 +348,35 @@ const OutingView = () => {
                   )}
                 </div>
               </div>
+
+              {/* Déroulé de la sortie */}
+              {(outing.water_entry_time || outing.water_exit_time) && (
+                <div className="mt-4 space-y-0 border-t border-border/50 pt-4">
+                  {[
+                    { label: "RDV", time: format(new Date(outing.date_time), "HH'h'mm", { locale: fr }), color: "bg-primary", desc: "Arrivée & équipement" },
+                    ...(outing.water_entry_time ? [{ label: "Mise à l'eau", time: outing.water_entry_time.slice(0, 5).replace(":", "h"), color: "bg-cyan-500", desc: "Début de session" }] : []),
+                    ...(outing.water_exit_time ? [(() => {
+                      const waterDuration = formatWaterDuration(outing.water_entry_time, outing.water_exit_time);
+                      return { label: "Sortie de l'eau", time: outing.water_exit_time.slice(0, 5).replace(":", "h"), color: "bg-blue-500", desc: waterDuration ? `Fin de session · ${waterDuration} dans l'eau` : "Fin de session" };
+                    })()] : []),
+                    ...(outing.end_date ? [{ label: "Fin RDV", time: format(new Date(outing.end_date), "HH'h'mm", { locale: fr }), color: "bg-muted-foreground", desc: "Rangement & départ" }] : []),
+                  ].map((step, i, arr) => (
+                    <div key={step.label} className="flex items-stretch gap-3">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${step.color}`} />
+                        {i < arr.length - 1 && <div className="w-0.5 flex-1 bg-border my-1" />}
+                      </div>
+                      <div className={i < arr.length - 1 ? "pb-2" : "pb-0"}>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-semibold text-sm text-foreground">{step.time}</span>
+                          <span className="text-sm font-medium text-foreground">{step.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Navigation button */}
               <div className="mt-4 flex gap-2">
