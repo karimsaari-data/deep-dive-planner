@@ -1,5 +1,5 @@
 import { formatFullName } from "@/lib/formatName";
-import { format } from "date-fns";
+import { format, endOfDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Calendar, MapPin, Loader2, Waves, Users, ChevronRight, Clock, CalendarPlus } from "lucide-react";
 import Layout from "@/components/layout/Layout";
@@ -45,13 +45,20 @@ const Reservations = () => {
   }
 
   const now = new Date();
+  // Une sortie reste « À venir » jusqu'à sa fin réelle (end_date), ou à défaut
+  // jusqu'à la fin de la journée : la sortie du jour reste accessible pendant
+  // et après la plongée, tant que la présence n'a pas encore été pointée.
+  const outingEnd = (r: (typeof reservations)[number]) =>
+    r.outing?.end_date
+      ? new Date(r.outing.end_date)
+      : endOfDay(new Date(r.outing?.date_time));
   const upcomingReservations = reservations
-    ?.filter((r) => new Date(r.outing?.date_time) >= now)
+    ?.filter((r) => outingEnd(r) >= now)
     .sort((a, b) => new Date(a.outing?.date_time).getTime() - new Date(b.outing?.date_time).getTime())
     ?? [];
   const pastReservations = reservations
-    ?.filter((r) => 
-      new Date(r.outing?.date_time) < now && 
+    ?.filter((r) =>
+      outingEnd(r) < now &&
       r.is_present === true &&
       !r.outing?.is_deleted
     )
