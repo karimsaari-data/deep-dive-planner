@@ -181,6 +181,7 @@ const ClubMembersDirectory = () => {
   const [filterIncomplete, setFilterIncomplete] = useState(false);
   const [filterNotRegistered, setFilterNotRegistered] = useState(false);
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
+  const [levelsRefOpen, setLevelsRefOpen] = useState(false);
 
   // Identity form data (stored in club_members_directory)
   const [formData, setFormData] = useState<ClubMemberInsert>({
@@ -796,6 +797,15 @@ const ClubMembersDirectory = () => {
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Non inscrits
+              </Button>
+              <Button
+                onClick={() => setLevelsRefOpen(true)}
+                variant="outline"
+                size="sm"
+                title="Voir la table de référence des niveaux d'apnée"
+              >
+                <GraduationCap className="h-4 w-4 mr-1" />
+                Niveaux
               </Button>
             </div>
           </div>
@@ -1447,6 +1457,57 @@ const ClubMembersDirectory = () => {
             </div>
             <DialogFooter>
               <Button onClick={() => setImportReportOpen(false)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Levels reference table */}
+        <Dialog open={levelsRefOpen} onOpenChange={setLevelsRefOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Table de référence des niveaux d'apnée
+              </DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh]">
+              <div className="space-y-4 pr-3">
+                {Object.entries(apneaLevelsByFederation).map(([federation, levels]) => (
+                  <div key={federation}>
+                    <Badge variant="outline" className="mb-2">{federation}</Badge>
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Code</TableHead>
+                            <TableHead>Nom</TableHead>
+                            <TableHead>Prérogatives</TableHead>
+                            <TableHead className="text-center">Encadrant</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {levels.map((level) => (
+                            <TableRow key={level.id}>
+                              <TableCell className="font-mono text-sm font-medium">{level.code}</TableCell>
+                              <TableCell className="text-sm">{level.name}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">{level.prerogatives || "-"}</TableCell>
+                              <TableCell className="text-center">
+                                {level.is_instructor && <GraduationCap className="h-4 w-4 text-primary mx-auto" />}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ))}
+                {Object.keys(apneaLevelsByFederation).length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">Aucun niveau enregistré</p>
+                )}
+              </div>
+            </ScrollArea>
+            <DialogFooter>
+              <Button onClick={() => setLevelsRefOpen(false)}>Fermer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
