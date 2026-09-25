@@ -185,9 +185,9 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
         </Badge>
       )}
 
-      {/* Level badge for regular members - hidden on mobile */}
+      {/* Level badge for regular members */}
       {!showBoardRole && !showTechnicalLevel && member.apnea_level && (
-        <Badge variant="secondary" className="hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0">
+        <Badge variant="secondary" className="mt-1 text-[10px] px-1.5 py-0">
           {member.apnea_level}
         </Badge>
       )}
