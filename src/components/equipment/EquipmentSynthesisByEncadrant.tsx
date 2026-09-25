@@ -28,7 +28,7 @@ const matchesColumn = (name: string, column: string): boolean => {
     case "planche":
       return n.includes("planche");
     case "bouee":
-      return n.includes("bouée") || n.includes("bouee");
+      return n.includes("bouée ronde") || n.includes("bouee ronde");
     case "kit":
       return n.includes("kit");
     case "telephone":
