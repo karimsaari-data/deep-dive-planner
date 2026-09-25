@@ -74,10 +74,11 @@ import {
 } from "@/components/ui/command";
 import { toast } from "sonner";
 import { useClubMembersDirectory, ClubMember, ClubMemberInsert } from "@/hooks/useClubMembersDirectory";
-import { 
-  useMembershipYearlyStatus, 
-  getCurrentSeasonYear, 
-  getSeasonLabel, 
+import {
+  useMembershipYearlyStatus,
+  useApneaLevelHistory,
+  getCurrentSeasonYear,
+  getSeasonLabel,
   getAvailableSeasons,
   StatusField,
   MembershipYearlyStatus
@@ -166,6 +167,22 @@ const ClubMembersDirectory = () => {
     }, {} as Record<string, typeof apneaLevels>);
   }, [apneaLevels]);
 
+  // A diving level doesn't expire every season (unlike payment/medical/charter/
+  // insurance): fall back to the most recent prior season's level when the
+  // selected season has none yet.
+  const { data: apneaLevelHistory } = useApneaLevelHistory();
+  const previousApneaLevelByMember = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of apneaLevelHistory || []) {
+      if (row.season_year >= selectedSeason) continue;
+      if (!map.has(row.member_id)) map.set(row.member_id, row.apnea_level);
+    }
+    return map;
+  }, [apneaLevelHistory, selectedSeason]);
+
+  const getEffectiveApneaLevel = (memberId: string): string | null =>
+    getStatusForMember(memberId)?.apnea_level || previousApneaLevelByMember.get(memberId) || null;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ClubMember | null>(null);
@@ -248,10 +265,11 @@ const ClubMembersDirectory = () => {
       gender: member.gender || "",
       notes: member.notes || "",
     });
-    // Seasonal data from membership status
+    // Seasonal data from membership status (level falls back to the most
+    // recent prior season if not yet confirmed for the selected one)
     const status = getStatusForMember(member.id);
     setSeasonalFormData({
-      apnea_level: status?.apnea_level || "",
+      apnea_level: getEffectiveApneaLevel(member.id) || "",
       board_role: status?.board_role || "",
       is_encadrant: status?.is_encadrant ?? false,
     });
@@ -413,7 +431,7 @@ const ClubMembersDirectory = () => {
         m.gender || "",
         m.emergency_contact_name || "",
         m.emergency_contact_phone || "",
-        status?.apnea_level || "",
+        getEffectiveApneaLevel(m.id) || "",
         status?.is_encadrant ? "Oui" : "Non",
         status?.board_role || "",
         status?.payment_status ? "Oui" : "Non",
@@ -609,7 +627,7 @@ const ClubMembersDirectory = () => {
     const medical = getMemberStatusValue(memberId, "medical_certificate_ok");
     const charter = getMemberStatusValue(memberId, "buddies_charter_signed");
     const insurance = getMemberStatusValue(memberId, "fsgt_insurance_ok");
-    const level = getStatusForMember(memberId)?.apnea_level;
+    const level = getEffectiveApneaLevel(memberId);
     const hasValidLevel = !!level && apneaLevelCodes.has(level);
     return payment && medical && charter && insurance && hasValidLevel;
   };
@@ -666,8 +684,8 @@ const ClubMembersDirectory = () => {
           bValue = b.joined_at || "";
           break;
         case "apnea_level":
-          aValue = getStatusForMember(a.id)?.apnea_level?.toLowerCase() || "";
-          bValue = getStatusForMember(b.id)?.apnea_level?.toLowerCase() || "";
+          aValue = getEffectiveApneaLevel(a.id)?.toLowerCase() || "";
+          bValue = getEffectiveApneaLevel(b.id)?.toLowerCase() || "";
           break;
         default:
           aValue = (a as any)[sortField]?.toLowerCase() || "";
@@ -686,7 +704,7 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, apneaLevelCodes]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, apneaLevelCodes, previousApneaLevelByMember]);
 
   const getRowClassName = (member: ClubMember) => {
     if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";
@@ -980,7 +998,8 @@ const ClubMembersDirectory = () => {
                       <TableCell className="text-sm">
                         {(() => {
                           const status = getStatusForMember(member.id);
-                          const level = status?.apnea_level;
+                          const level = getEffectiveApneaLevel(member.id);
+                          const isCarriedOver = !status?.apnea_level && !!level;
                           const isEncadrant = status?.is_encadrant;
                           if (!level && !isEncadrant) return <span className="text-muted-foreground">-</span>;
                           const isOfficial = level ? apneaLevelCodes.has(level) : false;
@@ -991,9 +1010,16 @@ const ClubMembersDirectory = () => {
                                   variant={isOfficial ? "secondary" : "outline"}
                                   className={cn(
                                     "text-xs whitespace-nowrap",
-                                    !isOfficial && "border-orange-400 bg-orange-50 text-orange-700"
+                                    !isOfficial && "border-orange-400 bg-orange-50 text-orange-700",
+                                    isCarriedOver && isOfficial && "opacity-70 border-dashed"
                                   )}
-                                  title={!isOfficial ? `"${level}" n'est pas un niveau officiel reconnu` : level}
+                                  title={
+                                    !isOfficial
+                                      ? `"${level}" n'est pas un niveau officiel reconnu`
+                                      : isCarriedOver
+                                      ? `${level} — reporté de la saison précédente, non confirmé pour ${getSeasonLabel(selectedSeason)}`
+                                      : level
+                                  }
                                 >
                                   {!isOfficial && <AlertTriangle className="h-3 w-3 mr-1" />}
                                   {level}

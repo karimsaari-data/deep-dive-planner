@@ -48,6 +48,26 @@ export const getAvailableSeasons = (): number[] => {
   return [currentSeason, currentSeason - 1, currentSeason - 2];
 };
 
+// Fetch every known (member_id, season_year, apnea_level) triple, most recent
+// season first, so callers can fall back to a member's last known level when
+// the selected season has none yet (a diving certification doesn't expire
+// every season, unlike payment/medical/charter/insurance).
+export const useApneaLevelHistory = () => {
+  return useQuery({
+    queryKey: ["membership-yearly-status-apnea-history"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id, season_year, apnea_level")
+        .not("apnea_level", "is", null)
+        .order("season_year", { ascending: false });
+
+      if (error) throw error;
+      return data as { member_id: string; season_year: number; apnea_level: string }[];
+    },
+  });
+};
+
 export const useMembershipYearlyStatus = (seasonYear: number) => {
   const queryClient = useQueryClient();
 
