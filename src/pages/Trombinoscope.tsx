@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
+import { useApneaLevels } from "@/hooks/useApneaLevels";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +11,17 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Users, Crown, GraduationCap, UserCircle, Mail, Phone, MessageCircle, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
@@ -253,8 +264,20 @@ const filterMembers = (members: TrombiMember[], query: string): TrombiMember[] =
 
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
+  const { data: apneaLevels } = useApneaLevels();
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
   const [search, setSearch] = useState("");
+  const [levelsRefOpen, setLevelsRefOpen] = useState(false);
+
+  const apneaLevelsByFederation = useMemo(() => {
+    if (!apneaLevels) return {};
+    return apneaLevels.reduce((acc, level) => {
+      const fed = level.federation || "Autre";
+      if (!acc[fed]) acc[fed] = [];
+      acc[fed].push(level);
+      return acc;
+    }, {} as Record<string, typeof apneaLevels>);
+  }, [apneaLevels]);
 
   const bureau = filterMembers(data?.bureau || [], search);
   const encadrants = filterMembers(data?.encadrants || [], search);
@@ -265,16 +288,27 @@ const Trombinoscope = () => {
     <Layout>
       <div className="container mx-auto px-3 py-6 md:px-4 md:py-8">
         {/* Header */}
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <Users className="h-6 w-6 text-primary" />
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+              <Users className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Trombinoscope</h1>
+              <p className="text-sm text-muted-foreground">
+                {data ? `${data.total} membres` : "Chargement..."}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Trombinoscope</h1>
-            <p className="text-sm text-muted-foreground">
-              {data ? `${data.total} membres` : "Chargement..."}
-            </p>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLevelsRefOpen(true)}
+            title="Voir la table de référence des niveaux d'apnée"
+          >
+            <GraduationCap className="h-4 w-4 mr-1" />
+            Niveaux
+          </Button>
         </div>
 
         {/* Search bar */}
@@ -366,6 +400,57 @@ const Trombinoscope = () => {
         member={selectedMember}
         onClose={() => setSelectedMember(null)}
       />
+
+      {/* Levels reference table */}
+      <Dialog open={levelsRefOpen} onOpenChange={setLevelsRefOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Table de référence des niveaux d'apnée
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4 pr-3">
+              {Object.entries(apneaLevelsByFederation).map(([federation, levels]) => (
+                <div key={federation}>
+                  <Badge variant="outline" className="mb-2">{federation}</Badge>
+                  <div className="overflow-x-auto rounded-lg border border-border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Code</TableHead>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Prérogatives</TableHead>
+                          <TableHead className="text-center">Encadrant</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {levels.map((level) => (
+                          <TableRow key={level.id}>
+                            <TableCell className="font-mono text-sm font-medium">{level.code}</TableCell>
+                            <TableCell className="text-sm">{level.name}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{level.prerogatives || "-"}</TableCell>
+                            <TableCell className="text-center">
+                              {level.is_instructor && <GraduationCap className="h-4 w-4 text-primary mx-auto" />}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              ))}
+              {Object.keys(apneaLevelsByFederation).length === 0 && (
+                <p className="text-center text-muted-foreground py-8">Aucun niveau enregistré</p>
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button onClick={() => setLevelsRefOpen(false)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
