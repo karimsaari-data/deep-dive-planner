@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode } from "lucide-react";
+import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode, FileText, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,14 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useProfileDirectory } from "@/hooks/useProfileDirectory";
+import { useOwnLicense } from "@/hooks/useOwnLicense";
+import { getCurrentSeasonYear, getSeasonLabel } from "@/hooks/useMembershipYearlyStatus";
+import { parseLicensePdf } from "@/lib/parseLicensePdf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import { getFishLevel, FISH_LEVELS } from "@/hooks/useTrombinoscope";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -78,6 +81,73 @@ const Profile = () => {
 
   // Fetch directory profile (club_members_directory)
   const { directoryProfile, isLoading: directoryLoading, updateDirectoryProfile } = useProfileDirectory(user?.email);
+
+  // Licence de la saison en cours
+  const currentSeason = getCurrentSeasonYear();
+  const { license, saveLicense } = useOwnLicense(currentSeason, directoryProfile?.id);
+  const licenseFileInputRef = useRef<HTMLInputElement>(null);
+  const [licenseDraft, setLicenseDraft] = useState<{ file: File; licenseNumber: string; expiryDate: string } | null>(null);
+  const [parsingLicense, setParsingLicense] = useState(false);
+
+  const handleLicenseFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("Veuillez sélectionner un fichier PDF");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Le fichier doit faire moins de 5MB");
+      return;
+    }
+
+    setParsingLicense(true);
+    try {
+      const parsed = await parseLicensePdf(file);
+      setLicenseDraft({
+        file,
+        licenseNumber: parsed.licenseNumber ?? "",
+        expiryDate: parsed.expiryDate ?? "",
+      });
+      if (!parsed.licenseNumber || !parsed.expiryDate) {
+        toast.info("Numéro et/ou date non détectés automatiquement — vérifiez avant d'enregistrer");
+      }
+    } finally {
+      setParsingLicense(false);
+    }
+  };
+
+  const handleLicenseConfirm = () => {
+    if (!licenseDraft || !licenseDraft.licenseNumber || !licenseDraft.expiryDate) {
+      toast.error("Numéro de licence et date de validité requis");
+      return;
+    }
+    saveLicense.mutate(licenseDraft, {
+      onSuccess: () => setLicenseDraft(null),
+    });
+  };
+
+  const handleViewLicenseDocument = async () => {
+    if (!license?.license_document_path) return;
+    const { data, error } = await supabase.storage
+      .from("licenses")
+      .createSignedUrl(license.license_document_path, 60);
+    if (error || !data) {
+      toast.error("Impossible d'ouvrir le document");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const licenseExpiryStatus = (() => {
+    if (!license?.license_expiry_date) return null;
+    const days = differenceInCalendarDays(new Date(license.license_expiry_date), new Date());
+    if (days < 0) return { variant: "expired" as const, label: "Licence expirée" };
+    if (days <= 30) return { variant: "soon" as const, label: `Expire dans ${days} jour${days > 1 ? "s" : ""}` };
+    return { variant: "valid" as const, label: "Licence valide" };
+  })();
 
   // Fetch current year outing count for fish level
   const { data: outingsCount = 0 } = useQuery({
@@ -426,6 +496,127 @@ const Profile = () => {
                   <p className="text-xs text-muted-foreground mt-2">
                     Ces informations sont gérées par l'administration du club.
                   </p>
+                </div>
+              )}
+
+              {/* Licence saisonnière */}
+              {directoryProfile && (
+                <div className="mb-6 rounded-lg border border-border p-4 space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Ma licence {getSeasonLabel(currentSeason)}
+                  </h4>
+
+                  {license?.license_document_path && !licenseDraft ? (
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {licenseExpiryStatus?.variant === "expired" && (
+                          <Badge variant="outline" className="border-destructive bg-destructive/10 text-destructive">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {licenseExpiryStatus.label}
+                          </Badge>
+                        )}
+                        {licenseExpiryStatus?.variant === "soon" && (
+                          <Badge variant="outline" className="border-orange-400 bg-orange-50 text-orange-700">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            {licenseExpiryStatus.label}
+                          </Badge>
+                        )}
+                        {licenseExpiryStatus?.variant === "valid" && (
+                          <Badge variant="outline" className="border-green-500 bg-green-50 text-green-700">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            {licenseExpiryStatus.label}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        N° {license.license_number || "-"} · Valide jusqu'au{" "}
+                        {license.license_expiry_date ? formatBirthDate(license.license_expiry_date) : "-"}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={handleViewLicenseDocument}>
+                          <FileText className="h-4 w-4 mr-1" />
+                          Voir le document
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => licenseFileInputRef.current?.click()}
+                          disabled={parsingLicense}
+                        >
+                          <Upload className="h-4 w-4 mr-1" />
+                          Remplacer
+                        </Button>
+                      </div>
+                    </div>
+                  ) : licenseDraft ? (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Vérifiez les informations détectées sur « {licenseDraft.file.name} » avant d'enregistrer.
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="text-sm font-medium">Numéro de licence</label>
+                          <Input
+                            value={licenseDraft.licenseNumber}
+                            onChange={(e) => setLicenseDraft({ ...licenseDraft, licenseNumber: e.target.value })}
+                            placeholder="0433834"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Date de validité</label>
+                          <Input
+                            type="date"
+                            value={licenseDraft.expiryDate}
+                            onChange={(e) => setLicenseDraft({ ...licenseDraft, expiryDate: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="ocean"
+                          size="sm"
+                          onClick={handleLicenseConfirm}
+                          disabled={saveLicense.isPending}
+                        >
+                          {saveLicense.isPending ? (
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-1" />
+                          )}
+                          Enregistrer
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setLicenseDraft(null)}>
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => licenseFileInputRef.current?.click()}
+                      disabled={parsingLicense}
+                    >
+                      {parsingLicense ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
+                      Importer ma licence (PDF)
+                    </Button>
+                  )}
+
+                  <input
+                    ref={licenseFileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handleLicenseFileSelect}
+                  />
                 </div>
               )}
 

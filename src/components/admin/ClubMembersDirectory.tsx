@@ -18,6 +18,7 @@ import {
   ChevronsUpDown,
   GraduationCap,
   AlertCircle,
+  FileText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,7 @@ import {
 } from "@/hooks/useMembershipYearlyStatus";
 import { useApneaLevels } from "@/hooks/useApneaLevels";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, differenceInCalendarDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
@@ -632,6 +633,25 @@ const ClubMembersDirectory = () => {
     return payment && medical && charter && insurance && hasValidLevel;
   };
 
+  // Statut d'expiration de la licence (saison sélectionnée)
+  const getLicenseExpiryStatus = (memberId: string): { variant: "expired" | "soon" | "valid"; label: string } | null => {
+    const status = getStatusForMember(memberId);
+    if (!status?.license_expiry_date) return null;
+    const days = differenceInCalendarDays(new Date(status.license_expiry_date), new Date());
+    if (days < 0) return { variant: "expired", label: "Expirée" };
+    if (days <= 30) return { variant: "soon", label: `J-${days}` };
+    return { variant: "valid", label: "Valide" };
+  };
+
+  const handleViewLicenseFile = async (path: string) => {
+    const { data, error } = await supabase.storage.from("licenses").createSignedUrl(path, 60);
+    if (error || !data) {
+      toast.error("Impossible d'ouvrir le document");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
   // Filter and sort members
   const filteredAndSortedMembers = useMemo(() => {
     let result = members?.filter((member) => {
@@ -980,6 +1000,7 @@ const ClubMembersDirectory = () => {
                       {getSortIcon("fsgt_insurance_ok")}
                     </div>
                   </TableHead>
+                  <TableHead>Licence</TableHead>
                   <TableHead className="text-center">Statut App</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -1065,6 +1086,44 @@ const ClubMembersDirectory = () => {
                           disabled={upsertStatus.isPending}
                           className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                         />
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {(() => {
+                          const status = getStatusForMember(member.id);
+                          const expiry = getLicenseExpiryStatus(member.id);
+                          if (!status?.license_number) return <span className="text-muted-foreground">-</span>;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-xs">{status.license_number}</span>
+                              {expiry && (
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-xs whitespace-nowrap",
+                                    expiry.variant === "expired" && "border-destructive bg-destructive/10 text-destructive",
+                                    expiry.variant === "soon" && "border-orange-400 bg-orange-50 text-orange-700",
+                                    expiry.variant === "valid" && "border-green-500 bg-green-50 text-green-700"
+                                  )}
+                                  title={status.license_expiry_date ? `Valide jusqu'au ${formatDate(status.license_expiry_date)}` : undefined}
+                                >
+                                  {expiry.variant !== "valid" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                                  {expiry.label}
+                                </Badge>
+                              )}
+                              {status.license_document_path && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleViewLicenseFile(status.license_document_path!)}
+                                  title="Voir le document"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-center">
                         {isRegistered ? (
