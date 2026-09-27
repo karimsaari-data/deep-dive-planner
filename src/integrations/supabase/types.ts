@@ -464,7 +464,10 @@ export type Database = {
           fsgt_insurance_ok: boolean
           id: string
           is_encadrant: boolean
+          license_document_path: string | null
+          license_expiry_date: string | null
           license_number: string | null
+          license_uploaded_at: string | null
           medical_certificate_ok: boolean
           member_id: string
           payment_status: boolean
@@ -479,7 +482,10 @@ export type Database = {
           fsgt_insurance_ok?: boolean
           id?: string
           is_encadrant?: boolean
+          license_document_path?: string | null
+          license_expiry_date?: string | null
           license_number?: string | null
+          license_uploaded_at?: string | null
           medical_certificate_ok?: boolean
           member_id: string
           payment_status?: boolean
@@ -494,7 +500,10 @@ export type Database = {
           fsgt_insurance_ok?: boolean
           id?: string
           is_encadrant?: boolean
+          license_document_path?: string | null
+          license_expiry_date?: string | null
           license_number?: string | null
+          license_uploaded_at?: string | null
           medical_certificate_ok?: boolean
           member_id?: string
           payment_status?: boolean
@@ -839,6 +848,15 @@ export type Database = {
       is_current_user_encadrant: { Args: never; Returns: boolean }
       is_encadrant_or_admin: { Args: { _user_id: string }; Returns: boolean }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      upsert_own_license: {
+        Args: {
+          p_license_document_path: string
+          p_license_expiry_date: string
+          p_license_number: string
+          p_season_year: number
+        }
+        Returns: Database["public"]["Tables"]["membership_yearly_status"]["Row"]
+      }
     }
     Enums: {
       app_role: "admin" | "organizer" | "member"

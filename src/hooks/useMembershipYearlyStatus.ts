@@ -14,6 +14,8 @@ export interface MembershipYearlyStatus {
   board_role: string | null;
   apnea_level: string | null;
   license_number: string | null;
+  license_expiry_date: string | null;
+  license_document_path: string | null;
   created_at: string;
   updated_at: string;
 }
