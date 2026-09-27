@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Users, Search, Crown, Trash2 } from "lucide-react";
+import { Users, Search, Crown, Trash2, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatFullName } from "@/lib/formatName";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -134,6 +135,18 @@ const MemberManager = () => {
     return userRoles?.some((role) => role.user_id === userId && role.role === "admin");
   };
 
+  // L'accès app n'est coupé que via "Marquer comme parti" (Fichier Adhérents),
+  // qui bannit le compte auth correspondant à cet email en même temps qu'il
+  // pose departure_date — donc un proxy fiable tant que le ban n'est pas levé
+  // manuellement depuis le dashboard Supabase sans mettre à jour la fiche.
+  const departedEmails = new Set(
+    (adherents ?? [])
+      .filter((m) => m.departure_date)
+      .map((m) => m.email?.toLowerCase())
+      .filter(Boolean)
+  );
+  const isAccessRevoked = (email: string) => departedEmails.has(email?.toLowerCase());
+
   const filteredProfiles = profiles?.filter((profile) => {
     const fullName = `${profile.first_name} ${profile.last_name}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase());
@@ -207,8 +220,18 @@ const MemberManager = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-foreground">
+                      <p className="font-medium text-foreground flex items-center gap-2">
                         {formatFullName(profile.first_name, profile.last_name)}
+                        {isAccessRevoked(profile.email) && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] border-slate-400 bg-slate-100 text-slate-600 gap-1"
+                            title="Compte banni suite à un départ marqué dans le Fichier Adhérents"
+                          >
+                            <UserX className="h-3 w-3" />
+                            Accès coupé
+                          </Badge>
+                        )}
                       </p>
                       <p className="text-xs text-muted-foreground">{profile.email}</p>
                       {profile.member_code && (
