@@ -1038,7 +1038,7 @@ const ClubMembersDirectory = () => {
                     <TableRow key={member.id} className={cn(getRowClassName(member))}>
                       <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                       <TableCell className="font-medium">
-                        {member.last_name.toUpperCase()} {member.first_name}
+                        {member.first_name} {member.last_name.toUpperCase()}
                         {member.departure_date && (
                           <Badge variant="outline" className="ml-2 text-[10px] border-muted-foreground/40 text-muted-foreground align-middle">
                             Parti le {formatDate(member.departure_date)}
