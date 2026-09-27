@@ -24,6 +24,7 @@ import {
 import { Loader2, History, Search, UserCheck, UserX, Users } from "lucide-react";
 import { useMembershipHistory, MemberHistory } from "@/hooks/useMembershipHistory";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
+import { AppAccessDot } from "@/components/admin/AppAccessDot";
 import { getSeasonLabel, getLastSeasonEndDate, getCurrentSeasonYear } from "@/hooks/useMembershipYearlyStatus";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -87,9 +88,10 @@ interface HistoryTableProps {
   members: MemberHistory[];
   showDeparture: boolean;
   onArchive?: (member: MemberHistory) => void;
+  isEmailRegistered: (email: string) => boolean;
 }
 
-const HistoryTable = ({ title, icon, members, showDeparture, onArchive }: HistoryTableProps) => (
+const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailRegistered }: HistoryTableProps) => (
   <div className="mb-8">
     <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
       {icon}
@@ -118,6 +120,7 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive }: Histor
               <TableRow key={member.id}>
                 <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                 <TableCell className="font-medium">
+                  <AppAccessDot hasAccount={isEmailRegistered(member.email)} isBanned={!!member.departure_date} />{" "}
                   {member.first_name} {member.last_name.toUpperCase()}
                 </TableCell>
                 <TableCell className="text-sm">{member.email}</TableCell>
@@ -153,7 +156,7 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive }: Histor
 
 const MembershipHistory = () => {
   const { data, isLoading } = useMembershipHistory();
-  const { archiveMember } = useClubMembersDirectory();
+  const { archiveMember, isEmailRegistered } = useClubMembersDirectory();
   const [search, setSearch] = useState("");
   const [archiveConfirm, setArchiveConfirm] = useState<MemberHistory | null>(null);
 
@@ -241,12 +244,14 @@ const MembershipHistory = () => {
               members={active}
               showDeparture={false}
               onArchive={setArchiveConfirm}
+              isEmailRegistered={isEmailRegistered}
             />
             <HistoryTable
               title="Partis"
               icon={<UserX className="h-4 w-4 text-slate-500" />}
               members={departed}
               showDeparture={true}
+              isEmailRegistered={isEmailRegistered}
             />
           </>
         )}

@@ -21,6 +21,7 @@ import {
   FileText,
   UserX,
 } from "lucide-react";
+import { AppAccessDot } from "@/components/admin/AppAccessDot";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1038,6 +1039,7 @@ const ClubMembersDirectory = () => {
                     <TableRow key={member.id} className={cn(getRowClassName(member))}>
                       <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                       <TableCell className="font-medium">
+                        <AppAccessDot hasAccount={isRegistered} isBanned={!!member.departure_date} />{" "}
                         {member.first_name} {member.last_name.toUpperCase()}
                         {member.departure_date && (
                           <Badge variant="outline" className="ml-2 text-[10px] border-muted-foreground/40 text-muted-foreground align-middle">
