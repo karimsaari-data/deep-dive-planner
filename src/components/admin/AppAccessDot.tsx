@@ -6,17 +6,19 @@ interface AppAccessDotProps {
 }
 
 // Pastille compacte de statut d'accès app, à côté du nom dans les tableaux
-// admin : gris = pas de compte, vert = compte actif, rouge = accès coupé.
+// admin : vert = accès actif (compte app + non banni), rouge = inactif
+// (pas de compte, ou accès coupé).
 export const AppAccessDot = ({ hasAccount, isBanned }: AppAccessDotProps) => {
-  const color = !hasAccount
-    ? "bg-muted-foreground/40"
+  const active = hasAccount && !isBanned;
+  const title = active
+    ? "Accès app actif"
     : isBanned
-    ? "bg-destructive"
-    : "bg-green-500";
-  const title = !hasAccount
-    ? "Pas de compte application"
-    : isBanned
-    ? "Compte application — accès coupé"
-    : "Compte application actif";
-  return <span className={cn("inline-block h-2 w-2 rounded-full flex-shrink-0", color)} title={title} />;
+    ? "Accès app coupé"
+    : "Pas de compte application";
+  return (
+    <span
+      className={cn("inline-block h-2 w-2 rounded-full flex-shrink-0", active ? "bg-green-500" : "bg-destructive")}
+      title={title}
+    />
+  );
 };
