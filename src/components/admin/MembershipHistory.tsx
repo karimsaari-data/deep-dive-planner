@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, History, Search, UserCheck, UserX } from "lucide-react";
+import { Loader2, History, Search, UserCheck, UserX, Users } from "lucide-react";
 import { useMembershipHistory, MemberHistory } from "@/hooks/useMembershipHistory";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { getSeasonLabel, getLastSeasonEndDate } from "@/hooks/useMembershipYearlyStatus";
@@ -185,6 +185,40 @@ const MembershipHistory = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {!isLoading && (
+          <div className="grid gap-4 sm:grid-cols-3 mb-6">
+            <div className="flex items-center gap-4 rounded-xl border border-border p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Base totale</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {(data?.active.length || 0) + (data?.departed.length || 0)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-border p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10">
+                <UserCheck className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Actifs</p>
+                <p className="text-2xl font-bold text-foreground">{data?.active.length || 0}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-border p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-500/10">
+                <UserX className="h-6 w-6 text-slate-500" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Partis</p>
+                <p className="text-2xl font-bold text-foreground">{data?.departed.length || 0}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="relative mb-6 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -210,7 +244,7 @@ const MembershipHistory = () => {
             />
             <HistoryTable
               title="Partis"
-              icon={<UserX className="h-4 w-4 text-destructive" />}
+              icon={<UserX className="h-4 w-4 text-slate-500" />}
               members={departed}
               showDeparture={true}
             />
