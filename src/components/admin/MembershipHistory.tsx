@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -10,9 +11,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loader2, History, Search, UserCheck, UserX } from "lucide-react";
 import { useMembershipHistory, MemberHistory } from "@/hooks/useMembershipHistory";
-import { getSeasonLabel } from "@/hooks/useMembershipYearlyStatus";
+import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
+import { getSeasonLabel, getLastSeasonEndDate } from "@/hooks/useMembershipYearlyStatus";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -74,9 +86,10 @@ interface HistoryTableProps {
   icon: React.ReactNode;
   members: MemberHistory[];
   showDeparture: boolean;
+  onArchive?: (member: MemberHistory) => void;
 }
 
-const HistoryTable = ({ title, icon, members, showDeparture }: HistoryTableProps) => (
+const HistoryTable = ({ title, icon, members, showDeparture, onArchive }: HistoryTableProps) => (
   <div className="mb-8">
     <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
       {icon}
@@ -97,6 +110,7 @@ const HistoryTable = ({ title, icon, members, showDeparture }: HistoryTableProps
               {showDeparture && <TableHead>Départ</TableHead>}
               <TableHead>N° licence</TableHead>
               <TableHead>Saisons</TableHead>
+              {onArchive && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -115,6 +129,19 @@ const HistoryTable = ({ title, icon, members, showDeparture }: HistoryTableProps
                 <TableCell>
                   <SeasonBadges member={member} />
                 </TableCell>
+                {onArchive && (
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onArchive(member)}
+                      title="Marquer comme parti"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <UserX className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -126,10 +153,25 @@ const HistoryTable = ({ title, icon, members, showDeparture }: HistoryTableProps
 
 const MembershipHistory = () => {
   const { data, isLoading } = useMembershipHistory();
+  const { archiveMember } = useClubMembersDirectory();
   const [search, setSearch] = useState("");
+  const [archiveConfirm, setArchiveConfirm] = useState<MemberHistory | null>(null);
 
   const active = useMemo(() => filterByQuery(data?.active || [], search), [data, search]);
   const departed = useMemo(() => filterByQuery(data?.departed || [], search), [data, search]);
+
+  const handleArchive = async (member: MemberHistory) => {
+    try {
+      await archiveMember.mutateAsync({
+        id: member.id,
+        email: member.email,
+        departureDate: getLastSeasonEndDate(),
+      });
+    } catch {
+      // toast already shown by the mutation's onError
+    }
+    setArchiveConfirm(null);
+  };
 
   return (
     <Card>
@@ -139,7 +181,7 @@ const MembershipHistory = () => {
           Historique adhérents
         </CardTitle>
         <CardDescription>
-          Vue consolidée multi-saisons — arrivée, départ et dossiers par saison, actifs et partis séparés.
+          Vue consolidée multi-saisons — arrivée, départ et dossiers par saison, actifs et partis séparés, triés par ancienneté.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -164,6 +206,7 @@ const MembershipHistory = () => {
               icon={<UserCheck className="h-4 w-4 text-green-600" />}
               members={active}
               showDeparture={false}
+              onArchive={setArchiveConfirm}
             />
             <HistoryTable
               title="Partis"
@@ -174,6 +217,31 @@ const MembershipHistory = () => {
           </>
         )}
       </CardContent>
+
+      <AlertDialog open={!!archiveConfirm} onOpenChange={() => setArchiveConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Marquer {archiveConfirm?.first_name} {archiveConfirm?.last_name} comme parti ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Date de départ enregistrée : {formatDate(getLastSeasonEndDate())}. Son accès à l'application sera
+              coupé immédiatement s'il en a un. Sa fiche et son historique (cotisations, licences) sont conservés.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => archiveConfirm && handleArchive(archiveConfirm)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={archiveMember.isPending}
+            >
+              {archiveMember.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Marquer comme parti
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
