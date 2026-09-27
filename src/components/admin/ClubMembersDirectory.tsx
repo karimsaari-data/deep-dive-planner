@@ -1029,7 +1029,7 @@ const ClubMembersDirectory = () => {
                   </TableHead>
                   <TableHead>Licence</TableHead>
                   <TableHead className="text-center">Statut App</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right sticky right-0 z-20 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1175,7 +1175,12 @@ const ClubMembersDirectory = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell
+                        className={cn(
+                          "text-right sticky right-0 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]",
+                          getRowClassName(member) || "bg-background"
+                        )}
+                      >
                         <div className="flex justify-end gap-1">
                           <Button
                             variant="ghost"
