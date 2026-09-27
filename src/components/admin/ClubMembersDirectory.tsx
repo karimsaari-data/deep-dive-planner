@@ -672,10 +672,9 @@ const ClubMembersDirectory = () => {
   // Filter and sort members
   const filteredAndSortedMembers = useMemo(() => {
     let result = members?.filter((member) => {
-      // Only show members that have a status for the selected season
-      const status = getStatusForMember(member.id);
-      if (!status) return false;
-
+      // Members with no status row for the selected season (never enrolled that
+      // season, or archived/reset) still show up — otherwise they become
+      // unreachable in the admin UI (e.g. no "Marquer comme parti" button).
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = (
         member.first_name.toLowerCase().includes(searchLower) ||
