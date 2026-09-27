@@ -679,6 +679,12 @@ const ClubMembersDirectory = () => {
       // Members with no status row for the selected season (never enrolled that
       // season, or archived/reset) still show up — otherwise they become
       // unreachable in the admin UI (e.g. no "Marquer comme parti" button).
+
+      // On the current season, members already marked as departed are hidden
+      // by default — they're already archived, no action needed on them here.
+      // Past seasons keep showing them (historical accuracy).
+      if (selectedSeason === getCurrentSeasonYear() && member.departure_date) return false;
+
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch = (
         member.first_name.toLowerCase().includes(searchLower) ||
@@ -744,7 +750,7 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, apneaLevelCodes, previousApneaLevelByMember]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
 
   const getRowClassName = (member: ClubMember) => {
     if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";

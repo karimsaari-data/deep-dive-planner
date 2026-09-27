@@ -31,7 +31,7 @@ export const useMembershipHistory = () => {
       const { data: members, error: membersError } = await supabase
         .from("club_members_directory")
         .select("id, member_id, first_name, last_name, email, joined_at, departure_date")
-        .order("last_name", { ascending: true });
+        .order("joined_at", { ascending: true, nullsFirst: false });
       if (membersError) throw membersError;
 
       const { data: statuses, error: statusesError } = await supabase
@@ -59,11 +59,10 @@ export const useMembershipHistory = () => {
         seasons: seasonsByMember.get(m.id) || [],
       }));
 
+      // Already sorted by joined_at ascending (plus anciens en haut) via la requête.
       return {
         active: history.filter((m) => !m.departure_date),
-        departed: history
-          .filter((m) => !!m.departure_date)
-          .sort((a, b) => (b.departure_date! > a.departure_date! ? 1 : -1)),
+        departed: history.filter((m) => !!m.departure_date),
       };
     },
   });

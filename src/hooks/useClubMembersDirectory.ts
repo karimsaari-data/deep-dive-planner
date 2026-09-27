@@ -152,6 +152,7 @@ export const useClubMembersDirectory = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["club-members-directory"] });
+      queryClient.invalidateQueries({ queryKey: ["membership-history"] });
       toast.success("Adhérent marqué comme parti, accès coupé");
     },
     onError: (error: Error) => {
