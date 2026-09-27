@@ -964,16 +964,7 @@ const ClubMembersDirectory = () => {
                       {getSortIcon("last_name")}
                     </div>
                   </TableHead>
-                  <TableHead 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => handleSort("email")}
-                  >
-                    <div className="flex items-center">
-                      Email
-                      {getSortIcon("email")}
-                    </div>
-                  </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleSort("joined_at")}
                   >
@@ -1047,7 +1038,6 @@ const ClubMembersDirectory = () => {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-sm">{member.email}</TableCell>
                       <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
                       <TableCell className="text-sm">
                         {(() => {
