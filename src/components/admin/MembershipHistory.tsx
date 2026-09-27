@@ -208,8 +208,8 @@ const MembershipHistory = () => {
               </div>
             </div>
             <div className="flex items-center gap-4 rounded-xl border border-border p-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10">
-                <UserX className="h-6 w-6 text-destructive" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-500/10">
+                <UserX className="h-6 w-6 text-slate-500" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Partis</p>
@@ -244,7 +244,7 @@ const MembershipHistory = () => {
             />
             <HistoryTable
               title="Partis"
-              icon={<UserX className="h-4 w-4 text-destructive" />}
+              icon={<UserX className="h-4 w-4 text-slate-500" />}
               members={departed}
               showDeparture={true}
             />
