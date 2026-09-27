@@ -1,12 +1,14 @@
 import { ReactNode } from "react";
 import { Mail } from "lucide-react";
 import Header from "./Header";
+import { usePhotoReminder } from "@/hooks/usePhotoReminder";
 interface LayoutProps {
   children: ReactNode;
 }
 const Layout = ({
   children
 }: LayoutProps) => {
+  usePhotoReminder();
   return <div className="flex min-h-screen flex-col bg-background">
       <Header />
       <main className="flex-1">{children}</main>
