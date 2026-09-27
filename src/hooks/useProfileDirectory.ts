@@ -24,6 +24,7 @@ export interface ProfileDirectoryUpdate {
   first_name?: string;
   last_name?: string;
   phone?: string | null;
+  birth_date?: string | null;
   address?: string | null;
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
