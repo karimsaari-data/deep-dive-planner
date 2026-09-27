@@ -40,6 +40,7 @@ const profileSchema = z.object({
       (val) => !val || frenchPhoneRegex.test(val.replace(/\s/g, "")),
       { message: "Format invalide. Ex: 06 12 34 56 78 ou +33612345678" }
     ),
+  birth_date: z.string().optional(),
   address: z.string().optional(),
   emergency_contact_name: z.string().optional(),
   emergency_contact_phone: z.string()
@@ -202,6 +203,7 @@ const Profile = () => {
       first_name: "",
       last_name: "",
       phone: "",
+      birth_date: "",
       address: "",
       emergency_contact_name: "",
       emergency_contact_phone: "",
@@ -215,6 +217,7 @@ const Profile = () => {
         first_name: profile?.first_name ?? directoryProfile?.first_name ?? "",
         last_name: profile?.last_name ?? directoryProfile?.last_name ?? "",
         phone: directoryProfile?.phone ?? profile?.phone ?? "",
+        birth_date: directoryProfile?.birth_date ?? "",
         address: directoryProfile?.address ?? "",
         emergency_contact_name: directoryProfile?.emergency_contact_name ?? "",
         emergency_contact_phone: directoryProfile?.emergency_contact_phone ?? "",
@@ -248,6 +251,7 @@ const Profile = () => {
           first_name: formatFirstName(data.first_name),
           last_name: formatLastName(data.last_name),
           phone: data.phone || null,
+          birth_date: data.birth_date || null,
           address: data.address || null,
           emergency_contact_name: data.emergency_contact_name || null,
           emergency_contact_phone: data.emergency_contact_phone || null,
@@ -470,11 +474,6 @@ const Profile = () => {
                   <div className="grid gap-3 sm:grid-cols-2 text-sm">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Naissance:</span>
-                      <span>{formatBirthDate(directoryProfile.birth_date)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Arrivée:</span>
                       <span>{directoryProfile.joined_at || "-"}</span>
                     </div>
@@ -686,6 +685,23 @@ const Profile = () => {
 
                   {directoryProfile && (
                     <>
+                      <FormField
+                        control={form.control}
+                        name="birth_date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              Date de naissance
+                            </FormLabel>
+                            <FormControl>
+                              <Input {...field} type="date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
                       <FormField
                         control={form.control}
                         name="address"
