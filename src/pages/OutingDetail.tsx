@@ -328,7 +328,8 @@ const OutingDetail = () => {
   const canRemoveParticipant = isAdmin || isOutingOrganizer;
   
   // Check if outing can be archived (past, not already archived)
-  const hasAttendanceMarked = confirmedReservations.some(r => r.is_present);
+  const unmarkedCount = confirmedReservations.filter(r => r.is_present === null || r.is_present === undefined).length;
+  const attendanceComplete = unmarkedCount === 0;
   const canArchiveOuting = isPast && canEditPresenceAndReport && !outing.is_archived;
 
   const handleSaveReport = () => {
@@ -1021,17 +1022,24 @@ const OutingDetail = () => {
                     {canMarkAttendance && canEditPresenceAndReport && (
                       <div className="flex items-center gap-2">
                         <Checkbox
-                          checked={reservation.is_present}
+                          checked={reservation.is_present === true}
                           onCheckedChange={(checked) =>
                             updatePresence.mutate({ reservationId: reservation.id, isPresent: !!checked })
                           }
                         />
-                        <span className="text-sm text-muted-foreground">Présent</span>
+                        <span className="text-sm text-muted-foreground">
+                          {reservation.is_present === null || reservation.is_present === undefined ? "Non pointé" : "Présent"}
+                        </span>
                       </div>
                     )}
                     {canMarkAttendance && !canEditPresenceAndReport && (
-                      <Badge variant={reservation.is_present ? "default" : "outline"} className="text-xs">
-                        {reservation.is_present ? "Présent" : "Absent"}
+                      <Badge
+                        variant={reservation.is_present === true ? "default" : reservation.is_present === false ? "outline" : "secondary"}
+                        className="text-xs"
+                      >
+                        {reservation.is_present === null || reservation.is_present === undefined
+                          ? "Non pointé"
+                          : reservation.is_present ? "Présent" : "Absent"}
                       </Badge>
                     )}
                     {!isPast && canRemoveParticipant && !isOrg && (
@@ -1298,7 +1306,13 @@ const OutingDetail = () => {
                   >
                     {updateSessionReport.isPending ? "Enregistrement..." : "Enregistrer le compte-rendu"}
                   </Button>
-                  {canArchiveOuting && (
+                  {canArchiveOuting && !attendanceComplete && (
+                    <div className="flex-1 flex items-center gap-2 rounded-md border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-700 dark:border-orange-900/40 dark:bg-orange-950/20 dark:text-orange-400">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      Pointage incomplet : {unmarkedCount} participant{unmarkedCount > 1 ? "s" : ""} non pointé{unmarkedCount > 1 ? "s" : ""}. Faites l'appel ci-dessus avant de valider la sortie.
+                    </div>
+                  )}
+                  {canArchiveOuting && attendanceComplete && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ocean" className="flex-1 gap-2">
