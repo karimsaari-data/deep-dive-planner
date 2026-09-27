@@ -83,6 +83,13 @@ const lastKnownLicense = (member: MemberHistory): string | null => {
   return null;
 };
 
+const lastKnownApneaLevel = (member: MemberHistory): string | null => {
+  for (let i = member.seasons.length - 1; i >= 0; i--) {
+    if (member.seasons[i].apnea_level) return member.seasons[i].apnea_level;
+  }
+  return null;
+};
+
 interface HistoryTableProps {
   title: string;
   icon: React.ReactNode;
@@ -109,7 +116,7 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailR
             <TableRow>
               <TableHead className="w-[80px]">ID</TableHead>
               <TableHead>Identité</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead>Niveau</TableHead>
               <TableHead>Arrivée</TableHead>
               {showDeparture && <TableHead>Départ</TableHead>}
               <TableHead>N° licence</TableHead>
@@ -133,7 +140,15 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailR
                     </span>
                   </button>
                 </TableCell>
-                <TableCell className="text-sm">{member.email}</TableCell>
+                <TableCell className="text-sm">
+                  {lastKnownApneaLevel(member) ? (
+                    <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                      {lastKnownApneaLevel(member)}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
                 {showDeparture && (
                   <TableCell className="text-sm">{formatDate(member.departure_date)}</TableCell>

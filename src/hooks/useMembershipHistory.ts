@@ -8,6 +8,7 @@ export interface SeasonRecord {
   buddies_charter_signed: boolean;
   fsgt_insurance_ok: boolean;
   license_number: string | null;
+  apnea_level: string | null;
 }
 
 export interface MemberHistory {
@@ -43,7 +44,7 @@ export const useMembershipHistory = () => {
 
       const { data: statuses, error: statusesError } = await supabase
         .from("membership_yearly_status")
-        .select("member_id, season_year, payment_status, medical_certificate_ok, buddies_charter_signed, fsgt_insurance_ok, license_number")
+        .select("member_id, season_year, payment_status, medical_certificate_ok, buddies_charter_signed, fsgt_insurance_ok, license_number, apnea_level")
         .order("season_year", { ascending: true });
       if (statusesError) throw statusesError;
 
@@ -57,6 +58,7 @@ export const useMembershipHistory = () => {
           buddies_charter_signed: s.buddies_charter_signed,
           fsgt_insurance_ok: s.fsgt_insurance_ok,
           license_number: s.license_number,
+          apnea_level: s.apnea_level,
         });
         seasonsByMember.set(s.member_id, list);
       }
