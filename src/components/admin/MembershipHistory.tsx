@@ -24,7 +24,7 @@ import {
 import { Loader2, History, Search, UserCheck, UserX, Users } from "lucide-react";
 import { useMembershipHistory, MemberHistory } from "@/hooks/useMembershipHistory";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
-import { getSeasonLabel, getLastSeasonEndDate } from "@/hooks/useMembershipYearlyStatus";
+import { getSeasonLabel, getLastSeasonEndDate, getCurrentSeasonYear } from "@/hooks/useMembershipYearlyStatus";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -55,16 +55,16 @@ const SeasonBadges = ({ member }: { member: MemberHistory }) => {
   return (
     <div className="flex flex-wrap gap-1">
       {member.seasons.map((s) => {
-        const complete = s.payment_status && s.medical_certificate_ok && s.buddies_charter_signed && s.fsgt_insurance_ok;
+        const isCurrentSeason = s.season_year === getCurrentSeasonYear();
         return (
           <Badge
             key={s.season_year}
             variant="outline"
             className={cn(
               "text-[10px] whitespace-nowrap",
-              complete ? "border-green-500 bg-green-50 text-green-700" : "border-muted-foreground/40 text-muted-foreground"
+              isCurrentSeason ? "border-green-500 bg-green-50 text-green-700" : "border-muted-foreground/40 text-muted-foreground"
             )}
-            title={complete ? "Dossier complet" : "Dossier incomplet"}
+            title={isCurrentSeason ? "Saison en cours" : "Saison terminée"}
           >
             {getSeasonLabel(s.season_year)}
           </Badge>
