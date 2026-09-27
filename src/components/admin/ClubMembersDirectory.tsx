@@ -19,6 +19,7 @@ import {
   GraduationCap,
   AlertCircle,
   FileText,
+  UserX,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ import {
   getCurrentSeasonYear,
   getSeasonLabel,
   getAvailableSeasons,
+  getLastSeasonEndDate,
   StatusField,
   MembershipYearlyStatus
 } from "@/hooks/useMembershipYearlyStatus";
@@ -139,6 +141,7 @@ const ClubMembersDirectory = () => {
     isLoading,
     createMember,
     updateMember,
+    archiveMember,
     upsertMember,
     isEmailRegistered,
   } = useClubMembersDirectory();
@@ -188,6 +191,7 @@ const ClubMembersDirectory = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<ClubMember | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [archiveConfirm, setArchiveConfirm] = useState<ClubMember | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [sortField, setSortField] = useState<SortField>("last_name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -345,6 +349,19 @@ const ClubMembersDirectory = () => {
       toast.error("Erreur lors de la suppression");
     }
     setDeleteConfirm(null);
+  };
+
+  const handleArchive = async (member: ClubMember) => {
+    try {
+      await archiveMember.mutateAsync({
+        id: member.id,
+        email: member.email,
+        departureDate: getLastSeasonEndDate(),
+      });
+    } catch {
+      // toast already shown by the mutation's onError
+    }
+    setArchiveConfirm(null);
   };
 
   // Toggle checkbox status - uses the yearly status table
@@ -1013,6 +1030,11 @@ const ClubMembersDirectory = () => {
                       <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                       <TableCell className="font-medium">
                         {member.last_name.toUpperCase()} {member.first_name}
+                        {member.departure_date && (
+                          <Badge variant="outline" className="ml-2 text-[10px] border-muted-foreground/40 text-muted-foreground align-middle">
+                            Parti le {formatDate(member.departure_date)}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">{member.email}</TableCell>
                       <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
@@ -1151,10 +1173,22 @@ const ClubMembersDirectory = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {!member.departure_date && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setArchiveConfirm(member)}
+                              title="Marquer comme parti"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeleteConfirm(member.id)}
+                            title={`Effacer les données de la saison ${getSeasonLabel(selectedSeason)}`}
                             className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -1446,6 +1480,32 @@ const ClubMembersDirectory = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Archive (departure) confirmation */}
+        <AlertDialog open={!!archiveConfirm} onOpenChange={() => setArchiveConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Marquer {archiveConfirm?.first_name} {archiveConfirm?.last_name} comme parti ?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Date de départ enregistrée : {formatDate(getLastSeasonEndDate())}. Son accès à l'application sera
+                coupé immédiatement s'il en a un. Sa fiche et son historique (cotisations, licences) sont conservés.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => archiveConfirm && handleArchive(archiveConfirm)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={archiveMember.isPending}
+              >
+                {archiveMember.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Marquer comme parti
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Delete confirmation */}
         <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

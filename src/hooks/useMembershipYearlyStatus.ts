@@ -44,6 +44,13 @@ export const getSeasonLabel = (year: number): string => {
   return `${year - 1}/${year}`;
 };
 
+// Date de fin de la dernière saison valide (31 août), utilisée comme date de
+// départ par défaut pour un adhérent qui arrête sans avoir renouvelé.
+export const getLastSeasonEndDate = (): string => {
+  const year = getCurrentSeasonYear() - 1;
+  return `${year}-08-31`;
+};
+
 export const getAvailableSeasons = (): number[] => {
   const currentSeason = getCurrentSeasonYear();
   // Show current season + 2 previous seasons

@@ -18,6 +18,7 @@ export interface ClubMember {
   emergency_contact_phone: string | null;
   gender: string | null;
   notes: string | null;
+  departure_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -132,22 +133,29 @@ export const useClubMembersDirectory = () => {
     },
   });
 
-  // Delete member
-  const deleteMember = useMutation({
-    mutationFn: async (id: string) => {
+  // Archive member (member left the club): record a departure date and cut
+  // their app access, instead of physically deleting the row — deleting
+  // cascaded to membership_yearly_status and lost cotisation/licence history.
+  const archiveMember = useMutation({
+    mutationFn: async ({ id, email, departureDate }: { id: string; email: string; departureDate: string }) => {
       const { error } = await supabase
         .from("club_members_directory")
-        .delete()
+        .update({ departure_date: departureDate })
         .eq("id", id);
 
       if (error) throw error;
+
+      const { error: accessError } = await supabase.functions.invoke("archive-member-access", {
+        body: { email },
+      });
+      if (accessError) throw accessError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["club-members-directory"] });
-      toast.success("Adhérent supprimé");
+      toast.success("Adhérent marqué comme parti, accès coupé");
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de la suppression");
+      toast.error(error.message || "Erreur lors de l'archivage");
     },
   });
 
@@ -225,7 +233,7 @@ export const useClubMembersDirectory = () => {
     registeredEmails,
     createMember,
     updateMember,
-    deleteMember,
+    archiveMember,
     upsertMember,
     isEmailRegistered,
   };
