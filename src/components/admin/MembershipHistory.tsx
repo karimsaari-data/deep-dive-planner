@@ -21,12 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, History, Search, UserCheck, UserX, Users } from "lucide-react";
+import { Loader2, History, Search, UserCheck, UserX, Users, UserPlus } from "lucide-react";
 import { useMembershipHistory, MemberHistory } from "@/hooks/useMembershipHistory";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { AppAccessDot } from "@/components/admin/AppAccessDot";
 import ContactDialog from "@/components/participants/ContactDialog";
-import { getSeasonLabel, getLastSeasonEndDate, getCurrentSeasonYear } from "@/hooks/useMembershipYearlyStatus";
+import { getSeasonLabel, getLastSeasonEndDate, getCurrentSeasonYear, getCurrentSeasonStartDate } from "@/hooks/useMembershipYearlyStatus";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -174,6 +174,11 @@ const MembershipHistory = () => {
   const active = useMemo(() => filterByQuery(data?.active || [], search), [data, search]);
   const departed = useMemo(() => filterByQuery(data?.departed || [], search), [data, search]);
 
+  const seasonStart = getCurrentSeasonStartDate();
+  const newThisSeasonCount = [...(data?.active || []), ...(data?.departed || [])].filter(
+    (m) => m.joined_at && m.joined_at >= seasonStart
+  ).length;
+
   const handleArchive = async (member: MemberHistory) => {
     try {
       await archiveMember.mutateAsync({
@@ -200,7 +205,7 @@ const MembershipHistory = () => {
       </CardHeader>
       <CardContent>
         {!isLoading && (
-          <div className="grid gap-4 sm:grid-cols-3 mb-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             <div className="flex items-center gap-4 rounded-xl border border-border p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                 <Users className="h-6 w-6 text-primary" />
@@ -228,6 +233,15 @@ const MembershipHistory = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Partis</p>
                 <p className="text-2xl font-bold text-foreground">{data?.departed.length || 0}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 rounded-xl border border-border p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                <UserPlus className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Nouveaux cette saison</p>
+                <p className="text-2xl font-bold text-foreground">{newThisSeasonCount}</p>
               </div>
             </div>
           </div>
