@@ -5,6 +5,7 @@ import Layout from "@/components/layout/Layout";
 import LocationManager from "@/components/admin/LocationManager";
 import MemberManager from "@/components/admin/MemberManager";
 import ClubMembersDirectory from "@/components/admin/ClubMembersDirectory";
+import MembershipHistory from "@/components/admin/MembershipHistory";
 import EquipmentCatalogManager from "@/components/admin/EquipmentCatalogManager";
 import FleetManager from "@/components/admin/FleetManager";
 import StatsContent from "@/components/admin/StatsContent";
@@ -60,6 +61,7 @@ const Admin = () => {
               <TabsTrigger value="fleet">Flotte</TabsTrigger>
               <TabsTrigger value="catalog">Catalogue Matériel</TabsTrigger>
               <TabsTrigger value="directory">Fichier Adhérents</TabsTrigger>
+              <TabsTrigger value="history">Historique</TabsTrigger>
               <TabsTrigger value="apnea-levels">Niveaux Apnée</TabsTrigger>
               <TabsTrigger value="accounts">Comptes App</TabsTrigger>
               <TabsTrigger value="sondages">Sondages</TabsTrigger>
@@ -80,6 +82,10 @@ const Admin = () => {
 
             <TabsContent value="directory">
               <ClubMembersDirectory />
+            </TabsContent>
+
+            <TabsContent value="history">
+              <MembershipHistory />
             </TabsContent>
 
             <TabsContent value="apnea-levels">
