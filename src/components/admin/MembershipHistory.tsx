@@ -118,7 +118,7 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive }: Histor
               <TableRow key={member.id}>
                 <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                 <TableCell className="font-medium">
-                  {member.last_name.toUpperCase()} {member.first_name}
+                  {member.first_name} {member.last_name.toUpperCase()}
                 </TableCell>
                 <TableCell className="text-sm">{member.email}</TableCell>
                 <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
