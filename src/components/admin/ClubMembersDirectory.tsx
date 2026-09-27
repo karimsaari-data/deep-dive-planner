@@ -206,7 +206,7 @@ const ClubMembersDirectory = () => {
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
 
   // Identity form data (stored in club_members_directory)
-  const [formData, setFormData] = useState<ClubMemberInsert>({
+  const [formData, setFormData] = useState<ClubMemberInsert & { departure_date?: string }>({
     first_name: "",
     last_name: "",
     email: "",
@@ -218,6 +218,7 @@ const ClubMembersDirectory = () => {
     emergency_contact_phone: "",
     gender: "",
     notes: "",
+    departure_date: "",
   });
 
   // Seasonal form data (stored in membership_yearly_status)
@@ -240,6 +241,7 @@ const ClubMembersDirectory = () => {
       emergency_contact_phone: "",
       gender: "",
       notes: "",
+      departure_date: "",
     });
     setSeasonalFormData({
       apnea_level: "",
@@ -269,6 +271,7 @@ const ClubMembersDirectory = () => {
       emergency_contact_phone: member.emergency_contact_phone || "",
       gender: member.gender || "",
       notes: member.notes || "",
+      departure_date: member.departure_date || "",
     });
     // Seasonal data from membership status (level falls back to the most
     // recent prior season if not yet confirmed for the selected one)
@@ -302,6 +305,7 @@ const ClubMembersDirectory = () => {
         emergency_contact_phone: formData.emergency_contact_phone || null,
         gender: formData.gender || null,
         notes: formData.notes || null,
+        departure_date: formData.departure_date || null,
       };
 
       if (editingMember) {
@@ -1399,6 +1403,31 @@ const ClubMembersDirectory = () => {
                   </Select>
                 </div>
               </div>
+              {editingMember && (
+                <div>
+                  <Label htmlFor="departure_date">Date de départ</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="departure_date"
+                      type="date"
+                      value={formData.departure_date || ""}
+                      onChange={(e) => setFormData({ ...formData, departure_date: e.target.value })}
+                    />
+                    {formData.departure_date && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setFormData({ ...formData, departure_date: "" })}
+                      >
+                        Annuler le départ
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Renseignée automatiquement par « Marquer comme parti ». La vider ne réactive pas son accès app (ban à lever depuis le dashboard Supabase).
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="emergency_contact_name">Contact urgence - Nom</Label>
