@@ -11,6 +11,7 @@ export interface TrombiMember {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
+  license_number: string | null;
   outings_count: number;
 }
 
@@ -158,8 +159,9 @@ export const useTrombinoscope = () => {
         board_role: m.board_role,
         is_encadrant: m.is_encadrant ?? false,
         email: m.email || null,
-        phone: (m as { phone?: string }).phone || null,
+        phone: m.phone || null,
         avatar_url: m.avatar_url || null,
+        license_number: m.license_number || null,
         outings_count: countByEmail.get(m.email?.toLowerCase() || "") || 0,
       }));
 

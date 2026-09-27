@@ -83,6 +83,11 @@ const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
               <p className="font-semibold">{formatFirstName(member.first_name)}</p>
               <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
             </DialogTitle>
+            {member.license_number && (
+              <Badge variant="outline" className="font-mono text-xs">
+                N° licence {member.license_number}
+              </Badge>
+            )}
           </div>
         </DialogHeader>
 

@@ -836,6 +836,8 @@ export type Database = {
           id: string
           is_encadrant: boolean
           last_name: string
+          license_number: string
+          phone: string
         }[]
       }
       has_role: {
