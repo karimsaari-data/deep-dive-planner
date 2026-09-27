@@ -8,6 +8,9 @@ export type OutingType = "Fosse" | "Mer" | "Piscine" | "Étang" | "Dépollution"
 export type BookingStatus = "confirmé" | "annulé" | "en_attente";
 export type CarpoolOption = "none" | "driver" | "passenger";
 
+const DOSSIER_INCOMPLETE_MESSAGE =
+  "Votre dossier de la saison n'est pas complet (cotisation, certificat médical, charte des palanquées, assurance FSGT) — contactez l'administration pour pouvoir réserver une sortie.";
+
 export interface Reservation {
   id: string;
   user_id: string;
@@ -423,7 +426,7 @@ export const useCreateReservation = () => {
           })
           .eq("id", existingReservation.id);
 
-        if (error) throw error;
+        if (error) throw error.code === "42501" ? new Error(DOSSIER_INCOMPLETE_MESSAGE) : error;
       } else {
         // Create new reservation
         const { error } = await supabase.from("reservations").insert({
@@ -434,7 +437,7 @@ export const useCreateReservation = () => {
           carpool_seats: carpoolSeats,
         });
 
-        if (error) throw error;
+        if (error) throw error.code === "42501" ? new Error(DOSSIER_INCOMPLETE_MESSAGE) : error;
       }
 
       // Send confirmation email in background
