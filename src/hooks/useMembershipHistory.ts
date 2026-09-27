@@ -16,6 +16,8 @@ export interface MemberHistory {
   first_name: string;
   last_name: string;
   email: string;
+  phone: string | null;
+  avatar_url: string | null;
   joined_at: string | null;
   departure_date: string | null;
   seasons: SeasonRecord[];
@@ -30,9 +32,14 @@ export const useMembershipHistory = () => {
     queryFn: async () => {
       const { data: members, error: membersError } = await supabase
         .from("club_members_directory")
-        .select("id, member_id, first_name, last_name, email, joined_at, departure_date")
+        .select("id, member_id, first_name, last_name, email, phone, joined_at, departure_date")
         .order("joined_at", { ascending: true, nullsFirst: false });
       if (membersError) throw membersError;
+
+      const { data: profiles } = await supabase.from("profiles").select("email, avatar_url");
+      const avatarByEmail = new Map(
+        (profiles || []).map((p) => [p.email?.toLowerCase(), p.avatar_url])
+      );
 
       const { data: statuses, error: statusesError } = await supabase
         .from("membership_yearly_status")
@@ -56,6 +63,7 @@ export const useMembershipHistory = () => {
 
       const history: MemberHistory[] = (members || []).map((m) => ({
         ...m,
+        avatar_url: avatarByEmail.get(m.email?.toLowerCase()) || null,
         seasons: seasonsByMember.get(m.id) || [],
       }));
 
