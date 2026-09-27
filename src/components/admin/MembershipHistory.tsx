@@ -21,11 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, History, Search, UserCheck, UserX, Users } from "lucide-react";
+import { Loader2, History, Search, UserCheck, UserX, Users, UserPlus } from "lucide-react";
 import { useMembershipHistory, MemberHistory } from "@/hooks/useMembershipHistory";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { AppAccessDot } from "@/components/admin/AppAccessDot";
-import { getSeasonLabel, getLastSeasonEndDate, getCurrentSeasonYear } from "@/hooks/useMembershipYearlyStatus";
+import ContactDialog from "@/components/participants/ContactDialog";
+import { getSeasonLabel, getLastSeasonEndDate, getCurrentSeasonYear, getCurrentSeasonStartDate } from "@/hooks/useMembershipYearlyStatus";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -82,6 +83,13 @@ const lastKnownLicense = (member: MemberHistory): string | null => {
   return null;
 };
 
+const lastKnownApneaLevel = (member: MemberHistory): string | null => {
+  for (let i = member.seasons.length - 1; i >= 0; i--) {
+    if (member.seasons[i].apnea_level) return member.seasons[i].apnea_level;
+  }
+  return null;
+};
+
 interface HistoryTableProps {
   title: string;
   icon: React.ReactNode;
@@ -89,9 +97,10 @@ interface HistoryTableProps {
   showDeparture: boolean;
   onArchive?: (member: MemberHistory) => void;
   isEmailRegistered: (email: string) => boolean;
+  onSelectMember: (member: MemberHistory) => void;
 }
 
-const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailRegistered }: HistoryTableProps) => (
+const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailRegistered, onSelectMember }: HistoryTableProps) => (
   <div className="mb-8">
     <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
       {icon}
@@ -107,7 +116,7 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailR
             <TableRow>
               <TableHead className="w-[80px]">ID</TableHead>
               <TableHead>Identité</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead>Niveau</TableHead>
               <TableHead>Arrivée</TableHead>
               {showDeparture && <TableHead>Départ</TableHead>}
               <TableHead>N° licence</TableHead>
@@ -120,10 +129,26 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailR
               <TableRow key={member.id}>
                 <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                 <TableCell className="font-medium">
-                  <AppAccessDot hasAccount={isEmailRegistered(member.email)} isBanned={!!member.departure_date} />{" "}
-                  {member.first_name} {member.last_name.toUpperCase()}
+                  <button
+                    type="button"
+                    onClick={() => onSelectMember(member)}
+                    className="inline-flex items-center hover:underline text-left"
+                  >
+                    <AppAccessDot hasAccount={isEmailRegistered(member.email)} isBanned={!!member.departure_date} />
+                    <span className="ml-1.5">
+                      {member.first_name} {member.last_name.toUpperCase()}
+                    </span>
+                  </button>
                 </TableCell>
-                <TableCell className="text-sm">{member.email}</TableCell>
+                <TableCell className="text-sm">
+                  {lastKnownApneaLevel(member) ? (
+                    <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                      {lastKnownApneaLevel(member)}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-sm">{formatDate(member.joined_at)}</TableCell>
                 {showDeparture && (
                   <TableCell className="text-sm">{formatDate(member.departure_date)}</TableCell>
@@ -159,9 +184,15 @@ const MembershipHistory = () => {
   const { archiveMember, isEmailRegistered } = useClubMembersDirectory();
   const [search, setSearch] = useState("");
   const [archiveConfirm, setArchiveConfirm] = useState<MemberHistory | null>(null);
+  const [selectedMember, setSelectedMember] = useState<MemberHistory | null>(null);
 
   const active = useMemo(() => filterByQuery(data?.active || [], search), [data, search]);
   const departed = useMemo(() => filterByQuery(data?.departed || [], search), [data, search]);
+
+  const seasonStart = getCurrentSeasonStartDate();
+  const newThisSeasonCount = [...(data?.active || []), ...(data?.departed || [])].filter(
+    (m) => m.joined_at && m.joined_at >= seasonStart
+  ).length;
 
   const handleArchive = async (member: MemberHistory) => {
     try {
@@ -189,7 +220,7 @@ const MembershipHistory = () => {
       </CardHeader>
       <CardContent>
         {!isLoading && (
-          <div className="grid gap-4 sm:grid-cols-3 mb-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
             <div className="flex items-center gap-4 rounded-xl border border-border p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                 <Users className="h-6 w-6 text-primary" />
@@ -219,6 +250,15 @@ const MembershipHistory = () => {
                 <p className="text-2xl font-bold text-foreground">{data?.departed.length || 0}</p>
               </div>
             </div>
+            <div className="flex items-center gap-4 rounded-xl border border-border p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                <UserPlus className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Nouveaux cette saison</p>
+                <p className="text-2xl font-bold text-foreground">{newThisSeasonCount}</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -245,6 +285,7 @@ const MembershipHistory = () => {
               showDeparture={false}
               onArchive={setArchiveConfirm}
               isEmailRegistered={isEmailRegistered}
+              onSelectMember={setSelectedMember}
             />
             <HistoryTable
               title="Partis"
@@ -252,6 +293,7 @@ const MembershipHistory = () => {
               members={departed}
               showDeparture={true}
               isEmailRegistered={isEmailRegistered}
+              onSelectMember={setSelectedMember}
             />
           </>
         )}
@@ -281,6 +323,15 @@ const MembershipHistory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ContactDialog
+        member={
+          selectedMember
+            ? { ...selectedMember, license_number: lastKnownLicense(selectedMember) }
+            : null
+        }
+        onClose={() => setSelectedMember(null)}
+      />
     </Card>
   );
 };

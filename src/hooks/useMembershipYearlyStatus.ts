@@ -51,6 +51,12 @@ export const getLastSeasonEndDate = (): string => {
   return `${year}-08-31`;
 };
 
+// Date de début de la saison en cours (1er septembre).
+export const getCurrentSeasonStartDate = (): string => {
+  const year = getCurrentSeasonYear() - 1;
+  return `${year}-09-01`;
+};
+
 export const getAvailableSeasons = (): number[] => {
   const currentSeason = getCurrentSeasonYear();
   // Show current season + 2 previous seasons

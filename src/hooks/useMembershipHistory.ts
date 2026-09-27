@@ -8,6 +8,7 @@ export interface SeasonRecord {
   buddies_charter_signed: boolean;
   fsgt_insurance_ok: boolean;
   license_number: string | null;
+  apnea_level: string | null;
 }
 
 export interface MemberHistory {
@@ -16,6 +17,8 @@ export interface MemberHistory {
   first_name: string;
   last_name: string;
   email: string;
+  phone: string | null;
+  avatar_url: string | null;
   joined_at: string | null;
   departure_date: string | null;
   seasons: SeasonRecord[];
@@ -30,13 +33,18 @@ export const useMembershipHistory = () => {
     queryFn: async () => {
       const { data: members, error: membersError } = await supabase
         .from("club_members_directory")
-        .select("id, member_id, first_name, last_name, email, joined_at, departure_date")
+        .select("id, member_id, first_name, last_name, email, phone, joined_at, departure_date")
         .order("joined_at", { ascending: true, nullsFirst: false });
       if (membersError) throw membersError;
 
+      const { data: profiles } = await supabase.from("profiles").select("email, avatar_url");
+      const avatarByEmail = new Map(
+        (profiles || []).map((p) => [p.email?.toLowerCase(), p.avatar_url])
+      );
+
       const { data: statuses, error: statusesError } = await supabase
         .from("membership_yearly_status")
-        .select("member_id, season_year, payment_status, medical_certificate_ok, buddies_charter_signed, fsgt_insurance_ok, license_number")
+        .select("member_id, season_year, payment_status, medical_certificate_ok, buddies_charter_signed, fsgt_insurance_ok, license_number, apnea_level")
         .order("season_year", { ascending: true });
       if (statusesError) throw statusesError;
 
@@ -50,12 +58,14 @@ export const useMembershipHistory = () => {
           buddies_charter_signed: s.buddies_charter_signed,
           fsgt_insurance_ok: s.fsgt_insurance_ok,
           license_number: s.license_number,
+          apnea_level: s.apnea_level,
         });
         seasonsByMember.set(s.member_id, list);
       }
 
       const history: MemberHistory[] = (members || []).map((m) => ({
         ...m,
+        avatar_url: avatarByEmail.get(m.email?.toLowerCase()) || null,
         seasons: seasonsByMember.get(m.id) || [],
       }));
 
