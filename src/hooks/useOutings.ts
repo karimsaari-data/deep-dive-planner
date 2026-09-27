@@ -19,7 +19,7 @@ export interface Reservation {
   cancelled_at: string | null;
   carpool_option: CarpoolOption;
   carpool_seats: number;
-  is_present: boolean;
+  is_present: boolean | null;
   group_number: number | null;
   created_at: string;
   profile?: {
