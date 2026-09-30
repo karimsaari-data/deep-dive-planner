@@ -203,6 +203,7 @@ const ClubMembersDirectory = () => {
   const [filterEncadrant, setFilterEncadrant] = useState(false);
   const [filterIncomplete, setFilterIncomplete] = useState(false);
   const [filterNotRegistered, setFilterNotRegistered] = useState(false);
+  const [filterLicenseActive, setFilterLicenseActive] = useState(false);
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
 
@@ -665,6 +666,13 @@ const ClubMembersDirectory = () => {
     return { variant: "valid", label: "Valide" };
   };
 
+  // Licence en cours : numéro renseigné et non expirée (date d'expiration absente = en cours)
+  const hasActiveLicense = (memberId: string) => {
+    const status = getStatusForMember(memberId);
+    if (!status?.license_number) return false;
+    return getLicenseExpiryStatus(memberId)?.variant !== "expired";
+  };
+
   const handleViewLicenseFile = async (path: string) => {
     const { data, error } = await supabase.storage.from("licenses").createSignedUrl(path, 60);
     if (error || !data) {
@@ -711,6 +719,11 @@ const ClubMembersDirectory = () => {
         if (isEmailRegistered(member.email)) return false;
       }
 
+      // Filter members with a current (non-expired) license
+      if (filterLicenseActive) {
+        if (!hasActiveLicense(member.id)) return false;
+      }
+
       return true;
     }) || [];
 
@@ -751,7 +764,7 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, filterLicenseActive, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
 
   const getRowClassName = (member: ClubMember) => {
     if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";
@@ -864,6 +877,15 @@ const ClubMembersDirectory = () => {
                 Non inscrits
               </Button>
               <Button
+                onClick={() => setFilterLicenseActive(!filterLicenseActive)}
+                variant={filterLicenseActive ? "default" : "outline"}
+                size="sm"
+                title="Filtrer les adhérents avec une licence en cours"
+              >
+                <FileText className="h-4 w-4 mr-1" />
+                Licence en cours
+              </Button>
+              <Button
                 onClick={() => setLevelsRefOpen(true)}
                 variant="outline"
                 size="sm"
@@ -913,7 +935,7 @@ const ClubMembersDirectory = () => {
         {membersWithStatus.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 text-sm">
             <Badge variant="secondary" className="text-xs">
-              {(filterEncadrant || filterIncomplete || filterNotRegistered) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
+              {(filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
             </Badge>
             <Badge variant="secondary" className={cn("text-xs", filterEncadrant && "bg-primary text-primary-foreground")}>
               <GraduationCap className="h-3 w-3 mr-1" />
