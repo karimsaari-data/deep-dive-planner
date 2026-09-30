@@ -793,7 +793,7 @@ const ClubMembersDirectory = () => {
 
   return (
     <Card className="shadow-card">
-      <CardHeader>
+      <CardHeader className="p-4 sm:p-6">
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5 text-primary" />
           Fichier Adhérents
@@ -802,7 +802,7 @@ const ClubMembersDirectory = () => {
           Gestion administrative des adhérents du club (CRM)
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
         {/* Season selector + Actions bar */}
         <div className="flex flex-col gap-3 mb-4">
           <div className="flex items-center gap-3">
@@ -835,7 +835,7 @@ const ClubMembersDirectory = () => {
                 className="pl-10"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => setFilterEncadrant(!filterEncadrant)}
                 variant={filterEncadrant ? "default" : "outline"}
@@ -875,8 +875,8 @@ const ClubMembersDirectory = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1" />
-            <div className="flex gap-2">
+            <div className="hidden sm:block flex-1" />
+            <div className="flex flex-wrap gap-2">
               <Button onClick={openNewForm} size="sm">
                 <Plus className="h-4 w-4 mr-1" />
                 Ajouter
@@ -1020,7 +1020,7 @@ const ClubMembersDirectory = () => {
                   </TableHead>
                   <TableHead>Licence</TableHead>
                   <TableHead className="text-center">Statut App</TableHead>
-                  <TableHead className="text-right sticky right-0 z-20 bg-background shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">Actions</TableHead>
+                  <TableHead className="text-right sm:sticky sm:right-0 sm:z-20 bg-background sm:shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1029,7 +1029,7 @@ const ClubMembersDirectory = () => {
                   return (
                     <TableRow key={member.id} className={cn(getRowClassName(member))}>
                       <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium min-w-[160px]">
                         <AppAccessDot hasAccount={isRegistered} isBanned={!!member.departure_date} />{" "}
                         {member.first_name} {member.last_name.toUpperCase()}
                         {member.departure_date && (
@@ -1167,7 +1167,7 @@ const ClubMembersDirectory = () => {
                       </TableCell>
                       <TableCell
                         className={cn(
-                          "text-right sticky right-0 z-10 shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]",
+                          "text-right sm:sticky sm:right-0 sm:z-10 sm:shadow-[-4px_0_6px_-4px_rgba(0,0,0,0.15)]",
                           getRowClassName(member) || "bg-background"
                         )}
                       >
