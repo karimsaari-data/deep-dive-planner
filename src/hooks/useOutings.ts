@@ -740,6 +740,36 @@ export const useAdminRemoveReservation = () => {
   });
 };
 
+export const useAdminAddParticipant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ outingId, userId }: { outingId: string; userId: string }) => {
+      // RPC absente des types générés (types.ts non éditable à la main)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase.rpc("admin_add_participant" as any, {
+        p_outing_id: outingId,
+        p_user_id: userId,
+      });
+
+      if (error) throw error;
+      return data as unknown as string;
+    },
+    onSuccess: (status) => {
+      queryClient.invalidateQueries({ queryKey: ["outings"] });
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      if (status === "en_attente") {
+        toast.warning("Sortie complète : participant placé en liste d'attente");
+      } else {
+        toast.success("Participant ajouté");
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de l'ajout du participant");
+    },
+  });
+};
+
 export const useDeleteOuting = () => {
   const queryClient = useQueryClient();
 

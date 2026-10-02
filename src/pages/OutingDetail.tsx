@@ -42,7 +42,8 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation, useSetReservationGroup } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation, useAdminAddParticipant, useSetReservationGroup } from "@/hooks/useOutings";
+import { useMembersForEncadrant } from "@/hooks/useMembersForEncadrant";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -127,6 +128,8 @@ const OutingDetail = () => {
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
   const adminRemoveReservation = useAdminRemoveReservation();
+  const adminAddParticipant = useAdminAddParticipant();
+  const { data: directoryMembers } = useMembersForEncadrant();
   const deleteOuting = useDeleteOuting();
   const archiveOuting = useArchiveOuting();
   const lockPOSS = useLockPOSS();
@@ -167,6 +170,8 @@ const OutingDetail = () => {
   const [isGeneratingPOSS, setIsGeneratingPOSS] = useState(false);
   const [coInstructorSearch, setCoInstructorSearch] = useState("");
   const [coInstructorPickerOpen, setCoInstructorPickerOpen] = useState(false);
+  const [participantPickerOpen, setParticipantPickerOpen] = useState(false);
+  const [participantSearch, setParticipantSearch] = useState("");
   const [selectedContact, setSelectedContact] = useState<{
     firstName: string; lastName: string; avatarUrl: string | null; email: string | null; phone: string | null;
   } | null>(null);
@@ -1070,6 +1075,54 @@ const OutingDetail = () => {
               <CardTitle className="flex items-center gap-2 flex-wrap">
                 <Users className="h-5 w-5 text-primary" />
                 Participants confirmés ({confirmedReservations.length}/{effectiveMax})
+                {canManageOuting && (
+                  <Popover open={participantPickerOpen} onOpenChange={setParticipantPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2 h-8 text-xs ml-auto">
+                        <UserPlus className="h-3.5 w-3.5" />
+                        Ajouter un participant
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-3" align="end">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Choisir un membre</p>
+                        <input
+                          className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-ring"
+                          placeholder="Rechercher par nom..."
+                          value={participantSearch}
+                          onChange={(e) => setParticipantSearch(e.target.value)}
+                          autoFocus
+                        />
+                        <div className="max-h-48 overflow-y-auto space-y-0.5">
+                          {(() => {
+                            const q = participantSearch.trim().toLowerCase();
+                            const candidates = (directoryMembers ?? [])
+                              .filter((m) => !confirmedReservations.some((r) => r.user_id === m.id))
+                              .filter((m) => !q || `${m.first_name} ${m.last_name}`.toLowerCase().includes(q))
+                              .slice(0, 50);
+                            if (candidates.length === 0) {
+                              return <p className="text-xs text-muted-foreground py-2 text-center font-normal">Aucun résultat</p>;
+                            }
+                            return candidates.map((m) => (
+                              <button
+                                key={m.id}
+                                className="w-full text-left px-2 py-1.5 text-sm font-normal rounded hover:bg-muted transition-colors"
+                                disabled={adminAddParticipant.isPending}
+                                onClick={() => {
+                                  adminAddParticipant.mutate({ outingId: outing.id, userId: m.id });
+                                  setParticipantPickerOpen(false);
+                                  setParticipantSearch("");
+                                }}
+                              >
+                                {formatFullName(m.first_name, m.last_name)}
+                              </button>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 {confirmedInstructors.length >= 2 && (
                   <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300">
                     {confirmedInstructors.length} encadrants · capacité ×{confirmedInstructors.length}
