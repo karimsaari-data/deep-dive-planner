@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useOuting, useUpdateReservationPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation, useAdminAddParticipant, useSetReservationGroup } from "@/hooks/useOutings";
+import { useOuting, useUpdateReservationPresence, useUpdateAllPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation, useAdminAddParticipant, useSetReservationGroup } from "@/hooks/useOutings";
 import { useMembersForEncadrant } from "@/hooks/useMembersForEncadrant";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
 import { cn } from "@/lib/utils";
@@ -124,6 +124,7 @@ const OutingDetail = () => {
   const { isOrganizer, isAdmin, loading: roleLoading } = useUserRole();
   const { data: outing, isLoading } = useOuting(id ?? "");
   const updatePresence = useUpdateReservationPresence();
+  const updateAllPresence = useUpdateAllPresence();
   const setReservationGroup = useSetReservationGroup();
   const updateSessionReport = useUpdateSessionReport();
   const cancelOuting = useCancelOuting();
@@ -1075,10 +1076,27 @@ const OutingDetail = () => {
               <CardTitle className="flex items-center gap-2 flex-wrap">
                 <Users className="h-5 w-5 text-primary" />
                 Participants confirmés ({confirmedReservations.length}/{effectiveMax})
+                {canMarkAttendance && canEditPresenceAndReport && confirmedReservations.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-8 text-xs ml-auto"
+                    disabled={updateAllPresence.isPending}
+                    onClick={() =>
+                      updateAllPresence.mutate({
+                        reservationIds: confirmedReservations.filter((r) => r.is_present !== true).map((r) => r.id),
+                        isPresent: true,
+                      })
+                    }
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Tout pointer présent
+                  </Button>
+                )}
                 {canManageOuting && (
                   <Popover open={participantPickerOpen} onOpenChange={setParticipantPickerOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2 h-8 text-xs ml-auto">
+                      <Button variant="outline" size="sm" className="gap-2 h-8 text-xs">
                         <UserPlus className="h-3.5 w-3.5" />
                         Ajouter un participant
                       </Button>
