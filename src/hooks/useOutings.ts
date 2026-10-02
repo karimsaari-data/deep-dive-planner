@@ -595,6 +595,30 @@ export const useSetReservationGroup = () => {
   });
 };
 
+export const useUpdateAllPresence = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ reservationIds, isPresent }: { reservationIds: string[]; isPresent: boolean }) => {
+      if (reservationIds.length === 0) return;
+      const { error } = await supabase
+        .from("reservations")
+        .update({ is_present: isPresent })
+        .in("id", reservationIds);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["outing"] });
+      queryClient.invalidateQueries({ queryKey: ["participants-emergency"] });
+      toast.success("Présences mises à jour");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};
+
 export const useUpdateSessionReport = () => {
   const queryClient = useQueryClient();
 
