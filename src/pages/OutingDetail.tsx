@@ -229,11 +229,17 @@ const OutingDetail = () => {
       const memberIds = directory?.map(d => d.id) || [];
       const { data: membershipStatuses } = await supabase
         .from("membership_yearly_status")
-        .select("member_id, apnea_level")
-        .eq("season_year", currentSeasonYear)
-        .in("member_id", memberIds.length > 0 ? memberIds : ['00000000-0000-0000-0000-000000000000']);
+        .select("member_id, apnea_level, season_year")
+        .lte("season_year", currentSeasonYear)
+        .not("apnea_level", "is", null)
+        .in("member_id", memberIds.length > 0 ? memberIds : ['00000000-0000-0000-0000-000000000000'])
+        .order("season_year", { ascending: false });
 
-      const apneaLevelMap = new Map(membershipStatuses?.map(s => [s.member_id, s.apnea_level]) || []);
+      // Dernier niveau renseigné (une saison renouvelée sans niveau ne masque pas la précédente)
+      const apneaLevelMap = new Map<string, string>();
+      for (const s of membershipStatuses || []) {
+        if (!apneaLevelMap.has(s.member_id)) apneaLevelMap.set(s.member_id, s.apnea_level);
+      }
 
       const directoryMap = new Map(directory?.map(d => [
         d.email.toLowerCase(), 

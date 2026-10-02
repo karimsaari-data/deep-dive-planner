@@ -101,8 +101,8 @@ export interface Outing {
 }
 
 // Résout le niveau d'apnée courant (saison en cours) d'un ensemble d'utilisateurs
-// via membership_yearly_status (source de vérité), avec repli sur profiles.apnea_level
-// si l'utilisateur n'a pas de statut de saison enregistré.
+// via membership_yearly_status (source de vérité, dernier niveau renseigné jusqu'à la saison
+// en cours), avec repli sur profiles.apnea_level.
 export async function resolveCurrentSeasonApneaLevels(
   userIds: (string | null | undefined)[]
 ): Promise<Map<string, string | null>> {
@@ -132,11 +132,18 @@ export async function resolveCurrentSeasonApneaLevels(
   const { data: seasonLevels } = memberIds.length
     ? await supabase
         .from("membership_yearly_status")
-        .select("member_id, apnea_level")
-        .eq("season_year", currentSeasonYear)
+        .select("member_id, apnea_level, season_year")
+        .lte("season_year", currentSeasonYear)
+        .not("apnea_level", "is", null)
         .in("member_id", memberIds)
+        .order("season_year", { ascending: false })
     : { data: [] };
-  const levelByMemberId = new Map((seasonLevels || []).map((s: any) => [s.member_id, s.apnea_level]));
+  // Niveau le plus récent renseigné : une saison renouvelée dont le niveau est
+  // encore vide ne doit pas masquer le niveau de la saison précédente.
+  const levelByMemberId = new Map<string, string>();
+  for (const s of (seasonLevels || []) as any[]) {
+    if (!levelByMemberId.has(s.member_id)) levelByMemberId.set(s.member_id, s.apnea_level);
+  }
 
   for (const userId of uniqueIds) {
     const email = emailByUserId.get(userId);
