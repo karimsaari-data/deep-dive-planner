@@ -1008,7 +1008,7 @@ const OutingDetail = () => {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 sm:flex-shrink-0 sm:justify-end">
-                    {!isPast && canManageOuting && (
+                    {canManageOuting && (
                       <Select
                         value={reservation.group_number ? String(reservation.group_number) : "none"}
                         onValueChange={(v) =>
