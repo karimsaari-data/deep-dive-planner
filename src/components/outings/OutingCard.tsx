@@ -86,6 +86,14 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
       avatarUrl: r.profile!.avatar_url,
       fullName: formatFullName(r.profile!.first_name, r.profile!.last_name),
     }));
+  const waitlistedParticipants = (outing.reservations ?? [])
+    .filter((r) => r.status === "en_attente" && r.profile)
+    .map((r) => ({
+      firstName: r.profile!.first_name,
+      lastName: r.profile!.last_name,
+      avatarUrl: r.profile!.avatar_url,
+      fullName: formatFullName(r.profile!.first_name, r.profile!.last_name),
+    }));
   const isFull = currentParticipants >= outing.max_participants;
   const userReservation = outing.reservations?.find((r) => r.user_id === user?.id && r.status !== "annulé");
   const isRegistered = !!userReservation;
@@ -314,9 +322,44 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
               </span>
             )}
             {isFull && waitlistCount > 0 && (
-              <span className="text-xs font-medium text-amber-600">
-                ({waitlistCount} en liste d'attente)
-              </span>
+              waitlistedParticipants.length > 0 ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-amber-600 cursor-pointer underline decoration-dotted underline-offset-2"
+                    >
+                      ({waitlistCount} en liste d'attente)
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent side="bottom" align="start" className="w-auto max-w-[220px] p-3">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">Liste d'attente</p>
+                    <ol className="text-sm space-y-0.5 list-decimal list-inside">
+                      {waitlistedParticipants.map((participant) => (
+                        <li key={participant.fullName}>
+                          <button
+                            type="button"
+                            className="text-left cursor-pointer hover:text-primary hover:underline transition-colors"
+                            onClick={() =>
+                              setSelectedParticipant({
+                                firstName: participant.firstName,
+                                lastName: participant.lastName,
+                                avatarUrl: participant.avatarUrl,
+                              })
+                            }
+                          >
+                            {participant.fullName}
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  </PopoverContent>
+                </Popover>
+              ) : (
+                <span className="text-xs font-medium text-amber-600">
+                  ({waitlistCount} en liste d'attente)
+                </span>
+              )
             )}
           </div>
 
