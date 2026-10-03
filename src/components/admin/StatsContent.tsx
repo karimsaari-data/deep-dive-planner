@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck, FileDown, ListChecks } from "lucide-react";
 import { PDFReportGenerator } from "@/components/pdf/PDFReportGenerator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1076,7 +1076,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
                       </p>
                       <div className="h-[260px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={genderParticipation}>
+                          <BarChart data={genderParticipation} margin={{ top: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                             <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                             <YAxis allowDecimals={false} />
@@ -1089,6 +1089,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
                               formatter={(value: number) => [`${value} présences`, "Total"]}
                             />
                             <Bar dataKey="presences" radius={[4, 4, 0, 0]}>
+                              <LabelList dataKey="presences" position="top" className="fill-foreground text-sm font-semibold" />
                               {genderParticipation.map((entry) => (
                                 <Cell key={entry.name} fill={GENDER_COLORS[entry.name] ?? "#94a3b8"} />
                               ))}
