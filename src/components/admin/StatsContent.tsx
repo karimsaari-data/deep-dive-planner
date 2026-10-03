@@ -34,6 +34,7 @@ interface MemberPresence {
   outings: Array<{ id: string; title: string; date: string; asOrganizer?: boolean }>;
   totalPresences: number;
   isEncadrant: boolean;
+  gender: string;
 }
 
 interface OrganizerMonthly {
@@ -60,6 +61,18 @@ const TYPE_BADGE_CLASS: Record<string, string> = {
   Piscine: "bg-cyan-100 text-cyan-800 border-cyan-200",
   Étang: "bg-teal-100 text-teal-800 border-teal-200",
   Dépollution: "bg-emerald-100 text-emerald-800 border-emerald-200",
+};
+
+const GENDER_COLORS: Record<string, string> = {
+  Homme: "#0284c7",
+  Femme: "#ec4899",
+  Autre: "#8b5cf6",
+  "Non renseigné": "#94a3b8",
+};
+
+const normalizeGender = (gender: string | null | undefined): string => {
+  if (!gender) return "Non renseigné";
+  return gender in GENDER_COLORS ? gender : "Autre";
 };
 
 interface StatsContentProps {
@@ -167,7 +180,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       // 5. Fetch club_members_directory for historical members
       const { data: clubMembers, error: clubMembersError } = await supabase
         .from("club_members_directory")
-        .select("id, first_name, last_name, member_id, email");
+        .select("id, first_name, last_name, member_id, email, gender");
 
       if (clubMembersError) throw clubMembersError;
 
@@ -185,7 +198,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
       ]));
       const clubMemberMap = new Map(clubMembers?.map(m => [
         m.id,
-        { name: formatFullName(m.first_name, m.last_name), code: m.member_id || '', email: m.email, isEncadrant: encadrantMap.get(m.id) ?? false }
+        { name: formatFullName(m.first_name, m.last_name), code: m.member_id || '', email: m.email, isEncadrant: encadrantMap.get(m.id) ?? false, gender: normalizeGender(m.gender) }
       ]));
       // Map email to club member ID for matching organizers
       const emailToClubMemberMap = new Map(clubMembers?.map(m => [m.email.toLowerCase(), m]) || []);
@@ -207,7 +220,8 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
             memberCode: clubMember?.member_id || profile?.code || "",
             outings: [],
             totalPresences: 0,
-            isEncadrant: profile?.isEncadrant || false
+            isEncadrant: profile?.isEncadrant || false,
+            gender: normalizeGender(clubMember?.gender)
           });
         }
         const member = memberMap.get(key)!;
@@ -234,7 +248,8 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
             memberCode: clubMember?.code || "",
             outings: [],
             totalPresences: 0,
-            isEncadrant: clubMember?.isEncadrant || false
+            isEncadrant: clubMember?.isEncadrant || false,
+            gender: clubMember?.gender || "Non renseigné"
           });
         }
         const member = memberMap.get(key)!;
@@ -274,7 +289,8 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
               memberCode: organizerClubMember.member_id || "",
               outings: [],
               totalPresences: 0,
-              isEncadrant: encadrantMap.get(organizerClubMember.id) ?? false
+              isEncadrant: encadrantMap.get(organizerClubMember.id) ?? false,
+              gender: normalizeGender(organizerClubMember.gender)
             });
           }
           const member = memberMap.get(organizerKey)!;
@@ -292,6 +308,20 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
     },
     enabled: isAdmin,
   });
+
+  // Participation par genre : membres distincts et présences cumulées
+  const genderParticipation = (() => {
+    const acc: Record<string, { name: string; membres: number; presences: number }> = {};
+    memberPresences?.forEach((m) => {
+      const g = m.gender || "Non renseigné";
+      acc[g] ??= { name: g, membres: 0, presences: 0 };
+      acc[g].membres++;
+      acc[g].presences += m.totalPresences;
+    });
+    return Object.values(acc).sort((a, b) => b.membres - a.membres);
+  })();
+  const totalGenderMembers = genderParticipation.reduce((sum, g) => sum + g.membres, 0);
+  const totalGenderPresences = genderParticipation.reduce((sum, g) => sum + g.presences, 0);
 
   // Fetch organizer monthly stats (includes historical outings)
   const { data: organizerMonthly, isLoading: organizersLoading } = useQuery({
@@ -995,6 +1025,82 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
+            <div className="space-y-4">
+            {genderParticipation.length > 0 && (
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    Répartition Hommes / Femmes en {selectedYear}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="mb-1 text-center text-sm font-medium text-muted-foreground">
+                        Participants distincts ({totalGenderMembers})
+                      </p>
+                      <div className="h-[260px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={genderParticipation}
+                              dataKey="membres"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={50}
+                              outerRadius={85}
+                              paddingAngle={4}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            >
+                              {genderParticipation.map((entry) => (
+                                <Cell key={entry.name} fill={GENDER_COLORS[entry.name] ?? "#94a3b8"} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "hsl(var(--card))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "8px",
+                              }}
+                              formatter={(value: number) => [`${value} participants`, "Nombre"]}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-center text-sm font-medium text-muted-foreground">
+                        Présences cumulées ({totalGenderPresences})
+                      </p>
+                      <div className="h-[260px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={genderParticipation}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                            <YAxis allowDecimals={false} />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: "hsl(var(--card))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "8px",
+                              }}
+                              formatter={(value: number) => [`${value} présences`, "Total"]}
+                            />
+                            <Bar dataKey="presences" radius={[4, 4, 0, 0]}>
+                              {genderParticipation.map((entry) => (
+                                <Cell key={entry.name} fill={GENDER_COLORS[entry.name] ?? "#94a3b8"} />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1053,6 +1159,7 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
                 )}
               </CardContent>
             </Card>
+            </div>
           )}
         </TabsContent>
 
