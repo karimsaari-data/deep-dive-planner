@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X, Pencil } from "lucide-react";
+import { Calendar, MapPin, Loader2, Image, Users, Search, FileText, Download, Upload, Edit, Save, X, Pencil, Trash2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,7 @@ const Archives = () => {
   const [editingHistoricalOuting, setEditingHistoricalOuting] = useState<any | null>(null);
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
+  const [openDialog, setOpenDialog] = useState<{ id: string; tab: string } | null>(null);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -246,6 +247,27 @@ const Archives = () => {
       toast.error("Erreur lors de l'upload: " + error.message);
     } finally {
       setUploadingOutingId(null);
+    }
+  };
+
+  const handlePhotoDelete = async (outingId: string, photoUrl: string, photos: string[]) => {
+    if (!window.confirm("Supprimer cette photo ?")) return;
+    try {
+      const { error } = await supabase
+        .from("outings")
+        .update({ photos: (photos ?? []).filter((p) => p !== photoUrl) })
+        .eq("id", outingId);
+      if (error) throw error;
+
+      const marker = "/outings_gallery/";
+      const idx = photoUrl.indexOf(marker);
+      if (idx !== -1) {
+        await supabase.storage.from("outings_gallery").remove([decodeURIComponent(photoUrl.slice(idx + marker.length))]);
+      }
+      toast.success("Photo supprimée");
+      refetch();
+    } catch (error: any) {
+      toast.error("Erreur: " + error.message);
     }
   };
 
@@ -526,7 +548,16 @@ const Archives = () => {
                             Modifier
                           </Button>
                         )}
-                        <Dialog>
+                        <Dialog
+                          open={openDialog?.id === outing.id}
+                          onOpenChange={(open) => {
+                            if (open) setOpenDialog({ id: outing.id, tab: "participants" });
+                            else {
+                              setOpenDialog(null);
+                              handleCancelEdit();
+                            }
+                          }}
+                        >
                           <DialogTrigger asChild>
                             <Button variant="ocean" size="sm">
                               Voir détails
@@ -540,7 +571,11 @@ const Archives = () => {
                               </DialogTitle>
                             </DialogHeader>
                             
-                            <Tabs defaultValue="participants" className="mt-4">
+                            <Tabs
+                              value={openDialog?.id === outing.id ? openDialog.tab : "participants"}
+                              onValueChange={(tab) => setOpenDialog({ id: outing.id, tab })}
+                              className="mt-4"
+                            >
                               <TabsList className="grid w-full grid-cols-3">
                                 <TabsTrigger value="participants">Participants</TabsTrigger>
                                 <TabsTrigger value="photos">Photos</TabsTrigger>
@@ -695,7 +730,7 @@ const Archives = () => {
                                     {outing.photos.map((photo: string, idx: number) => (
                                       <div
                                         key={idx}
-                                        className="aspect-video rounded-lg overflow-hidden bg-muted cursor-zoom-in"
+                                        className="relative aspect-video rounded-lg overflow-hidden bg-muted cursor-zoom-in"
                                         onClick={() => setZoomedPhoto(photo)}
                                       >
                                         <img
@@ -703,6 +738,18 @@ const Archives = () => {
                                           alt={`Photo ${idx + 1}`}
                                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                                         />
+                                        <Button
+                                          variant="destructive"
+                                          size="icon"
+                                          className="absolute right-1 top-1 h-7 w-7"
+                                          aria-label="Supprimer la photo"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handlePhotoDelete(outing.id, photo, outing.photos);
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
                                       </div>
                                     ))}
                                   </div>
@@ -803,12 +850,27 @@ const Archives = () => {
                           : `${outing.presentParticipants.length}/${outing.confirmedParticipants.length} présents`
                         }
                       </span>
-                      {outing.session_report && (
-                        <Badge variant="outline" className="text-xs">
-                          <FileText className="h-3 w-3 mr-1" />
-                          Compte-rendu
-                        </Badge>
-                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 rounded-full text-xs"
+                        onClick={() => {
+                          setOpenDialog({ id: outing.id, tab: "report" });
+                          handleEditReport(outing);
+                        }}
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        {outing.session_report ? "Modifier le compte-rendu" : "Rédiger le compte-rendu"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 rounded-full text-xs"
+                        onClick={() => setOpenDialog({ id: outing.id, tab: "photos" })}
+                      >
+                        <Image className="h-3 w-3 mr-1" />
+                        Photos ({outing.photos?.length ?? 0}/4)
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
