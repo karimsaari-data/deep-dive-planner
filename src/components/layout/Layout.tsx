@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Mail } from "lucide-react";
 import Header from "./Header";
+import LicenseReminderBanner from "./LicenseReminderBanner";
 import { usePhotoReminder } from "@/hooks/usePhotoReminder";
 interface LayoutProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ const Layout = ({
   usePhotoReminder();
   return <div className="flex min-h-screen flex-col bg-background">
       <Header />
+      <LicenseReminderBanner />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-border/50 bg-card/50 py-6">
         <div className="container mx-auto px-4 flex items-center justify-center gap-1.5 text-center text-sm text-muted-foreground">
