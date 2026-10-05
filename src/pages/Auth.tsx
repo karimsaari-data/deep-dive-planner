@@ -31,7 +31,7 @@ type SignUpData = z.infer<typeof signUpSchema>;
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signIn, signUp, resetPassword } = useAuth();
+  const { user, signIn, signUp, resendConfirmation, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -64,9 +64,27 @@ const Auth = () => {
     setIsLoading(false);
 
     if (error) {
-      toast.error(error.message === "Invalid login credentials" 
-        ? "Email ou mot de passe incorrect" 
-        : error.message);
+      if (error.message === "Invalid login credentials") {
+        toast.error("Email ou mot de passe incorrect");
+      } else if (error.message.toLowerCase().includes("email not confirmed")) {
+        toast.error("Email non confirmé", {
+          description: "Cliquez sur le lien reçu par email pour activer votre compte. Pensez à vérifier vos spams / courriers indésirables.",
+          duration: 15000,
+          action: {
+            label: "Renvoyer l'email",
+            onClick: async () => {
+              const { error: resendError } = await resendConfirmation(data.email);
+              if (resendError) toast.error("Erreur lors de l'envoi : " + resendError.message);
+              else toast.success("Email de confirmation renvoyé", {
+                description: "Vérifiez aussi vos spams / courriers indésirables.",
+                duration: 10000,
+              });
+            },
+          },
+        });
+      } else {
+        toast.error(error.message);
+      }
     } else {
       toast.success("Connexion réussie !");
       navigate(from, { replace: true });
@@ -87,7 +105,7 @@ const Auth = () => {
 
   const onSignUp = async (data: SignUpData) => {
     setIsLoading(true);
-    const { error } = await signUp(data.email, data.password, data.firstName, data.lastName);
+    const { error, needsConfirmation } = await signUp(data.email, data.password, data.firstName, data.lastName);
     setIsLoading(false);
 
     if (error) {
@@ -96,6 +114,11 @@ const Auth = () => {
       } else {
         toast.error(error.message);
       }
+    } else if (needsConfirmation) {
+      toast.success("Inscription réussie ! Confirmez votre email", {
+        description: `Un email de confirmation a été envoyé à ${data.email}. Cliquez sur le lien pour activer votre compte. Il peut se trouver dans vos spams / courriers indésirables : pensez à vérifier.`,
+        duration: 20000,
+      });
     } else {
       toast.success("Inscription réussie ! Bienvenue au club !");
       navigate(from, { replace: true });
