@@ -39,6 +39,7 @@ export interface ClubMemberInsert {
 
 export interface RegisteredEmail {
   email: string;
+  avatar_url: string | null;
 }
 
 export const useClubMembersDirectory = () => {
@@ -59,17 +60,21 @@ export const useClubMembersDirectory = () => {
   });
 
   // Fetch registered profile emails for sync status
-  const { data: registeredEmails } = useQuery({
+  const { data: registeredProfiles } = useQuery({
     queryKey: ["registered-emails"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("email");
+        .select("email, avatar_url");
 
       if (error) throw error;
-      return (data as RegisteredEmail[]).map(p => p.email.toLowerCase());
+      return (data as RegisteredEmail[]).map(p => ({
+        email: p.email.toLowerCase(),
+        avatar_url: p.avatar_url,
+      }));
     },
   });
+  const registeredEmails = registeredProfiles?.map(p => p.email);
 
   // Create member
   const createMember = useMutation({
@@ -227,6 +232,12 @@ export const useClubMembersDirectory = () => {
     return registeredEmails?.includes(email.toLowerCase()) ?? false;
   };
 
+  // Registered in the app but no profile photo
+  const hasProfilePhoto = (email: string): boolean => {
+    const profile = registeredProfiles?.find(p => p.email === email.toLowerCase());
+    return !!profile?.avatar_url;
+  };
+
   return {
     members,
     isLoading,
@@ -237,5 +248,6 @@ export const useClubMembersDirectory = () => {
     archiveMember,
     upsertMember,
     isEmailRegistered,
+    hasProfilePhoto,
   };
 };
