@@ -145,6 +145,7 @@ const ClubMembersDirectory = () => {
     archiveMember,
     upsertMember,
     isEmailRegistered,
+    hasProfilePhoto,
   } = useClubMembersDirectory();
 
   const [selectedSeason, setSelectedSeason] = useState(getCurrentSeasonYear());
@@ -802,6 +803,13 @@ const ClubMembersDirectory = () => {
     return membersWithStatus.filter((m) => isMemberDossierComplete(m.id)).length;
   }, [membersWithStatus, statuses, apneaLevelCodes]);
   const incompleteRecordsCount = totalCount - completeRecordsCount;
+  const noPhotoCount = useMemo(() => {
+    return membersWithStatus.filter((m) => isEmailRegistered(m.email) && !hasProfilePhoto(m.email)).length;
+  }, [membersWithStatus, members, statuses]);
+  const noLicenseUploadCount = useMemo(() => {
+    return membersWithStatus.filter((m) => !getStatusForMember(m.id)?.license_document_path).length;
+  }, [membersWithStatus, statuses]);
+  const notRegisteredCount = membersWithStatus.filter((m) => !isEmailRegistered(m.email)).length;
   const filteredCount = filteredAndSortedMembers?.length || 0;
 
   return (
@@ -931,6 +939,21 @@ const ClubMembersDirectory = () => {
           className="hidden"
         />
 
+        {/* Alert summary */}
+        {membersWithStatus.length > 0 && (noPhotoCount > 0 || noLicenseUploadCount > 0 || notRegisteredCount > 0) && (
+          <div className="mb-4 rounded-lg border border-orange-300 bg-orange-50 px-3 py-2 text-sm text-orange-800 dark:bg-orange-950/20 dark:text-orange-300">
+            <div className="flex items-center gap-1.5 font-medium">
+              <AlertTriangle className="h-4 w-4" />
+              À relancer
+            </div>
+            <ul className="mt-1 list-disc pl-6">
+              {noPhotoCount > 0 && <li>{noPhotoCount} profil{noPhotoCount > 1 ? "s" : ""} sans photo</li>}
+              {noLicenseUploadCount > 0 && <li>{noLicenseUploadCount} licence{noLicenseUploadCount > 1 ? "s" : ""} non uploadée{noLicenseUploadCount > 1 ? "s" : ""}</li>}
+              {notRegisteredCount > 0 && <li>{notRegisteredCount} non inscrit{notRegisteredCount > 1 ? "s" : ""} à l'app</li>}
+            </ul>
+          </div>
+        )}
+
         {/* Dynamic stats bar */}
         {membersWithStatus.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 text-sm">
@@ -957,7 +980,7 @@ const ClubMembersDirectory = () => {
               onClick={() => setFilterNotRegistered(!filterNotRegistered)}
             >
               <Mail className="h-3 w-3 mr-1" />
-              {membersWithStatus.filter((m) => !isEmailRegistered(m.email)).length} non inscrits
+              {notRegisteredCount} non inscrits
             </Badge>
           </div>
         )}
