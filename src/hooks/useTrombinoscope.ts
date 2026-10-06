@@ -32,8 +32,8 @@ export const FISH_LEVELS: FishLevel[] = [
   { name: "Crabe",      min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",    label: "text-cyan-600",    bg: "bg-cyan-50",     dot: "bg-cyan-400", emoji: "🦀" },
   { name: "Méduse",     min: 8,  ring: "ring-red-500", shadow: "shadow-red-500/40", label: "text-red-700", bg: "bg-red-50", dot: "bg-red-500", emoji: "🪼" },
   { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500", emoji: "🐙" },
-  { name: "Murène",     min: 20, ring: "ring-blue-900", shadow: "shadow-blue-900/40", label: "text-blue-900", bg: "bg-blue-100", dot: "bg-blue-900", emoji: "🐍" },
-  { name: "Dauphin",     min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", emoji: "🐬" },
+  { name: "Dauphin",     min: 20, ring: "ring-blue-900", shadow: "shadow-blue-900/40", label: "text-blue-900", bg: "bg-blue-100", dot: "bg-blue-900", emoji: "🐬" },
+  { name: "Requin",      min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", emoji: "🦈" },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
