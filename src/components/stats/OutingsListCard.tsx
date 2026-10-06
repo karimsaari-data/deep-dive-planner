@@ -1,0 +1,116 @@
+import { useState } from "react";
+import { ListChecks } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatFirstName, formatLastName } from "@/lib/formatName";
+import type { OutingListItem } from "@/lib/outingsList";
+
+const TYPE_BADGE_CLASS: Record<string, string> = {
+  Mer: "bg-sky-100 text-sky-800 border-sky-200",
+  Fosse: "bg-indigo-100 text-indigo-800 border-indigo-200",
+  Piscine: "bg-cyan-100 text-cyan-800 border-cyan-200",
+  Étang: "bg-teal-100 text-teal-800 border-teal-200",
+  Dépollution: "bg-emerald-100 text-emerald-800 border-emerald-200",
+};
+
+const formatOrganizer = (name: string | null | undefined) => {
+  if (!name) return "—";
+  const [first, ...rest] = name.split(" ");
+  return `${formatFirstName(first)} ${formatLastName(rest.join(" "))}`.trim();
+};
+
+interface OutingsListCardProps {
+  outings: OutingListItem[] | undefined;
+  year: number;
+}
+
+const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
+  const [onlyEmpty, setOnlyEmpty] = useState(false);
+  const total = outings?.length ?? 0;
+  const emptyCount = outings?.filter((o) => o.participant_count === 0).length ?? 0;
+  const visible = onlyEmpty ? outings?.filter((o) => o.participant_count === 0) : outings;
+
+  return (
+    <Card className="shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ListChecks className="h-5 w-5 text-primary" />
+          Liste des sorties en {year}
+          {total > 0 && (
+            <Badge variant="secondary" className="ml-1">
+              {onlyEmpty ? `${visible?.length ?? 0} / ${total}` : total}
+            </Badge>
+          )}
+        </CardTitle>
+        {total > 0 && (
+          <div className="pt-2">
+            <Button
+              size="sm"
+              variant={onlyEmpty ? "default" : "outline"}
+              onClick={() => setOnlyEmpty(!onlyEmpty)}
+              aria-pressed={onlyEmpty}
+            >
+              0 participant ({emptyCount})
+            </Button>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
+        {!visible || visible.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            {onlyEmpty ? "Aucune sortie sans participant" : "Aucune sortie cette année"}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[110px]">Date</TableHead>
+                  <TableHead className="min-w-[180px]">Nom</TableHead>
+                  <TableHead className="min-w-[130px]">Encadrant</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-center">Participants</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visible.map((outing) => {
+                  const start = new Date(outing.date_time);
+                  const end = outing.end_date ? new Date(outing.end_date) : null;
+                  const isMultiDay = end && end.toDateString() !== start.toDateString();
+                  return (
+                    <TableRow key={outing.id}>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {start.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}
+                        {isMultiDay && (
+                          <span className="text-muted-foreground">
+                            {" "}→ {end!.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{outing.title}</TableCell>
+                      <TableCell className="text-sm">{formatOrganizer(outing.organizer_name)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={TYPE_BADGE_CLASS[outing.outing_type] ?? ""}>
+                          {outing.outing_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary" className="min-w-[28px]">
+                          {outing.participant_count}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default OutingsListCard;
