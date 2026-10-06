@@ -205,6 +205,10 @@ const ClubMembersDirectory = () => {
   const [filterIncomplete, setFilterIncomplete] = useState(false);
   const [filterNotRegistered, setFilterNotRegistered] = useState(false);
   const [filterLicenseActive, setFilterLicenseActive] = useState(false);
+  const [filterComplete, setFilterComplete] = useState(false);
+  const [filterRegistered, setFilterRegistered] = useState(false);
+  const [filterNoPhoto, setFilterNoPhoto] = useState(false);
+  const [filterNoLicenseUpload, setFilterNoLicenseUpload] = useState(false);
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
 
@@ -725,6 +729,18 @@ const ClubMembersDirectory = () => {
         if (!hasActiveLicense(member.id)) return false;
       }
 
+      // Filter complete dossiers only
+      if (filterComplete && !isMemberDossierComplete(member.id)) return false;
+
+      // Filter adhérents with an app account only
+      if (filterRegistered && !isEmailRegistered(member.email)) return false;
+
+      // Filter registered profiles without a photo
+      if (filterNoPhoto && !(isEmailRegistered(member.email) && !hasProfilePhoto(member.email))) return false;
+
+      // Filter members without an uploaded license document
+      if (filterNoLicenseUpload && getStatusForMember(member.id)?.license_document_path) return false;
+
       return true;
     }) || [];
 
@@ -765,7 +781,7 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, filterLicenseActive, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, filterLicenseActive, filterComplete, filterRegistered, filterNoPhoto, filterNoLicenseUpload, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
 
   const getRowClassName = (member: ClubMember) => {
     if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";
@@ -810,7 +826,25 @@ const ClubMembersDirectory = () => {
     return membersWithStatus.filter((m) => !getStatusForMember(m.id)?.license_document_path).length;
   }, [membersWithStatus, statuses]);
   const notRegisteredCount = membersWithStatus.filter((m) => !isEmailRegistered(m.email)).length;
+  const registeredCount = membersWithStatus.length - notRegisteredCount;
   const filteredCount = filteredAndSortedMembers?.length || 0;
+  const hasActiveFilter = filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive || filterComplete || filterRegistered || filterNoPhoto || filterNoLicenseUpload;
+
+  // Mutually exclusive pairs: complete/incomplete, registered/not registered
+  const toggleComplete = () => { setFilterComplete(!filterComplete); setFilterIncomplete(false); };
+  const toggleIncomplete = () => { setFilterIncomplete(!filterIncomplete); setFilterComplete(false); };
+  const toggleRegistered = () => { setFilterRegistered(!filterRegistered); setFilterNotRegistered(false); };
+  const toggleNotRegistered = () => { setFilterNotRegistered(!filterNotRegistered); setFilterRegistered(false); };
+  const resetFilters = () => {
+    setFilterEncadrant(false);
+    setFilterIncomplete(false);
+    setFilterNotRegistered(false);
+    setFilterLicenseActive(false);
+    setFilterComplete(false);
+    setFilterRegistered(false);
+    setFilterNoPhoto(false);
+    setFilterNoLicenseUpload(false);
+  };
 
   return (
     <Card className="shadow-card">
@@ -867,7 +901,7 @@ const ClubMembersDirectory = () => {
                 Encadrants
               </Button>
               <Button
-                onClick={() => setFilterIncomplete(!filterIncomplete)}
+                onClick={toggleIncomplete}
                 variant={filterIncomplete ? "default" : "outline"}
                 size="sm"
                 title="Filtrer les dossiers incomplets"
@@ -876,7 +910,7 @@ const ClubMembersDirectory = () => {
                 Incomplets
               </Button>
               <Button
-                onClick={() => setFilterNotRegistered(!filterNotRegistered)}
+                onClick={toggleNotRegistered}
                 variant={filterNotRegistered ? "default" : "outline"}
                 size="sm"
                 title="Filtrer les adhérents sans compte app"
@@ -947,9 +981,27 @@ const ClubMembersDirectory = () => {
               À relancer
             </div>
             <ul className="mt-1 list-disc pl-6">
-              {noPhotoCount > 0 && <li>{noPhotoCount} profil{noPhotoCount > 1 ? "s" : ""} sans photo</li>}
-              {noLicenseUploadCount > 0 && <li>{noLicenseUploadCount} licence{noLicenseUploadCount > 1 ? "s" : ""} non uploadée{noLicenseUploadCount > 1 ? "s" : ""}</li>}
-              {notRegisteredCount > 0 && <li>{notRegisteredCount} non inscrit{notRegisteredCount > 1 ? "s" : ""} à l'app</li>}
+              {noPhotoCount > 0 && (
+                <li>
+                  <button type="button" onClick={() => setFilterNoPhoto(!filterNoPhoto)} className={cn("text-left underline-offset-2 hover:underline", filterNoPhoto && "font-bold underline")}>
+                    {noPhotoCount} profil{noPhotoCount > 1 ? "s" : ""} sans photo
+                  </button>
+                </li>
+              )}
+              {noLicenseUploadCount > 0 && (
+                <li>
+                  <button type="button" onClick={() => setFilterNoLicenseUpload(!filterNoLicenseUpload)} className={cn("text-left underline-offset-2 hover:underline", filterNoLicenseUpload && "font-bold underline")}>
+                    {noLicenseUploadCount} licence{noLicenseUploadCount > 1 ? "s" : ""} non uploadée{noLicenseUploadCount > 1 ? "s" : ""}
+                  </button>
+                </li>
+              )}
+              {notRegisteredCount > 0 && (
+                <li>
+                  <button type="button" onClick={toggleNotRegistered} className={cn("text-left underline-offset-2 hover:underline", filterNotRegistered && "font-bold underline")}>
+                    {notRegisteredCount} non inscrit{notRegisteredCount > 1 ? "s" : ""} à l'app
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         )}
@@ -957,27 +1009,48 @@ const ClubMembersDirectory = () => {
         {/* Dynamic stats bar */}
         {membersWithStatus.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 text-sm">
-            <Badge variant="secondary" className="text-xs">
-              {(filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive) ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
+            <Badge
+              variant="secondary"
+              className={cn("text-xs", hasActiveFilter && "cursor-pointer")}
+              onClick={hasActiveFilter ? resetFilters : undefined}
+              title={hasActiveFilter ? "Réinitialiser les filtres" : undefined}
+            >
+              {hasActiveFilter ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
             </Badge>
-            <Badge variant="secondary" className={cn("text-xs", filterEncadrant && "bg-primary text-primary-foreground")}>
+            <Badge
+              variant="secondary"
+              className={cn("text-xs cursor-pointer", filterEncadrant && "bg-primary text-primary-foreground")}
+              onClick={() => setFilterEncadrant(!filterEncadrant)}
+            >
               <GraduationCap className="h-3 w-3 mr-1" />
               {encadrantCount} encadrants
             </Badge>
-            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+            <Badge
+              variant="secondary"
+              className={cn("text-xs cursor-pointer bg-green-100 text-green-700", filterComplete && "bg-primary text-primary-foreground")}
+              onClick={toggleComplete}
+            >
               {completeRecordsCount} dossiers complets
             </Badge>
-            <Badge variant="secondary" className={cn("text-xs bg-orange-100 text-orange-700", filterIncomplete && "bg-primary text-primary-foreground")}>
+            <Badge
+              variant="secondary"
+              className={cn("text-xs cursor-pointer bg-orange-100 text-orange-700", filterIncomplete && "bg-primary text-primary-foreground")}
+              onClick={toggleIncomplete}
+            >
               <AlertCircle className="h-3 w-3 mr-1" />
               {incompleteRecordsCount} incomplets
             </Badge>
-            <Badge variant="secondary" className="text-xs text-green-600">
-              {membersWithStatus.filter((m) => isEmailRegistered(m.email)).length} inscrits app
+            <Badge
+              variant="secondary"
+              className={cn("text-xs cursor-pointer text-green-600", filterRegistered && "bg-primary text-primary-foreground")}
+              onClick={toggleRegistered}
+            >
+              {registeredCount} inscrits app
             </Badge>
             <Badge
               variant="secondary"
               className={cn("text-xs cursor-pointer text-muted-foreground", filterNotRegistered && "bg-primary text-primary-foreground")}
-              onClick={() => setFilterNotRegistered(!filterNotRegistered)}
+              onClick={toggleNotRegistered}
             >
               <Mail className="h-3 w-3 mr-1" />
               {notRegisteredCount} non inscrits
