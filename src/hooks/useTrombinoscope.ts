@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Moon, Fish, Waves, Shell, Trophy, type LucideIcon } from "lucide-react";
+import { Moon, Fish, Waves, Shell, type LucideIcon } from "lucide-react";
 
 export interface TrombiMember {
   id: string;
@@ -17,13 +17,14 @@ export interface TrombiMember {
   outings_count: number;
 }
 
-// Lucide has no octopus/snake icon: emoji wrapped to match the LucideIcon className API
+// Lucide has no octopus/snake/dolphin icon: emoji wrapped to match the LucideIcon className API
 const emojiIcon = (emoji: string, label: string) =>
   (({ className }: { className?: string }) =>
     createElement("span", { className: `inline-flex items-center justify-center leading-none ${className ?? ""}`, style: { fontSize: "1rem" }, role: "img", "aria-label": label }, emoji)) as unknown as LucideIcon;
 
 const OctopusIcon = emojiIcon("🐙", "Poulpe");
 const SnakeIcon = emojiIcon("🐍", "Murène");
+const DolphinIcon = emojiIcon("🐬", "Dauphin");
 
 export interface FishLevel {
   name: string;
@@ -44,7 +45,7 @@ export const FISH_LEVELS: FishLevel[] = [
   { name: "Rouget",     min: 8,  ring: "ring-red-500", shadow: "shadow-red-500/40", label: "text-red-700", bg: "bg-red-50", dot: "bg-red-500", solid: "bg-red-600 text-white", icon: Shell },
   { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500", solid: "bg-fuchsia-600 text-white", icon: OctopusIcon },
   { name: "Murène",     min: 20, ring: "ring-blue-900", shadow: "shadow-blue-900/40", label: "text-blue-900", bg: "bg-blue-100", dot: "bg-blue-900", solid: "bg-blue-900 text-white", icon: SnakeIcon },
-  { name: "Mérou",       min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", solid: "bg-amber-500 text-white", icon: Trophy },
+  { name: "Dauphin",     min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", solid: "bg-amber-500 text-white", icon: DolphinIcon },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
