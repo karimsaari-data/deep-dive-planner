@@ -41,9 +41,9 @@ export const FISH_LEVELS: FishLevel[] = [
   { name: "Inactif",    min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",    label: "text-gray-500",    bg: "bg-gray-100",    dot: "bg-gray-300", solid: "bg-gray-400 text-white", icon: Moon },
   { name: "Castagnole", min: 1,  ring: "ring-blue-400",    shadow: "shadow-blue-400/40",    label: "text-blue-600",    bg: "bg-blue-50",     dot: "bg-blue-400", solid: "bg-blue-500 text-white", icon: Fish },
   { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",    label: "text-cyan-600",    bg: "bg-cyan-50",     dot: "bg-cyan-400", solid: "bg-cyan-600 text-white", icon: Waves },
-  { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500", solid: "bg-orange-500 text-white", icon: Shell },
+  { name: "Rouget",     min: 8,  ring: "ring-red-500", shadow: "shadow-red-500/40", label: "text-red-700", bg: "bg-red-50", dot: "bg-red-500", solid: "bg-red-600 text-white", icon: Shell },
   { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500", solid: "bg-fuchsia-600 text-white", icon: OctopusIcon },
-  { name: "Murène",     min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500", solid: "bg-red-600 text-white", icon: SnakeIcon },
+  { name: "Murène",     min: 20, ring: "ring-blue-900", shadow: "shadow-blue-900/40", label: "text-blue-900", bg: "bg-blue-100", dot: "bg-blue-900", solid: "bg-blue-900 text-white", icon: SnakeIcon },
   { name: "Mérou",       min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", solid: "bg-amber-500 text-white", icon: Trophy },
 ];
 
