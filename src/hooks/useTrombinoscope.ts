@@ -1,6 +1,7 @@
+import { createElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Moon, Fish, Waves, Shell, Anchor, Zap, Trophy, type LucideIcon } from "lucide-react";
+import { Moon, Fish, Waves, Shell, Zap, Trophy, type LucideIcon } from "lucide-react";
 
 export interface TrombiMember {
   id: string;
@@ -15,6 +16,10 @@ export interface TrombiMember {
   license_number: string | null;
   outings_count: number;
 }
+
+// Lucide has no octopus icon: emoji wrapped to match the LucideIcon className API
+const OctopusIcon = (({ className }: { className?: string }) =>
+  createElement("span", { className: `inline-flex items-center justify-center leading-none ${className ?? ""}`, style: { fontSize: "1rem" }, role: "img", "aria-label": "Poulpe" }, "🐙")) as unknown as LucideIcon;
 
 export interface FishLevel {
   name: string;
@@ -33,7 +38,7 @@ export const FISH_LEVELS: FishLevel[] = [
   { name: "Castagnole", min: 1,  ring: "ring-blue-400",    shadow: "shadow-blue-400/40",    label: "text-blue-600",    bg: "bg-blue-50",     dot: "bg-blue-400", solid: "bg-blue-500 text-white", icon: Fish },
   { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",    label: "text-cyan-600",    bg: "bg-cyan-50",     dot: "bg-cyan-400", solid: "bg-cyan-600 text-white", icon: Waves },
   { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500", solid: "bg-orange-500 text-white", icon: Shell },
-  { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500", solid: "bg-fuchsia-600 text-white", icon: Anchor },
+  { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500", solid: "bg-fuchsia-600 text-white", icon: OctopusIcon },
   { name: "Barracuda",  min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500", solid: "bg-red-600 text-white", icon: Zap },
   { name: "Mérou",       min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", solid: "bg-amber-500 text-white", icon: Trophy },
 ];
