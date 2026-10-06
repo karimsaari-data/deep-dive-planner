@@ -91,10 +91,10 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
         </Avatar>
         {/* Fish level pill: icon readable without relying on ring color */}
         <span
-          className={`absolute -bottom-1 -right-1 z-20 flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full border-2 border-background shadow-md ${fish.solid}`}
+          className={`absolute -bottom-1 -right-1 z-20 flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full border-2 border-background shadow-md bg-background`}
           aria-label={fish.name}
         >
-          <fish.icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
+          <span className="text-sm md:text-base leading-none" aria-hidden="true">{fish.emoji}</span>
         </span>
       </div>
 
@@ -309,8 +309,8 @@ const Trombinoscope = () => {
                   aria-pressed={active}
                   className={`flex items-center gap-2 rounded-lg border p-2 text-left transition-all ${level.bg} ${active ? `ring-2 ${level.ring} border-transparent` : "border-transparent hover:shadow-sm"} ${levelFilter && !active ? "opacity-50" : ""}`}
                 >
-                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${level.solid}`}>
-                    <level.icon className="h-4 w-4" />
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background shadow-sm`}>
+                    <span className="text-xl leading-none" aria-hidden="true">{level.emoji}</span>
                   </span>
                   <span className="min-w-0">
                     <span className={`block text-xs font-bold leading-tight ${level.label}`}>{level.name}</span>
