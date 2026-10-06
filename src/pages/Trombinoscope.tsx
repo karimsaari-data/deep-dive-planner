@@ -89,6 +89,13 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
             {initials}
           </AvatarFallback>
         </Avatar>
+        {/* Fish level pill: icon readable without relying on ring color */}
+        <span
+          className={`absolute -bottom-1 -right-1 z-20 flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full border-2 border-background shadow-md ${fish.solid}`}
+          aria-label={fish.name}
+        >
+          <fish.icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
+        </span>
       </div>
 
       <p className="mt-2 text-xs md:text-sm font-medium text-foreground truncate w-full">
@@ -124,9 +131,9 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
         </Badge>
       )}
 
-      {/* Fish level badge — shown on desktop for all, hidden on mobile */}
+      {/* Fish level badge */}
       {member.outings_count > 0 && (
-        <span className={`hidden md:inline-flex mt-1 text-[10px] px-1.5 py-0 rounded-full font-semibold ${fish.label} ${fish.bg}`}>
+        <span className={`inline-flex items-center gap-1 mt-1 text-[10px] px-1.5 py-0 rounded-full font-semibold ${fish.label} ${fish.bg}`}>
           {fish.name} · {member.outings_count}
         </span>
       )}
@@ -185,7 +192,8 @@ const Section = ({
   );
 };
 
-const filterMembers = (members: TrombiMember[], query: string): TrombiMember[] => {
+const filterMembers = (members: TrombiMember[], query: string, levelName: string | null = null): TrombiMember[] => {
+  if (levelName) members = members.filter((m) => getFishLevel(m.outings_count).name === levelName);
   if (!query) return members;
   const q = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return members.filter((m) => {
@@ -200,6 +208,7 @@ const Trombinoscope = () => {
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
   const [search, setSearch] = useState("");
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
+  const [levelFilter, setLevelFilter] = useState<string | null>(null);
 
   const apneaLevelsByFederation = useMemo(() => {
     if (!apneaLevels) return {};
@@ -211,10 +220,22 @@ const Trombinoscope = () => {
     }, {} as Record<string, typeof apneaLevels>);
   }, [apneaLevels]);
 
-  const bureau = filterMembers(data?.bureau || [], search);
-  const encadrants = filterMembers(data?.encadrants || [], search);
-  const membres = filterMembers(data?.membres || [], search);
+  const bureau = filterMembers(data?.bureau || [], search, levelFilter);
+  const encadrants = filterMembers(data?.encadrants || [], search, levelFilter);
+  const membres = filterMembers(data?.membres || [], search, levelFilter);
   const totalFiltered = bureau.length + encadrants.length + membres.length;
+
+  // Members per fish level (unique, bureau/encadrants overlap)
+  const countByLevel = useMemo(() => {
+    const unique = new Map<string, TrombiMember>();
+    [...(data?.bureau || []), ...(data?.encadrants || []), ...(data?.membres || [])].forEach((m) => unique.set(m.id, m));
+    const counts: Record<string, number> = {};
+    unique.forEach((m) => {
+      const name = getFishLevel(m.outings_count).name;
+      counts[name] = (counts[name] || 0) + 1;
+    });
+    return counts;
+  }, [data]);
 
   return (
     <Layout>
@@ -263,9 +284,49 @@ const Trombinoscope = () => {
           )}
         </div>
 
-        {search && !isLoading && (
+        {/* Fish level legend — click to filter */}
+        <div className="mb-6 rounded-xl border bg-card p-3 md:p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Niveaux — sorties {new Date().getFullYear()}
+            </p>
+            {levelFilter && (
+              <button type="button" className="text-xs text-primary hover:underline" onClick={() => setLevelFilter(null)}>
+                Tout afficher
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+            {FISH_LEVELS.map((level, i) => {
+              const next = FISH_LEVELS[i + 1];
+              const range = next ? (next.min - 1 === level.min ? `${level.min}` : `${level.min}–${next.min - 1}`) : `${level.min}+`;
+              const active = levelFilter === level.name;
+              return (
+                <button
+                  key={level.name}
+                  type="button"
+                  onClick={() => setLevelFilter(active ? null : level.name)}
+                  aria-pressed={active}
+                  className={`flex items-center gap-2 rounded-lg border p-2 text-left transition-all ${level.bg} ${active ? `ring-2 ${level.ring} border-transparent` : "border-transparent hover:shadow-sm"} ${levelFilter && !active ? "opacity-50" : ""}`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${level.solid}`}>
+                    <level.icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={`block text-xs font-bold leading-tight ${level.label}`}>{level.name}</span>
+                    <span className="block text-[10px] text-muted-foreground leading-tight">
+                      {range} sortie{range !== "1" && range !== "0" ? "s" : ""} · {countByLevel[level.name] || 0} 👤
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {(search || levelFilter) && !isLoading && (
           <p className="mb-4 text-sm text-muted-foreground">
-            {totalFiltered} résultat{totalFiltered !== 1 ? "s" : ""} pour « {search} »
+            {totalFiltered} résultat{totalFiltered !== 1 ? "s" : ""}{levelFilter ? ` · ${levelFilter}` : ""}{search ? ` pour « ${search} »` : ""}
           </p>
         )}
 
@@ -303,29 +364,11 @@ const Trombinoscope = () => {
               onMemberClick={setSelectedMember}
             />
 
-            {search && totalFiltered === 0 && (
+            {(search || levelFilter) && totalFiltered === 0 && (
               <p className="text-center text-muted-foreground py-12">Aucun membre trouvé.</p>
             )}
           </>
         )}
-      </div>
-
-      {/* Fish level legend */}
-      <div className="container mx-auto px-3 pb-8 md:px-4">
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Niveaux — sorties de l'année</p>
-          <div className="flex flex-wrap gap-3">
-            {FISH_LEVELS.map((level) => (
-              <div key={level.name} className="flex items-center gap-1.5">
-                <span className={`h-3.5 w-3.5 rounded-full ${level.dot}`} />
-                <span className={`text-xs font-medium ${level.label}`}>{level.name}</span>
-                <span className="text-[10px] text-muted-foreground">
-                  {level.min === 0 ? "0" : level.name === "Mérou" ? `${level.min}+` : `${level.min}–${FISH_LEVELS[FISH_LEVELS.indexOf(level) + 1].min - 1}`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       <ContactDialog

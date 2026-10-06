@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Moon, Fish, Waves, Shell, Anchor, Zap, Trophy, type LucideIcon } from "lucide-react";
 
 export interface TrombiMember {
   id: string;
@@ -23,16 +24,18 @@ export interface FishLevel {
   label: string;      // color for badge text
   bg: string;         // badge bg
   dot: string;        // filled dot color for legend
+  solid: string;      // solid pill bg (bg + text-white) for the avatar badge
+  icon: LucideIcon;   // level icon, readable without relying on color
 }
 
 export const FISH_LEVELS: FishLevel[] = [
-  { name: "Inactif",    min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",    label: "text-gray-500",    bg: "bg-gray-100",    dot: "bg-gray-300"    },
-  { name: "Castagnole", min: 1,  ring: "ring-blue-400",    shadow: "shadow-blue-400/40",    label: "text-blue-600",    bg: "bg-blue-50",     dot: "bg-blue-400"    },
-  { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",    label: "text-cyan-600",    bg: "bg-cyan-50",     dot: "bg-cyan-400"    },
-  { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500"  },
-  { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500" },
-  { name: "Barracuda",  min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500"     },
-  { name: "Mérou",       min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400"   },
+  { name: "Inactif",    min: 0,  ring: "ring-gray-300",    shadow: "shadow-gray-300/40",    label: "text-gray-500",    bg: "bg-gray-100",    dot: "bg-gray-300", solid: "bg-gray-400 text-white", icon: Moon },
+  { name: "Castagnole", min: 1,  ring: "ring-blue-400",    shadow: "shadow-blue-400/40",    label: "text-blue-600",    bg: "bg-blue-50",     dot: "bg-blue-400", solid: "bg-blue-500 text-white", icon: Fish },
+  { name: "Girelle",    min: 4,  ring: "ring-cyan-400",    shadow: "shadow-cyan-400/40",    label: "text-cyan-600",    bg: "bg-cyan-50",     dot: "bg-cyan-400", solid: "bg-cyan-600 text-white", icon: Waves },
+  { name: "Rouget",     min: 8,  ring: "ring-orange-500",  shadow: "shadow-orange-500/40",  label: "text-orange-600",  bg: "bg-orange-50",   dot: "bg-orange-500", solid: "bg-orange-500 text-white", icon: Shell },
+  { name: "Poulpe",     min: 13, ring: "ring-fuchsia-500", shadow: "shadow-fuchsia-500/40", label: "text-fuchsia-700", bg: "bg-fuchsia-50",  dot: "bg-fuchsia-500", solid: "bg-fuchsia-600 text-white", icon: Anchor },
+  { name: "Barracuda",  min: 20, ring: "ring-red-500",     shadow: "shadow-red-500/40",     label: "text-red-700",     bg: "bg-red-50",      dot: "bg-red-500", solid: "bg-red-600 text-white", icon: Zap },
+  { name: "Mérou",       min: 30, ring: "ring-amber-400",   shadow: "shadow-amber-400/40",   label: "text-amber-700",   bg: "bg-amber-50",    dot: "bg-amber-400", solid: "bg-amber-500 text-white", icon: Trophy },
 ];
 
 export const getFishLevel = (count: number): FishLevel => {
