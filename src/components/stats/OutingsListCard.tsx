@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ListChecks } from "lucide-react";
+import { Check, ListChecks } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,39 @@ const formatOrganizer = (name: string | null | undefined) => {
   if (!name) return "—";
   const [first, ...rest] = name.split(" ");
   return `${formatFirstName(first)} ${formatLastName(rest.join(" "))}`.trim();
+};
+
+// Inscrits (réservations confirmées + participants historiques) : clic = liste des noms
+const RegistrantsPopover = ({ outing }: { outing: OutingListItem }) => {
+  const registrants = outing.registrants ?? [];
+  if (registrants.length === 0) {
+    return <Badge variant="outline" className="min-w-[28px] text-muted-foreground">0</Badge>;
+  }
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label={`Voir les ${registrants.length} inscrits`}>
+          <Badge variant="outline" className="min-w-[28px] cursor-pointer hover:bg-accent">
+            {registrants.length}
+          </Badge>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3" align="center">
+        <p className="mb-2 text-sm font-semibold">
+          {outing.title} · {registrants.length} inscrit{registrants.length > 1 ? "s" : ""}
+        </p>
+        <ul className="max-h-64 space-y-1 overflow-y-auto text-sm">
+          {registrants.map((r, i) => (
+            <li key={`${r.name}-${i}`} className="flex items-center justify-between gap-2">
+              <span className="truncate">{r.name}</span>
+              {r.present && <Check className="h-3.5 w-3.5 shrink-0 text-green-600" aria-label="Présent" />}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[10px] text-muted-foreground">✓ = présent</p>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 interface OutingsListCardProps {
@@ -71,6 +105,7 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
                   <TableHead className="min-w-[180px]">Nom</TableHead>
                   <TableHead className="min-w-[130px]">Encadrant</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead className="text-center">Inscrits</TableHead>
                   <TableHead className="text-center">Participants</TableHead>
                 </TableRow>
               </TableHeader>
@@ -95,6 +130,9 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
                         <Badge variant="outline" className={TYPE_BADGE_CLASS[outing.outing_type] ?? ""}>
                           {outing.outing_type}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <RegistrantsPopover outing={outing} />
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="secondary" className="min-w-[28px]">
