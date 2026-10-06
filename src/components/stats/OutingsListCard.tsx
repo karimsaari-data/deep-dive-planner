@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, ListChecks } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import type { OutingListItem } from "@/lib/outingsList";
@@ -15,6 +16,8 @@ const TYPE_BADGE_CLASS: Record<string, string> = {
   Étang: "bg-teal-100 text-teal-800 border-teal-200",
   Dépollution: "bg-emerald-100 text-emerald-800 border-emerald-200",
 };
+
+const ALL_ORGANIZERS = "__all__";
 
 const formatOrganizer = (name: string | null | undefined) => {
   if (!name) return "—";
@@ -62,9 +65,25 @@ interface OutingsListCardProps {
 
 const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
   const [onlyEmpty, setOnlyEmpty] = useState(false);
+  const [organizer, setOrganizer] = useState<string>(ALL_ORGANIZERS);
   const total = outings?.length ?? 0;
   const emptyCount = outings?.filter((o) => o.participant_count === 0).length ?? 0;
-  const visible = onlyEmpty ? outings?.filter((o) => o.participant_count === 0) : outings;
+
+  // Distinct encadrants with their number of outings, most active first
+  const organizerOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    (outings ?? []).forEach((o) => {
+      if (o.organizer_name) counts.set(o.organizer_name, (counts.get(o.organizer_name) ?? 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
+  }, [outings]);
+
+  const visible = outings?.filter(
+    (o) =>
+      (!onlyEmpty || o.participant_count === 0) &&
+      (organizer === ALL_ORGANIZERS || o.organizer_name === organizer)
+  );
+  const isFiltered = onlyEmpty || organizer !== ALL_ORGANIZERS;
 
   return (
     <Card className="shadow-card">
@@ -74,12 +93,25 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
           Liste des sorties en {year}
           {total > 0 && (
             <Badge variant="secondary" className="ml-1">
-              {onlyEmpty ? `${visible?.length ?? 0} / ${total}` : total}
+              {isFiltered ? `${visible?.length ?? 0} / ${total}` : total}
             </Badge>
           )}
         </CardTitle>
         {total > 0 && (
-          <div className="pt-2">
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            <Select value={organizer} onValueChange={setOrganizer}>
+              <SelectTrigger className="h-9 w-auto min-w-[160px] max-w-full" aria-label="Filtrer par encadrant">
+                <SelectValue placeholder="Encadrant" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_ORGANIZERS}>Tous les encadrants</SelectItem>
+                {organizerOptions.map(([name, count]) => (
+                  <SelectItem key={name} value={name}>
+                    {formatOrganizer(name)} ({count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button
               size="sm"
               variant={onlyEmpty ? "default" : "outline"}
@@ -94,7 +126,7 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
       <CardContent>
         {!visible || visible.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            {onlyEmpty ? "Aucune sortie sans participant" : "Aucune sortie cette année"}
+            {isFiltered ? "Aucune sortie pour ces filtres" : "Aucune sortie cette année"}
           </p>
         ) : (
           <div className="overflow-x-auto">
