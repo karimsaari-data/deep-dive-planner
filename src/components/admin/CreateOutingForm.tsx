@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useCreateOuting, OutingType } from "@/hooks/useOutings";
+import { useMembersForEncadrant } from "@/hooks/useMembersForEncadrant";
 import { useLocations } from "@/hooks/useLocations";
 import { useBoats } from "@/hooks/useBoats";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,6 +42,7 @@ const outingSchema = z.object({
   outing_type: z.enum(["Fosse", "Mer", "Piscine", "Étang", "Dépollution"]),
   max_participants: z.number().min(1).max(100),
   is_staff_only: z.boolean().default(false),
+  is_invite_only: z.boolean().default(false),
   carpool_option: z.enum(["none", "driver", "passenger"]).default("none"),
   carpool_seats: z.number().min(1).max(8).optional(),
   dive_mode: z.enum(["boat", "shore"]).optional(),
@@ -76,6 +78,10 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
   const [selectedCoInstructors, setSelectedCoInstructors] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
   const [coInstructorSearch, setCoInstructorSearch] = useState("");
   const [coInstructorPickerOpen, setCoInstructorPickerOpen] = useState(false);
+  const [selectedInvitees, setSelectedInvitees] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
+  const [inviteeSearch, setInviteeSearch] = useState("");
+  const [inviteePickerOpen, setInviteePickerOpen] = useState(false);
+  const { data: clubMembers } = useMembersForEncadrant();
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
@@ -143,6 +149,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
       outing_type: "Mer",
       max_participants: 10,
       is_staff_only: false,
+      is_invite_only: false,
       carpool_option: "none",
       carpool_seats: 1,
       dive_mode: undefined,
@@ -325,6 +332,12 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
         max_participants: data.max_participants,
         organizer_id: user?.id,
         is_staff_only: data.is_staff_only,
+        is_invite_only: data.is_invite_only,
+        participant_ids: data.is_invite_only
+          ? selectedInvitees
+              .map((m) => m.id)
+              .filter((id) => !selectedCoInstructors.some((c) => c.id === id))
+          : undefined,
         carpool_option: data.carpool_option,
         carpool_seats: data.carpool_seats,
         dive_mode: isNaturalEnvironment ? data.dive_mode : undefined,
@@ -350,6 +363,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
               );
             }
             setSelectedCoInstructors([]);
+            setSelectedInvitees([]);
             setCoverImageUrl(null);
             setCreatedOutingId(newOuting.id);
             setShowShareDialog(true);
@@ -939,6 +953,89 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {/* Sortie sur invitation */}
+            <FormField
+              control={form.control}
+              name="is_invite_only"
+              render={({ field }) => (
+                <FormItem className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                  <div className="flex flex-row items-center justify-between">
+                    <div className="space-y-0.5">
+                      <FormLabel className="flex items-center gap-2 text-base">
+                        <Users className="h-4 w-4 text-primary" />
+                        Sortie sur invitation
+                      </FormLabel>
+                      <FormDescription>
+                        Les participants choisis sont inscrits d'office. Les autres membres ne peuvent pas s'inscrire.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </div>
+                  {field.value && (
+                    <div className="space-y-3">
+                      {selectedInvitees.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedInvitees.map((m) => (
+                            <span key={m.id} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
+                              {formatFullName(m.first_name, m.last_name)}
+                              <button type="button" onClick={() => setSelectedInvitees((prev) => prev.filter((c) => c.id !== m.id))}>
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <Popover open={inviteePickerOpen} onOpenChange={setInviteePickerOpen}>
+                        <PopoverTrigger asChild>
+                          <Button type="button" variant="outline" size="sm" className="w-full">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Ajouter un participant
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 p-2" align="start">
+                          <Input
+                            placeholder="Rechercher..."
+                            value={inviteeSearch}
+                            onChange={(e) => setInviteeSearch(e.target.value)}
+                            className="mb-2"
+                            autoFocus
+                          />
+                          <div className="max-h-48 overflow-y-auto space-y-1">
+                            {(clubMembers ?? [])
+                              .filter(
+                                (m) =>
+                                  m.id !== user?.id &&
+                                  !selectedInvitees.some((c) => c.id === m.id) &&
+                                  (inviteeSearch === "" ||
+                                    `${m.first_name} ${m.last_name}`.toLowerCase().includes(inviteeSearch.toLowerCase()))
+                              )
+                              .map((m) => (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted"
+                                  onClick={() => {
+                                    setSelectedInvitees((prev) => [...prev, m]);
+                                    setInviteeSearch("");
+                                  }}
+                                >
+                                  {formatFullName(m.first_name, m.last_name)}
+                                </button>
+                              ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedInvitees.length} invité(s) + organisateur. La capacité est ajustée automatiquement.
+                      </p>
+                    </div>
+                  )}
                 </FormItem>
               )}
             />
