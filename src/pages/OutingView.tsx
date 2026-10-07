@@ -314,6 +314,9 @@ const OutingView = () => {
                 {outing.is_staff_only && (
                   <Badge className="bg-amber-500 text-white">PRIVÉ STAFF</Badge>
                 )}
+                {outing.is_invite_only && (
+                  <Badge className="bg-violet-600 text-white">SUR INVITATION</Badge>
+                )}
                 {isPast && <Badge variant="outline" className="bg-background/80">Terminée</Badge>}
                 {isFull && !isPast && <Badge variant="destructive">Complet</Badge>}
               </div>
@@ -552,6 +555,10 @@ const OutingView = () => {
                       )}
                     </div>
                   </div>
+                ) : outing.is_invite_only ? (
+                  <p className="text-sm text-muted-foreground">
+                    Sortie sur invitation : les inscriptions sont fermées.
+                  </p>
                 ) : (
                   <div className="space-y-6">
                     {/* Carpool options */}

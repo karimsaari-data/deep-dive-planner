@@ -61,6 +61,7 @@ export interface Outing {
   is_deleted?: boolean;
   is_archived?: boolean;
   is_staff_only?: boolean;
+  is_invite_only?: boolean;
   is_poss_locked?: boolean;
   poss_path?: string | null;
   poss_generated_at?: string | null;
@@ -400,9 +401,13 @@ export const useCreateReservation = () => {
       // Check current confirmed count
       const { data: outing } = await supabase
         .from("outings")
-        .select("max_participants")
+        .select("max_participants, is_invite_only, organizer_id")
         .eq("id", outingId)
         .single();
+
+      if (outing?.is_invite_only && outing.organizer_id !== user.id && !existingReservation) {
+        throw new Error("Cette sortie est sur invitation uniquement");
+      }
 
       const { count } = await supabase
         .from("reservations")
@@ -672,6 +677,8 @@ export const useCreateOuting = () => {
       max_participants: number;
       organizer_id?: string;
       is_staff_only?: boolean;
+      is_invite_only?: boolean;
+      participant_ids?: string[];
       carpool_option?: CarpoolOption;
       carpool_seats?: number;
       dive_mode?: "boat" | "shore";
@@ -694,6 +701,8 @@ export const useCreateOuting = () => {
           p_max_participants: outing.max_participants,
           p_organizer_id: outing.organizer_id,
           p_is_staff_only: outing.is_staff_only ?? false,
+          p_is_invite_only: outing.is_invite_only ?? false,
+          p_participant_ids: outing.participant_ids ?? null,
           p_carpool_option: outing.carpool_option ?? "none",
           p_carpool_seats: outing.carpool_seats ?? 1,
           p_dive_mode: outing.dive_mode ?? null,

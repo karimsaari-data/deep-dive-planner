@@ -163,6 +163,11 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
               PRIVÉ STAFF
             </Badge>
           )}
+          {outing.is_invite_only && (
+            <Badge className="bg-violet-600 text-white text-xs shadow-lg">
+              SUR INVITATION
+            </Badge>
+          )}
           {outing.dive_mode === "boat" && (
             <Badge className="bg-sky-700 text-white text-xs shadow-lg gap-1">
               <Ship className="h-3 w-3" />
@@ -408,6 +413,10 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
                 Annuler mon inscription
               </Button>
             </div>
+          ) : outing.is_invite_only ? (
+            <p className="w-full text-center text-sm text-muted-foreground">
+              Sortie sur invitation : inscriptions fermées
+            </p>
           ) : (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
