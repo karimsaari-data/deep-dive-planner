@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode, FileText, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode, FileText, Upload, AlertTriangle, CheckCircle2, GraduationCap } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { useProfileDirectory } from "@/hooks/useProfileDirectory";
 import { useOwnLicense } from "@/hooks/useOwnLicense";
+import { useOwnApneaLevel } from "@/hooks/useOwnApneaLevel";
+import { useApneaLevels } from "@/hooks/useApneaLevels";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCurrentSeasonYear, getSeasonLabel } from "@/hooks/useMembershipYearlyStatus";
 import { parseLicensePdf } from "@/lib/parseLicensePdf";
 import { supabase } from "@/integrations/supabase/client";
@@ -119,6 +122,53 @@ const Profile = () => {
       setParsingLicense(false);
     }
   };
+
+  // Niveau d'apnée de la saison (carte de niveau)
+  const { levelStatus, saveLevel } = useOwnApneaLevel(currentSeason, directoryProfile?.id, user?.email);
+  const { data: apneaLevels } = useApneaLevels();
+  const levelCardInputRef = useRef<HTMLInputElement>(null);
+  const [levelDraft, setLevelDraft] = useState<{ file: File; level: string } | null>(null);
+
+  const handleLevelCardSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image ou un PDF");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Le fichier doit faire moins de 5MB");
+      return;
+    }
+    setLevelDraft({ file, level: directoryProfile?.apnea_level ?? "" });
+  };
+
+  const handleLevelConfirm = () => {
+    if (!levelDraft?.level) {
+      toast.error("Sélectionnez votre niveau");
+      return;
+    }
+    saveLevel.mutate(levelDraft, { onSuccess: () => setLevelDraft(null) });
+  };
+
+  const handleViewLevelCard = async () => {
+    if (!levelStatus?.level_card_path) return;
+    const { data, error } = await supabase.storage
+      .from("licenses")
+      .createSignedUrl(levelStatus.level_card_path, 60);
+    if (error || !data) {
+      toast.error("Impossible d'ouvrir le document");
+      return;
+    }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const apneaLevelsByFederation = (apneaLevels ?? []).reduce((acc, level) => {
+    const key = level.federation || "Autres";
+    (acc[key] ??= []).push(level);
+    return acc;
+  }, {} as Record<string, NonNullable<typeof apneaLevels>>);
 
   const handleLicenseConfirm = () => {
     if (!licenseDraft || !licenseDraft.licenseNumber || !licenseDraft.expiryDate) {
@@ -495,6 +545,75 @@ const Profile = () => {
                   <p className="text-xs text-muted-foreground mt-2">
                     Ces informations sont gérées par l'administration du club.
                   </p>
+                </div>
+              )}
+
+              {/* Niveau d'apnée : carte de niveau */}
+              {directoryProfile && (
+                <div className="mb-6 rounded-lg border border-border p-4 space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4 text-primary" />
+                    Mon niveau d'apnée {getSeasonLabel(currentSeason)}
+                  </h4>
+
+                  {levelDraft ? (
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Carte « {levelDraft.file.name} » — choisissez le niveau indiqué sur la carte.
+                      </p>
+                      <Select value={levelDraft.level} onValueChange={(v) => setLevelDraft({ ...levelDraft, level: v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner mon niveau" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(apneaLevelsByFederation).map(([federation, levels]) => (
+                            <SelectGroup key={federation}>
+                              <SelectLabel>{federation}</SelectLabel>
+                              {levels.map((level) => (
+                                <SelectItem key={level.id} value={level.code}>{level.code}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="ocean" size="sm" onClick={handleLevelConfirm} disabled={saveLevel.isPending}>
+                          {saveLevel.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                          Enregistrer
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setLevelDraft(null)}>
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        {directoryProfile.apnea_level
+                          ? <>Niveau actuel : <strong>{directoryProfile.apnea_level}</strong></>
+                          : "Aucun niveau renseigné pour cette saison."}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {levelStatus?.level_card_path && (
+                          <Button type="button" variant="outline" size="sm" onClick={handleViewLevelCard}>
+                            <FileText className="h-4 w-4 mr-1" />
+                            Voir ma carte
+                          </Button>
+                        )}
+                        <Button type="button" variant="outline" size="sm" onClick={() => levelCardInputRef.current?.click()}>
+                          <Upload className="h-4 w-4 mr-1" />
+                          {levelStatus?.level_card_path ? "Remplacer ma carte" : "Mettre à jour avec ma carte de niveau"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  <input
+                    ref={levelCardInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={handleLevelCardSelect}
+                  />
                 </div>
               )}
 

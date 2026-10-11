@@ -16,6 +16,7 @@ export interface MembershipYearlyStatus {
   license_number: string | null;
   license_expiry_date: string | null;
   license_document_path: string | null;
+  level_card_path?: string | null;
   created_at: string;
   updated_at: string;
 }
