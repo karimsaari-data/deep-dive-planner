@@ -827,6 +827,9 @@ const ClubMembersDirectory = () => {
   }, [membersWithStatus, statuses]);
   const notRegisteredCount = membersWithStatus.filter((m) => !isEmailRegistered(m.email)).length;
   const registeredCount = membersWithStatus.length - notRegisteredCount;
+  const maleCount = membersWithStatus.filter((m) => m.gender === "Homme").length;
+  const femaleCount = membersWithStatus.filter((m) => m.gender === "Femme").length;
+  const genderPercent = (n: number) => (totalCount > 0 ? Math.round((n / totalCount) * 100) : 0);
   const filteredCount = filteredAndSortedMembers?.length || 0;
   const hasActiveFilter = filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive || filterComplete || filterRegistered || filterNoPhoto || filterNoLicenseUpload;
 
@@ -1016,6 +1019,12 @@ const ClubMembersDirectory = () => {
               title={hasActiveFilter ? "Réinitialiser les filtres" : undefined}
             >
               {hasActiveFilter ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
+            </Badge>
+            <Badge variant="secondary" className="text-xs bg-sky-100 text-sky-700" title={`${maleCount} hommes`}>
+              ♂ {genderPercent(maleCount)}% hommes
+            </Badge>
+            <Badge variant="secondary" className="text-xs bg-pink-100 text-pink-700" title={`${femaleCount} femmes`}>
+              ♀ {genderPercent(femaleCount)}% femmes
             </Badge>
             <Badge
               variant="secondary"
