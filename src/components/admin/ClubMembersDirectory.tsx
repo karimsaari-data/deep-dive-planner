@@ -211,6 +211,7 @@ const ClubMembersDirectory = () => {
   const [filterNoLicenseUpload, setFilterNoLicenseUpload] = useState(false);
   const [purgeConfirmOpen, setPurgeConfirmOpen] = useState(false);
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
+  const [filterLevel, setFilterLevel] = useState<string | null>(null);
 
   // Identity form data (stored in club_members_directory)
   const [formData, setFormData] = useState<ClubMemberInsert & { departure_date?: string }>({
@@ -714,6 +715,9 @@ const ClubMembersDirectory = () => {
         if (!status?.is_encadrant) return false;
       }
 
+      // Filter by apnea level
+      if (filterLevel && getEffectiveApneaLevel(member.id) !== filterLevel) return false;
+
       // Filter incomplete dossiers only
       if (filterIncomplete) {
         if (isMemberDossierComplete(member.id)) return false;
@@ -781,7 +785,7 @@ const ClubMembersDirectory = () => {
     });
 
     return result;
-  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterIncomplete, filterNotRegistered, filterLicenseActive, filterComplete, filterRegistered, filterNoPhoto, filterNoLicenseUpload, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
+  }, [members, searchTerm, sortField, sortDirection, statuses, filterEncadrant, filterLevel, filterIncomplete, filterNotRegistered, filterLicenseActive, filterComplete, filterRegistered, filterNoPhoto, filterNoLicenseUpload, apneaLevelCodes, previousApneaLevelByMember, selectedSeason]);
 
   const getRowClassName = (member: ClubMember) => {
     if (isMemberDossierComplete(member.id)) return "bg-green-50 dark:bg-green-950/20";
@@ -827,11 +831,22 @@ const ClubMembersDirectory = () => {
   }, [membersWithStatus, statuses]);
   const notRegisteredCount = membersWithStatus.filter((m) => !isEmailRegistered(m.email)).length;
   const registeredCount = membersWithStatus.length - notRegisteredCount;
+  const levelCounts = useMemo(() => {
+    const acc: Record<string, { total: number; encadrants: number }> = {};
+    membersWithStatus.forEach((m) => {
+      const level = getEffectiveApneaLevel(m.id);
+      if (!level) return;
+      acc[level] ??= { total: 0, encadrants: 0 };
+      acc[level].total++;
+      if (getStatusForMember(m.id)?.is_encadrant) acc[level].encadrants++;
+    });
+    return acc;
+  }, [membersWithStatus, statuses, previousApneaLevelByMember, selectedSeason]);
   const maleCount = membersWithStatus.filter((m) => m.gender === "Homme").length;
   const femaleCount = membersWithStatus.filter((m) => m.gender === "Femme").length;
   const genderPercent = (n: number) => (totalCount > 0 ? Math.round((n / totalCount) * 100) : 0);
   const filteredCount = filteredAndSortedMembers?.length || 0;
-  const hasActiveFilter = filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive || filterComplete || filterRegistered || filterNoPhoto || filterNoLicenseUpload;
+  const hasActiveFilter = !!filterLevel || filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive || filterComplete || filterRegistered || filterNoPhoto || filterNoLicenseUpload;
 
   // Mutually exclusive pairs: complete/incomplete, registered/not registered
   const toggleComplete = () => { setFilterComplete(!filterComplete); setFilterIncomplete(false); };
@@ -840,6 +855,7 @@ const ClubMembersDirectory = () => {
   const toggleNotRegistered = () => { setFilterNotRegistered(!filterNotRegistered); setFilterRegistered(false); };
   const resetFilters = () => {
     setFilterEncadrant(false);
+    setFilterLevel(null);
     setFilterIncomplete(false);
     setFilterNotRegistered(false);
     setFilterLicenseActive(false);
@@ -937,7 +953,7 @@ const ClubMembersDirectory = () => {
                 title="Voir la table de référence des niveaux d'apnée"
               >
                 <GraduationCap className="h-4 w-4 mr-1" />
-                Niveaux
+                Niveaux{filterLevel ? ` (${filterLevel})` : ""}
               </Button>
             </div>
           </div>
@@ -1020,6 +1036,16 @@ const ClubMembersDirectory = () => {
             >
               {hasActiveFilter ? `${filteredCount} / ${totalCount}` : totalCount} adhérents
             </Badge>
+            {filterLevel && (
+              <Badge
+                variant="secondary"
+                className="text-xs cursor-pointer bg-primary text-primary-foreground"
+                onClick={() => setFilterLevel(null)}
+                title="Retirer le filtre niveau"
+              >
+                Niveau {filterLevel} ✕
+              </Badge>
+            )}
             <Badge variant="secondary" className="text-xs bg-sky-100 text-sky-700" title={`${maleCount} hommes`}>
               ♂ {genderPercent(maleCount)}% hommes
             </Badge>
@@ -1786,17 +1812,29 @@ const ClubMembersDirectory = () => {
                             <TableHead>Nom</TableHead>
                             <TableHead>Prérogatives</TableHead>
                             <TableHead className="text-center">Encadrant</TableHead>
+                            <TableHead className="text-center">Adhérents</TableHead>
+                            <TableHead className="text-center">Dont encadrants</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {levels.map((level) => (
-                            <TableRow key={level.id}>
+                            <TableRow
+                              key={level.id}
+                              className={cn("cursor-pointer", filterLevel === level.code && "bg-primary/10")}
+                              onClick={() => {
+                                setFilterLevel(filterLevel === level.code ? null : level.code);
+                                setLevelsRefOpen(false);
+                              }}
+                              title="Filtrer le fichier sur ce niveau"
+                            >
                               <TableCell className="font-mono text-sm font-medium">{level.code}</TableCell>
                               <TableCell className="text-sm">{level.name}</TableCell>
                               <TableCell className="text-sm text-muted-foreground">{level.prerogatives || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {level.is_instructor && <GraduationCap className="h-4 w-4 text-primary mx-auto" />}
                               </TableCell>
+                              <TableCell className="text-center text-sm">{levelCounts[level.code]?.total ?? 0}</TableCell>
+                              <TableCell className="text-center text-sm">{levelCounts[level.code]?.encadrants ?? 0}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
