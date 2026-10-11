@@ -25,7 +25,7 @@ import { parseLicensePdf } from "@/lib/parseLicensePdf";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
-import { getFishLevel, FISH_LEVELS } from "@/hooks/useTrombinoscope";
+import FishLevelCard from "@/components/profile/FishLevelCard";
 import { format, differenceInCalendarDays } from "date-fns";
 import { fr } from "date-fns/locale";
 import { QRCodeSVG } from "qrcode.react";
@@ -201,7 +201,7 @@ const Profile = () => {
   })();
 
   // Fetch current year outing count for fish level
-  const { data: outingsCount = 0 } = useQuery({
+  const { data: outingsCount = 0, isFetched: outingsFetched } = useQuery({
     queryKey: ["profile-outings-count", user?.id],
     queryFn: async () => {
       if (!user) return 0;
@@ -475,44 +475,7 @@ const Profile = () => {
               </div>
 
               {/* Fish level card */}
-              {(() => {
-                const fish = getFishLevel(outingsCount);
-                const fishIdx = FISH_LEVELS.indexOf(fish);
-                const next = FISH_LEVELS[fishIdx + 1] ?? null;
-                const toNext = next ? next.min - outingsCount : 0;
-                const progress = next
-                  ? Math.round(((outingsCount - fish.min) / (next.min - fish.min)) * 100)
-                  : 100;
-                return (
-                  <div className={`mb-6 rounded-xl border p-4 ${fish.bg}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Mon niveau {new Date().getFullYear()}</p>
-                        <p className={`text-xl font-bold ${fish.label}`}>{fish.name}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-3xl font-black ${fish.label}`}>{outingsCount}</p>
-                        <p className="text-xs text-muted-foreground">sortie{outingsCount !== 1 ? "s" : ""}</p>
-                      </div>
-                    </div>
-                    {next ? (
-                      <>
-                        <div className="w-full bg-white/60 rounded-full h-2 mb-1.5">
-                          <div
-                            className={`h-2 rounded-full transition-all ${fish.dot}`}
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Encore <strong>{toNext} sortie{toNext !== 1 ? "s" : ""}</strong> pour atteindre <span className={`font-semibold ${fish.label}`}>{next.name}</span>
-                        </p>
-                      </>
-                    ) : (
-                      <p className={`text-xs font-semibold ${fish.label}`}>🏆 Niveau maximum atteint !</p>
-                    )}
-                  </div>
-                );
-              })()}
+              <FishLevelCard outingsCount={outingsCount} userId={user?.id} ready={outingsFetched} />
 
               {/* Read-only info from directory */}
               {directoryProfile && (
