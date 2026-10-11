@@ -47,7 +47,9 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -946,6 +948,27 @@ const ClubMembersDirectory = () => {
                 <FileText className="h-4 w-4 mr-1" />
                 Licence en cours
               </Button>
+              <Select
+                value={filterLevel ?? "all"}
+                onValueChange={(v) => setFilterLevel(v === "all" ? null : v)}
+              >
+                <SelectTrigger className="h-9 w-[170px] text-sm" title="Filtrer par niveau d'apnée">
+                  <SelectValue placeholder="Tous niveaux" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous niveaux</SelectItem>
+                  {Object.entries(apneaLevelsByFederation).map(([federation, levels]) => (
+                    <SelectGroup key={federation}>
+                      <SelectLabel>{federation}</SelectLabel>
+                      {levels.map((level) => (
+                        <SelectItem key={level.id} value={level.code}>
+                          {level.code} ({levelCounts[level.code]?.total ?? 0})
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 onClick={() => setLevelsRefOpen(true)}
                 variant="outline"
