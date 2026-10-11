@@ -1245,6 +1245,17 @@ const ClubMembersDirectory = () => {
                                   {level}
                                 </Badge>
                               )}
+                              {status?.level_card_path && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => handleViewLicenseFile(status.level_card_path!)}
+                                  title="Voir la carte de niveau"
+                                >
+                                  <FileText className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                               {isEncadrant && (
                                 <span title="Encadrant" className="text-primary">
                                   <GraduationCap className="h-4 w-4" />
