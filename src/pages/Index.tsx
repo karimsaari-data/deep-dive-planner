@@ -51,13 +51,13 @@ const Index = () => {
         </svg>
 
         <div className="container relative mx-auto px-4 md:px-10">
-          <p className="mb-2 text-xs font-semibold tracking-widest text-white/45 uppercase" style={{ letterSpacing: "0.22em" }}>
+          <p className="mb-2 animate-slide-up text-xs font-semibold tracking-widest text-white/45 uppercase [animation-fill-mode:both]" style={{ letterSpacing: "0.22em" }}>
             Association d'apnée • Côte bleue – Marseille
           </p>
-          <h1 className="mb-3 text-3xl font-bold tracking-widest text-white md:text-4xl" style={{ letterSpacing: "0.1em" }}>
+          <h1 className="mb-3 animate-slide-up text-3xl font-bold tracking-widest text-white [animation-delay:100ms] [animation-fill-mode:both] md:text-4xl" style={{ letterSpacing: "0.1em" }}>
             Prochaines sorties
           </h1>
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex animate-slide-up flex-wrap items-center gap-4 [animation-delay:200ms] [animation-fill-mode:both]">
             <div className="flex items-center gap-2 text-white/60">
               <Waves className="h-4 w-4" />
               <span className="text-sm">Team Oxygen</span>
@@ -130,12 +130,17 @@ const Index = () => {
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {outings?.map((outing) => (
-                <OutingCard
+              {outings?.map((outing, i) => (
+                <div
                   key={outing.id}
-                  outing={outing}
-                  carpoolInfo={carpoolCountsMap?.get(outing.id)}
-                />
+                  className="animate-slide-up transition-transform duration-300 [animation-fill-mode:both] hover:-translate-y-1"
+                  style={{ animationDelay: `${Math.min(i, 8) * 80}ms` }}
+                >
+                  <OutingCard
+                    outing={outing}
+                    carpoolInfo={carpoolCountsMap?.get(outing.id)}
+                  />
+                </div>
               ))}
             </div>
           )}
