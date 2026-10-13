@@ -96,8 +96,18 @@ export default {
           "20%": { opacity: "0.7" },
           "100%": { transform: "translateY(-160px) scale(1.1)", opacity: "0" },
         },
+        "hero-float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-3px)" },
+        },
+        "hero-shine": {
+          "0%, 60%": { transform: "translateX(0) skewX(-12deg)" },
+          "100%": { transform: "translateX(500%) skewX(-12deg)" },
+        },
       },
       animation: {
+        "hero-float": "hero-float 3s ease-in-out infinite",
+        "hero-shine": "hero-shine 4.5s ease-in-out infinite",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "level-up": "level-up 1.4s ease-out 1",
