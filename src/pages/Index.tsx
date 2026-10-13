@@ -3,6 +3,7 @@ import { Waves, Loader2, History, ExternalLink, Calendar } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import OutingCard from "@/components/outings/OutingCard";
 import OutingFilters from "@/components/outings/OutingFilters";
+import HeroPhotoLink from "@/components/outings/HeroPhotoLink";
 import { useOutings, OutingType } from "@/hooks/useOutings";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -68,6 +69,7 @@ const Index = () => {
               <Calendar className="h-3.5 w-3.5" />
               Agenda du club
             </a>
+            <HeroPhotoLink />
           </div>
         </div>
       </section>
