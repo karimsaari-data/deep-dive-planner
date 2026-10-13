@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, Image, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, Image, Camera, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -52,6 +52,7 @@ const Header = () => {
     }
 
     items.push(
+      { to: "/album", label: "Album", icon: Camera },
       { to: "/map", label: "Carte", icon: MapIcon },
       { to: "/weather", label: "Météo", icon: CloudSun },
       { to: "/trombinoscope", label: "Trombi", icon: Users },
