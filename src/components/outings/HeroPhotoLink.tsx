@@ -19,9 +19,9 @@ const HeroPhotoLink = () => {
 
   return (
     <Link
-      to="/souvenirs"
+      to="/album"
       className="group relative flex items-center gap-3 overflow-hidden rounded-full border border-white/20 bg-white/10 py-1.5 pl-1.5 pr-4 text-sm text-white/90 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-white/40 hover:bg-white/20 hover:text-white active:scale-95 md:ml-auto"
-      aria-label="Voir les photos des sorties"
+      aria-label="Voir l'album photos du club"
     >
       {/* Reflet lumineux qui traverse la pastille */}
       <span
@@ -58,7 +58,7 @@ const HeroPhotoLink = () => {
         </span>
       )}
 
-      <span className="font-medium">Photos des sorties</span>
+      <span className="font-medium">Album photos</span>
       <Camera className="h-4 w-4 text-cyan-200 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-12" />
     </Link>
   );

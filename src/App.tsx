@@ -15,6 +15,7 @@ import OutingDetail from "./pages/OutingDetail";
 import OutingView from "./pages/OutingView";
 import MemberManagement from "./pages/MemberManagement";
 import Souvenirs from "./pages/Souvenirs";
+import Album from "./pages/Album";
 import Archives from "./pages/Archives";
 import Map from "./pages/Map";
 import Weather from "./pages/Weather";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/outing/:id/manage" element={<OutingDetail />} />
             <Route path="/members" element={<MemberManagement />} />
             <Route path="/souvenirs" element={<Souvenirs />} />
+            <Route path="/album" element={<Album />} />
             <Route path="/archives" element={<Archives />} />
             <Route path="/map" element={<Map />} />
             <Route path="/location/:id" element={<LocationDetail />} />
