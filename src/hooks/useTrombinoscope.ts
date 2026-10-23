@@ -12,7 +12,6 @@ export interface TrombiMember {
   phone: string | null;
   avatar_url: string | null;
   license_number: string | null;
-  gender: string | null;
   outings_count: number;
 }
 
@@ -164,8 +163,6 @@ export const useTrombinoscope = () => {
         phone: m.phone || null,
         avatar_url: m.avatar_url || null,
         license_number: m.license_number || null,
-        // gender ajouté au RPC (migration 20261023000001), types.ts pas encore régénéré
-        gender: (m as typeof m & { gender?: string | null }).gender || null,
         outings_count: countByEmail.get(m.email?.toLowerCase() || "") || 0,
       }));
 
@@ -219,8 +216,9 @@ export const useTrombinoscope = () => {
           return a.last_name.localeCompare(b.last_name, "fr");
         });
 
-      const femmes = allMembers.filter((m) => m.gender === "Femme").length;
-      const hommes = allMembers.filter((m) => m.gender === "Homme").length;
+      // RPC absent de types.ts (auto-généré) : nom casté
+      const { data: genderCounts } = await supabase.rpc("get_trombinoscope_gender_counts" as never);
+      const { femmes = 0, hommes = 0 } = ((genderCounts as { femmes: number; hommes: number }[] | null) ?? [])[0] ?? {};
 
       return { bureau, encadrants, membres, total: allMembers.length, femmes, hommes };
     },
