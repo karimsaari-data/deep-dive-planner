@@ -16,6 +16,7 @@ export interface ProfileDirectoryData {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   gender: string | null;
+  clothing_size: string | null;
   is_encadrant: boolean;
   security_docs_url: string | null;
 }
@@ -29,6 +30,7 @@ export interface ProfileDirectoryUpdate {
   emergency_contact_name?: string | null;
   emergency_contact_phone?: string | null;
   security_docs_url?: string | null;
+  clothing_size?: string | null;
 }
 
 // Get current season year
@@ -50,7 +52,7 @@ export const useProfileDirectory = (userEmail: string | undefined) => {
       // Fetch base directory data
       const { data: dirData, error: dirError } = await supabase
         .from("club_members_directory")
-        .select("id, member_id, first_name, last_name, email, phone, birth_date, address, joined_at, emergency_contact_name, emergency_contact_phone, gender, security_docs_url")
+        .select("id, member_id, first_name, last_name, email, phone, birth_date, address, joined_at, emergency_contact_name, emergency_contact_phone, gender, security_docs_url, clothing_size")
         .eq("email", userEmail.toLowerCase())
         .maybeSingle();
 
