@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode, FileText, Upload, AlertTriangle, CheckCircle2, GraduationCap } from "lucide-react";
+import { Loader2, User, Save, Camera, MapPin, Phone, Calendar, AlertCircle, UserCircle, Shield, FolderOpen, ExternalLink, QrCode, FileText, Upload, AlertTriangle, CheckCircle2, GraduationCap, Shirt } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,7 +53,10 @@ const profileSchema = z.object({
       { message: "Format invalide. Ex: 06 12 34 56 78" }
     ),
   security_docs_url: z.string().url("URL invalide").optional().or(z.literal("")),
+  clothing_size: z.string().optional(),
 });
+
+const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
 
 type ProfileData = z.infer<typeof profileSchema>;
 
@@ -258,6 +261,7 @@ const Profile = () => {
       emergency_contact_name: "",
       emergency_contact_phone: "",
       security_docs_url: "",
+      clothing_size: "",
     },
   });
 
@@ -272,6 +276,7 @@ const Profile = () => {
         emergency_contact_name: directoryProfile?.emergency_contact_name ?? "",
         emergency_contact_phone: directoryProfile?.emergency_contact_phone ?? "",
         security_docs_url: directoryProfile?.security_docs_url ?? "",
+        clothing_size: directoryProfile?.clothing_size ?? "",
       });
     }
   }, [profile, directoryProfile, form]);
@@ -306,6 +311,7 @@ const Profile = () => {
           emergency_contact_name: data.emergency_contact_name || null,
           emergency_contact_phone: data.emergency_contact_phone || null,
           security_docs_url: data.security_docs_url || null,
+          clothing_size: data.clothing_size || null,
         });
       }
     },
@@ -796,6 +802,40 @@ const Profile = () => {
                             <FormControl>
                               <Input {...field} placeholder="Adresse complète" />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="clothing_size"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <Shirt className="h-4 w-4" />
+                              Taille (lycra, t-shirt)
+                            </FormLabel>
+                            <Select
+                              value={field.value || undefined}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Choisir ma taille" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CLOTHING_SIZES.map((size) => (
+                                  <SelectItem key={size} value={size}>
+                                    {size}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>
+                              Utilisée pour les commandes groupées du club.
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
