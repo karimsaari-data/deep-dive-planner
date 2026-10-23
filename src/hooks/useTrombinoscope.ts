@@ -216,7 +216,11 @@ export const useTrombinoscope = () => {
           return a.last_name.localeCompare(b.last_name, "fr");
         });
 
-      return { bureau, encadrants, membres, total: allMembers.length };
+      // RPC absent de types.ts (auto-généré) : nom casté
+      const { data: genderCounts } = await supabase.rpc("get_trombinoscope_gender_counts" as never);
+      const { femmes = 0, hommes = 0 } = ((genderCounts as { femmes: number; hommes: number }[] | null) ?? [])[0] ?? {};
+
+      return { bureau, encadrants, membres, total: allMembers.length, femmes, hommes };
     },
   });
 };
