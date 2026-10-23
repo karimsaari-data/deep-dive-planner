@@ -249,7 +249,9 @@ const Trombinoscope = () => {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Trombinoscope</h1>
               <p className="text-sm text-muted-foreground">
-                {data ? `${data.total} membres` : "Chargement..."}
+                {data
+                  ? `${data.total} membres · ${data.femmes} femmes · ${data.hommes} hommes`
+                  : "Chargement..."}
               </p>
             </div>
           </div>
