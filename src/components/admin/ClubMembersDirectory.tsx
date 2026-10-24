@@ -26,6 +26,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Shirt } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -853,6 +855,16 @@ const ClubMembersDirectory = () => {
   const maleCount = membersWithStatus.filter((m) => m.gender === "Homme").length;
   const femaleCount = membersWithStatus.filter((m) => m.gender === "Femme").length;
   const genderPercent = (n: number) => (totalCount > 0 ? Math.round((n / totalCount) * 100) : 0);
+  const LYCRA_SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+  const lycraCounts = useMemo(() => {
+    const acc: Record<string, number> = {};
+    membersWithStatus.forEach((m) => {
+      if (m.lycra_size) acc[m.lycra_size] = (acc[m.lycra_size] ?? 0) + 1;
+    });
+    return acc;
+  }, [membersWithStatus]);
+  const lycraFilledCount = Object.values(lycraCounts).reduce((a, b) => a + b, 0);
+  const lycraPercent = totalCount > 0 ? Math.round((lycraFilledCount / totalCount) * 100) : 0;
   const filteredCount = filteredAndSortedMembers?.length || 0;
   const hasActiveFilter = !!filterLevel || filterEncadrant || filterIncomplete || filterNotRegistered || filterLicenseActive || filterComplete || filterRegistered || filterNoPhoto || filterNoLicenseUpload;
 
@@ -1051,6 +1063,32 @@ const ClubMembersDirectory = () => {
                 </li>
               )}
             </ul>
+          </div>
+        )}
+
+        {/* Avancement saisie des tailles de lycra */}
+        {membersWithStatus.length > 0 && (
+          <div className="mb-4 rounded-lg border p-3 text-sm space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-medium">
+                <Shirt className="h-4 w-4" />
+                Tailles de lycra saisies
+              </div>
+              <span className="text-muted-foreground">
+                {lycraFilledCount} / {totalCount} ({lycraPercent}%)
+              </span>
+            </div>
+            <Progress value={lycraPercent} className="h-2" />
+            <div className="flex flex-wrap gap-2">
+              {[...LYCRA_SIZE_ORDER, ...Object.keys(lycraCounts).filter((k) => !LYCRA_SIZE_ORDER.includes(k))].map((size) => (
+                <Badge key={size} variant="secondary" className="text-xs">
+                  {size} : {lycraCounts[size] ?? 0}
+                </Badge>
+              ))}
+              <Badge variant="outline" className="text-xs">
+                Manquantes : {totalCount - lycraFilledCount}
+              </Badge>
+            </div>
           </div>
         )}
 
