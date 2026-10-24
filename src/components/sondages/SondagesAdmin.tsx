@@ -182,8 +182,10 @@ export default function SondagesAdmin() {
   }
 
   async function deletePoll(poll: Poll) {
-    await supabase.from("votes").delete().eq("poll_id", poll.id);
-    await supabase.from("polls").delete().eq("id", poll.id);
+    const { error: votesError } = await supabase.from("votes").delete().eq("poll_id", poll.id);
+    if (votesError) { alert(`Suppression impossible : ${votesError.message}`); return; }
+    const { error: pollError } = await supabase.from("polls").delete().eq("id", poll.id);
+    if (pollError) { alert(`Suppression impossible : ${pollError.message}`); return; }
     setPolls(prev => prev.filter(p => p.id !== poll.id));
     setDeleteConfirm(null);
     if (selectedPoll?.id === poll.id) setView("list");
