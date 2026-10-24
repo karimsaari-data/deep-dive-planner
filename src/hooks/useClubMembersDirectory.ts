@@ -17,7 +17,9 @@ export interface ClubMember {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   gender: string | null;
-  clothing_size: string | null;
+  tshirt_size: string | null;
+  lycra_size: string | null;
+  fin_size: string | null;
   notes: string | null;
   departure_date: string | null;
   created_at: string;

@@ -53,10 +53,19 @@ const profileSchema = z.object({
       { message: "Format invalide. Ex: 06 12 34 56 78" }
     ),
   security_docs_url: z.string().url("URL invalide").optional().or(z.literal("")),
-  clothing_size: z.string().optional(),
+  tshirt_size: z.string().optional(),
+  lycra_size: z.string().optional(),
+  fin_size: z.string().optional(),
 });
 
 const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+const FIN_SIZES = ["34-35", "36-37", "38-39", "40-41", "42-43", "44-45", "46-47"];
+
+const SIZE_FIELDS = [
+  { name: "tshirt_size", label: "T-shirt", placeholder: "Taille", options: CLOTHING_SIZES },
+  { name: "lycra_size", label: "Lycra", placeholder: "Taille", options: CLOTHING_SIZES },
+  { name: "fin_size", label: "Palmes (pointure)", placeholder: "Pointure", options: FIN_SIZES },
+] as const;
 
 type ProfileData = z.infer<typeof profileSchema>;
 
@@ -261,7 +270,9 @@ const Profile = () => {
       emergency_contact_name: "",
       emergency_contact_phone: "",
       security_docs_url: "",
-      clothing_size: "",
+      tshirt_size: "",
+      lycra_size: "",
+      fin_size: "",
     },
   });
 
@@ -276,7 +287,9 @@ const Profile = () => {
         emergency_contact_name: directoryProfile?.emergency_contact_name ?? "",
         emergency_contact_phone: directoryProfile?.emergency_contact_phone ?? "",
         security_docs_url: directoryProfile?.security_docs_url ?? "",
-        clothing_size: directoryProfile?.clothing_size ?? "",
+        tshirt_size: directoryProfile?.tshirt_size ?? "",
+        lycra_size: directoryProfile?.lycra_size ?? "",
+        fin_size: directoryProfile?.fin_size ?? "",
       });
     }
   }, [profile, directoryProfile, form]);
@@ -311,7 +324,9 @@ const Profile = () => {
           emergency_contact_name: data.emergency_contact_name || null,
           emergency_contact_phone: data.emergency_contact_phone || null,
           security_docs_url: data.security_docs_url || null,
-          clothing_size: data.clothing_size || null,
+          tshirt_size: data.tshirt_size || null,
+          lycra_size: data.lycra_size || null,
+          fin_size: data.fin_size || null,
         });
       }
     },
@@ -807,39 +822,49 @@ const Profile = () => {
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="clothing_size"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Shirt className="h-4 w-4" />
-                              Taille (lycra, t-shirt)
-                            </FormLabel>
-                            <Select
-                              value={field.value || undefined}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Choisir ma taille" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {CLOTHING_SIZES.map((size) => (
-                                  <SelectItem key={size} value={size}>
-                                    {size}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              Utilisée pour les commandes groupées du club.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="rounded-lg border p-4 space-y-4">
+                        <div>
+                          <h4 className="text-sm font-medium flex items-center gap-2">
+                            <Shirt className="h-4 w-4" />
+                            Mes tailles
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            Utilisées pour les commandes groupées du club.
+                          </p>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          {SIZE_FIELDS.map(({ name, label, placeholder, options }) => (
+                            <FormField
+                              key={name}
+                              control={form.control}
+                              name={name}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{label}</FormLabel>
+                                  <Select
+                                    value={field.value || undefined}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder={placeholder} />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {options.map((size) => (
+                                        <SelectItem key={size} value={size}>
+                                          {size}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </div>
 
                       <Separator />
                       <h4 className="text-sm font-medium flex items-center gap-2">
