@@ -18,6 +18,7 @@ import NavigationButton from "@/components/locations/NavigationButton";
 import WeatherBadge from "@/components/weather/WeatherBadge";
 import ParticipantPhotoDialog from "@/components/participants/ParticipantPhotoDialog";
 import { formatFullName } from "@/lib/formatName";
+import { useMissingLicenseUserIds } from "@/hooks/useLicenseStatus";
 
 interface CarpoolInfo {
   carpool_count: number;
@@ -81,11 +82,13 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
   const confirmedParticipants = (outing.reservations ?? [])
     .filter((r) => r.status === "confirmé" && r.profile)
     .map((r) => ({
+      userId: r.user_id,
       firstName: r.profile!.first_name,
       lastName: r.profile!.last_name,
       avatarUrl: r.profile!.avatar_url,
       fullName: formatFullName(r.profile!.first_name, r.profile!.last_name),
     }));
+  const { data: missingLicenseIds } = useMissingLicenseUserIds(confirmedParticipants.map((p) => p.userId));
   const waitlistedParticipants = (outing.reservations ?? [])
     .filter((r) => r.status === "en_attente" && r.profile)
     .map((r) => ({
@@ -300,7 +303,10 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
                       <li key={participant.fullName}>
                         <button
                           type="button"
-                          className="text-left w-full cursor-pointer hover:text-primary hover:underline transition-colors"
+                          className={cn(
+                            "text-left w-full cursor-pointer hover:underline transition-colors",
+                            missingLicenseIds?.has(participant.userId) ? "text-destructive" : "hover:text-primary"
+                          )}
                           onClick={() =>
                             setSelectedParticipant({
                               firstName: participant.firstName,
