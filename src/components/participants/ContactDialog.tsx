@@ -26,11 +26,13 @@ const normalizePhone = (phone: string): string => {
 interface ContactDialogProps {
   member: ContactDialogMember | null;
   onClose: () => void;
+  // Réservé aux admins : n° de licence ou mention "Licence non saisie"
+  showLicense?: boolean;
 }
 
 // Fiche contact partagée (trombinoscope + historique adhérents) : photo,
 // email/appel/WhatsApp.
-const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
+const ContactDialog = ({ member, onClose, showLicense = false }: ContactDialogProps) => {
   if (!member) return null;
   const phone = member.phone ? normalizePhone(member.phone) : null;
 
@@ -48,10 +50,16 @@ const ContactDialog = ({ member, onClose }: ContactDialogProps) => {
               <p className="font-semibold">{formatFirstName(member.first_name)}</p>
               <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
             </DialogTitle>
-            {member.license_number && (
-              <Badge variant="outline" className="font-mono text-xs">
-                N° licence {member.license_number}
-              </Badge>
+            {showLicense && (
+              member.license_number ? (
+                <Badge variant="outline" className="font-mono text-xs">
+                  N° licence {member.license_number}
+                </Badge>
+              ) : (
+                <Badge variant="destructive" className="text-xs">
+                  Licence non saisie
+                </Badge>
+              )
             )}
           </div>
         </DialogHeader>
