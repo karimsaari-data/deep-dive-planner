@@ -57,7 +57,7 @@ const RelanceManager = () => {
 
   const handleCopy = async () => {
     const text = filtered
-      .map((m) => `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`)
+      .map((m) => `• ${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`)
       .join("\n");
     try {
       await navigator.clipboard.writeText(text);
@@ -119,6 +119,7 @@ const RelanceManager = () => {
                   className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
                   onClick={() => setSelectedMember(m)}
                 >
+                  <span className="mr-2 text-primary" aria-hidden="true">•</span>
                   <span className="font-medium">{formatFirstName(m.first_name)}</span>{" "}
                   {formatLastName(m.last_name)}
                 </button>
