@@ -11,6 +11,17 @@ export type CarpoolOption = "none" | "driver" | "passenger";
 const DOSSIER_INCOMPLETE_MESSAGE =
   "Votre dossier de la saison n'est pas complet (cotisation, certificat médical, charte des palanquées, assurance FSGT) — contactez l'administration pour pouvoir réserver une sortie.";
 
+const LICENSE_REQUIRED_MESSAGE =
+  "Votre licence n'est pas active (fichier non déposé ou date de validité dépassée) — déposez-la depuis votre profil, rubrique « Ma licence », pour pouvoir vous inscrire.";
+
+// Refus RLS (42501) : distingue licence inactive et dossier saison incomplet.
+const registrationBlockedError = async (userId: string): Promise<Error> => {
+  // RPC absente des types auto-générés (types.ts non éditable à la main)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: hasLicense } = await (supabase.rpc as any)("has_active_license", { _user_id: userId });
+  return new Error(hasLicense === false ? LICENSE_REQUIRED_MESSAGE : DOSSIER_INCOMPLETE_MESSAGE);
+};
+
 export interface Reservation {
   id: string;
   user_id: string;
@@ -438,7 +449,7 @@ export const useCreateReservation = () => {
           })
           .eq("id", existingReservation.id);
 
-        if (error) throw error.code === "42501" ? new Error(DOSSIER_INCOMPLETE_MESSAGE) : error;
+        if (error) throw error.code === "42501" ? await registrationBlockedError(user.id) : error;
       } else {
         // Create new reservation
         const { error } = await supabase.from("reservations").insert({
@@ -449,7 +460,7 @@ export const useCreateReservation = () => {
           carpool_seats: carpoolSeats,
         });
 
-        if (error) throw error.code === "42501" ? new Error(DOSSIER_INCOMPLETE_MESSAGE) : error;
+        if (error) throw error.code === "42501" ? await registrationBlockedError(user.id) : error;
       }
 
       // Send confirmation email in background
