@@ -11,6 +11,7 @@ import FleetManager from "@/components/admin/FleetManager";
 import StatsContent from "@/components/admin/StatsContent";
 import ApneaLevelsManager from "@/components/admin/ApneaLevelsManager";
 import SondagesAdmin from "@/components/sondages/SondagesAdmin";
+import RelanceManager from "@/components/admin/RelanceManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +66,7 @@ const Admin = () => {
               <TabsTrigger value="apnea-levels">Niveaux Apnée</TabsTrigger>
               <TabsTrigger value="accounts">Comptes App</TabsTrigger>
               <TabsTrigger value="sondages">Sondages</TabsTrigger>
+              <TabsTrigger value="relances">Relances</TabsTrigger>
               <TabsTrigger value="stats">Statistiques</TabsTrigger>
             </TabsList>
 
@@ -98,6 +100,10 @@ const Admin = () => {
 
             <TabsContent value="sondages">
               <SondagesAdmin />
+            </TabsContent>
+
+            <TabsContent value="relances">
+              <RelanceManager />
             </TabsContent>
 
             <TabsContent value="stats">
