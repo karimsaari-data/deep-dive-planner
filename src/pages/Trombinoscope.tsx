@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import { getFishLevel, FISH_LEVELS } from "@/hooks/useTrombinoscope";
 import ContactDialog from "@/components/participants/ContactDialog";
+import { useUserRole } from "@/hooks/useUserRole";
 
 // Generate a pastel color from initials
 const getAvatarColor = (name: string): string => {
@@ -55,18 +56,22 @@ interface MemberCardProps {
   member: TrombiMember;
   showBoardRole?: boolean;
   showTechnicalLevel?: boolean;
+  isAdmin?: boolean;
   onClick: (member: TrombiMember) => void;
 }
 
-const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false, onClick }: MemberCardProps) => {
+const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false, isAdmin = false, onClick }: MemberCardProps) => {
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
   const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
   const isBureau = showBoardRole && !!member.board_role;
   const fish = getFishLevel(member.outings_count);
+  const missingLicense = isAdmin && !member.license_number;
 
   // Ring: bureau/top-tier override fish color, else fish level
-  const ringClass = isTopTier
+  const ringClass = missingLicense
+    ? "ring-4 ring-red-500 shadow-lg shadow-red-500/30"
+    : isTopTier
     ? "ring-4 ring-amber-400 shadow-lg shadow-amber-400/30"
     : isBureau
     ? "ring-4 ring-primary shadow-lg shadow-primary/30"
@@ -155,6 +160,7 @@ interface SectionProps {
   showBoardRole?: boolean;
   showTechnicalLevel?: boolean;
   accentColor?: string;
+  isAdmin?: boolean;
   onMemberClick: (member: TrombiMember) => void;
 }
 
@@ -165,6 +171,7 @@ const Section = ({
   showBoardRole = false,
   showTechnicalLevel = false,
   accentColor = "bg-primary",
+  isAdmin = false,
   onMemberClick,
 }: SectionProps) => {
   if (!members.length) return null;
@@ -184,6 +191,7 @@ const Section = ({
             member={member}
             showBoardRole={showBoardRole}
             showTechnicalLevel={showTechnicalLevel}
+            isAdmin={isAdmin}
             onClick={onMemberClick}
           />
         ))}
@@ -205,6 +213,7 @@ const filterMembers = (members: TrombiMember[], query: string, levelName: string
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
   const { data: apneaLevels } = useApneaLevels();
+  const { isAdmin } = useUserRole();
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
   const [search, setSearch] = useState("");
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
@@ -346,6 +355,7 @@ const Trombinoscope = () => {
               members={bureau}
               showBoardRole={true}
               accentColor="bg-amber-500"
+              isAdmin={isAdmin}
               onMemberClick={setSelectedMember}
             />
 
@@ -355,6 +365,7 @@ const Trombinoscope = () => {
               members={encadrants}
               showTechnicalLevel={true}
               accentColor="bg-primary"
+              isAdmin={isAdmin}
               onMemberClick={setSelectedMember}
             />
 
@@ -363,6 +374,7 @@ const Trombinoscope = () => {
               icon={<UserCircle className="h-4 w-4 text-muted-foreground" />}
               members={membres}
               accentColor="bg-muted-foreground"
+              isAdmin={isAdmin}
               onMemberClick={setSelectedMember}
             />
 
@@ -376,6 +388,7 @@ const Trombinoscope = () => {
       <ContactDialog
         member={selectedMember}
         onClose={() => setSelectedMember(null)}
+        showLicense={isAdmin}
       />
 
       {/* Levels reference table */}

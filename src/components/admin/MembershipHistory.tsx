@@ -331,6 +331,7 @@ const MembershipHistory = () => {
             : null
         }
         onClose={() => setSelectedMember(null)}
+        showLicense
       />
     </Card>
   );
