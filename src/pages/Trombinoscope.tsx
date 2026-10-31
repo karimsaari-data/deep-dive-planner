@@ -213,7 +213,7 @@ const filterMembers = (members: TrombiMember[], query: string, levelName: string
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
   const { data: apneaLevels } = useApneaLevels();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isOrganizer } = useUserRole();
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
   const [search, setSearch] = useState("");
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
@@ -388,7 +388,7 @@ const Trombinoscope = () => {
       <ContactDialog
         member={selectedMember}
         onClose={() => setSelectedMember(null)}
-        showLicense={isAdmin}
+        showLicense={isOrganizer}
       />
 
       {/* Levels reference table */}
