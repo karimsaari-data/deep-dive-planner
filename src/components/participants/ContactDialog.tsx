@@ -26,7 +26,7 @@ const normalizePhone = (phone: string): string => {
 interface ContactDialogProps {
   member: ContactDialogMember | null;
   onClose: () => void;
-  // Réservé aux admins : n° de licence ou mention "Licence non saisie"
+  // Réservé aux admins : mention "Licence non saisie" quand le n° est absent
   showLicense?: boolean;
 }
 
@@ -50,12 +50,12 @@ const ContactDialog = ({ member, onClose, showLicense = false }: ContactDialogPr
               <p className="font-semibold">{formatFirstName(member.first_name)}</p>
               <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
             </DialogTitle>
-            {showLicense && (
-              member.license_number ? (
-                <Badge variant="outline" className="font-mono text-xs">
-                  N° licence {member.license_number}
-                </Badge>
-              ) : (
+            {member.license_number ? (
+              <Badge variant="outline" className="font-mono text-xs">
+                N° licence {member.license_number}
+              </Badge>
+            ) : (
+              showLicense && (
                 <Badge variant="destructive" className="text-xs">
                   Licence non saisie
                 </Badge>
