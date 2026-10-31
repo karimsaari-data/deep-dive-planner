@@ -7,14 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
-import { useMembershipYearlyStatus, getCurrentSeasonYear } from "@/hooks/useMembershipYearlyStatus";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import ContactDialog from "@/components/participants/ContactDialog";
 
 type RelanceListKey = "no-license" | "no-lycra" | "no-photo" | "inactive";
 
 const RELANCE_LISTS: { key: RelanceListKey; label: string }[] = [
-  { key: "no-license", label: "Absence de licence (fichier non uploadé)" },
+  { key: "no-license", label: "Absence de licence (non uploadée ou expirée)" },
   { key: "no-lycra", label: "Taille lycra non saisie" },
   { key: "no-photo", label: "Absence de photo" },
   { key: "inactive", label: "Adhérents inactifs (0 sortie cette année)" },
@@ -23,7 +22,6 @@ const RELANCE_LISTS: { key: RelanceListKey; label: string }[] = [
 const RelanceManager = () => {
   const { data: trombi, isLoading: trombiLoading } = useTrombinoscope();
   const { members: directory, isLoading: directoryLoading } = useClubMembersDirectory();
-  const { getStatusForMember, isLoading: statusLoading } = useMembershipYearlyStatus(getCurrentSeasonYear());
   const [listKey, setListKey] = useState<RelanceListKey>("no-license");
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
 
@@ -47,7 +45,7 @@ const RelanceManager = () => {
   const filtered = useMemo(() => {
     switch (listKey) {
       case "no-license":
-        return allMembers.filter((m) => !getStatusForMember(m.id)?.license_document_path);
+        return allMembers.filter((m) => !m.license_ok);
       case "no-lycra":
         return allMembers.filter((m) => !lycraById.get(m.id)?.trim());
       case "no-photo":
@@ -55,7 +53,7 @@ const RelanceManager = () => {
       case "inactive":
         return allMembers.filter((m) => m.outings_count === 0);
     }
-  }, [allMembers, lycraById, getStatusForMember, listKey]);
+  }, [allMembers, lycraById, listKey]);
 
   const handleCopy = async () => {
     const text = filtered
@@ -69,7 +67,7 @@ const RelanceManager = () => {
     }
   };
 
-  if (trombiLoading || directoryLoading || statusLoading) {
+  if (trombiLoading || directoryLoading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />

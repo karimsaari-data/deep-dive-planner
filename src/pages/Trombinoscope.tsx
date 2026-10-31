@@ -65,7 +65,7 @@ const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false,
   const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
   const isBureau = showBoardRole && !!member.board_role;
   const fish = getFishLevel(member.outings_count);
-  const missingLicense = !member.license_number;
+  const missingLicense = !member.license_ok;
 
   // Ring: bureau/top-tier override fish color, else fish level
   const ringClass = missingLicense
