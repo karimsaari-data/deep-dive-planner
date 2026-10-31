@@ -153,10 +153,18 @@ const OutingView = () => {
     }
   };
 
+  // Alerte licence réservée aux encadrants (global, de la sortie) et organisateurs
+  const canSeeLicenseAlerts =
+    !isMemberPreview &&
+    (isOrganizer ||
+      !!isEncadrantFromDirectory ||
+      user?.id === outing?.organizer_id ||
+      (outing?.co_instructors ?? []).some((ci) => ci.user_id === user?.id));
   const { data: missingLicenseIds } = useMissingLicenseUserIds(
     (participantsQuery.data?.confirmed ?? outing?.reservations?.filter((r) => r.status === "confirmé") ?? []).map(
       (r: { user_id: string }) => r.user_id
-    )
+    ),
+    canSeeLicenseAlerts
   );
 
   if (authLoading || isLoading) {

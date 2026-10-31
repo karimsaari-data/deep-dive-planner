@@ -298,8 +298,14 @@ const OutingDetail = () => {
     }
   }, [authLoading, roleLoading, isLoading, outing, user, isAdmin, navigate]);
 
+  // Alerte licence réservée à l'organisateur, aux co-encadrants et aux admins
+  const canSeeLicenseAlerts =
+    isAdmin ||
+    user?.id === outing?.organizer_id ||
+    (outing?.co_instructors ?? []).some((ci) => ci.user_id === user?.id);
   const { data: missingLicenseIds } = useMissingLicenseUserIds(
-    (outing?.reservations ?? []).filter((r) => r.status === "confirmé").map((r) => r.user_id)
+    (outing?.reservations ?? []).filter((r) => r.status === "confirmé").map((r) => r.user_id),
+    canSeeLicenseAlerts
   );
 
   if (authLoading || roleLoading || isLoading) {

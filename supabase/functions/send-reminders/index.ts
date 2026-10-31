@@ -149,6 +149,7 @@ const handler = async (req: Request): Promise<Response> => {
         .from("reservations")
         .select(`
           id,
+          user_id,
           profile:profiles(email, first_name, last_name)
         `)
         .eq("outing_id", outing.id)
@@ -169,11 +170,22 @@ const handler = async (req: Request): Promise<Response> => {
         timeZone: "Europe/Paris",
       });
 
+      // Licence OK = fichier uploadé + date de validité non dépassée (saison en cours)
+      const { data: licenseRows } = await supabase.rpc("get_users_license_status", {
+        p_user_ids: (reservations ?? []).map((r: any) => r.user_id),
+      });
+      const missingLicenseUserIds = new Set<string>(
+        ((licenseRows ?? []) as { user_id: string; has_license: boolean }[])
+          .filter((r) => !r.has_license)
+          .map((r) => r.user_id)
+      );
+
       for (const reservation of reservations ?? []) {
         const profile = reservation.profile as any;
         if (!profile?.email) continue;
 
         const fullName = `${profile.first_name} ${profile.last_name}`;
+        const licenseMissing = missingLicenseUserIds.has((reservation as any).user_id);
 
         try {
           await sendEmail(
@@ -197,6 +209,9 @@ const handler = async (req: Request): Promise<Response> => {
                 <li>S'hydrater correctement avant et après la session</li>
                 <li>Signaler tout malaise ou fatigue à l'encadrant</li>
               </ul>
+              <h2>📄 Licence à jour indispensable</h2>
+              <p>Une licence en cours de validité est <strong>obligatoire</strong> pour participer à la sortie. Sans licence à jour, l'accès à l'eau pourra être refusé.</p>
+              ${licenseMissing ? `<p style="color:#b91c1c;"><strong>⚠️ Votre licence n'est pas à jour dans l'application</strong> (fichier non déposé ou date de validité dépassée). Merci de l'ajouter dès maintenant depuis votre profil, rubrique « Ma licence ».</p>` : ""}
               <p>En cas d'empêchement, merci d'annuler votre inscription dès que possible pour libérer une place.</p>
               <p>À demain !</p>
               <p>L'équipe Team Oxygen</p>
@@ -206,6 +221,47 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`Reminder sent to ${profile.email} for outing ${outing.title}`);
         } catch (emailError) {
           console.error(`Failed to send reminder to ${profile.email}:`, emailError);
+        }
+      }
+
+      // Alerte encadrants (organisateur + co-encadrants) : participants sans licence à jour
+      const missingNames = (reservations ?? [])
+        .filter((r: any) => missingLicenseUserIds.has(r.user_id))
+        .map((r: any) => `${r.profile?.first_name ?? ""} ${r.profile?.last_name ?? ""}`.trim())
+        .filter(Boolean);
+
+      if (missingNames.length > 0) {
+        const { data: coInstructors } = await supabase
+          .from("outing_co_instructors")
+          .select("user_id")
+          .eq("outing_id", outing.id);
+        const encadrantIds = [
+          ...new Set([outing.organizer_id, ...(coInstructors ?? []).map((c: any) => c.user_id)].filter(Boolean)),
+        ];
+        const { data: encadrants } = await supabase
+          .from("profiles")
+          .select("email, first_name, last_name")
+          .in("id", encadrantIds);
+
+        for (const enc of encadrants ?? []) {
+          if (!enc.email) continue;
+          try {
+            await sendEmail(
+              enc.email,
+              `${enc.first_name} ${enc.last_name}`,
+              `⚠️ ${outing.title} : ${missingNames.length} participant(s) sans licence à jour`,
+              `
+                <h1>Licences à vérifier</h1>
+                <p>Bonjour ${enc.first_name},</p>
+                <p>Pour la sortie <strong>${outing.title}</strong> (${dateFormatted}), ${missingNames.length} participant(s) inscrit(s) n'ont pas de licence à jour dans l'application (fichier non déposé ou date de validité dépassée) :</p>
+                <ul>${missingNames.map((n: string) => `<li>${n}</li>`).join("")}</ul>
+                <p>Une licence en cours de validité est <strong>indispensable</strong> pour participer. Pensez à les relancer avant la sortie.</p>
+                <p>L'équipe Team Oxygen</p>
+              `
+            );
+          } catch (emailError) {
+            console.error(`Failed to send license alert to ${enc.email}:`, emailError);
+          }
         }
       }
 
