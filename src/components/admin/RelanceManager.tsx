@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { Loader2, BellRing } from "lucide-react";
+import { Loader2, BellRing, Copy } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +32,11 @@ const RelanceManager = () => {
     if (!trombi) return [];
     const byId = new Map<string, TrombiMember>();
     [...trombi.bureau, ...trombi.encadrants, ...trombi.membres].forEach((m) => byId.set(m.id, m));
-    return [...byId.values()].sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
+    return [...byId.values()].sort(
+      (a, b) =>
+        a.first_name.localeCompare(b.first_name, "fr", { sensitivity: "base" }) ||
+        a.last_name.localeCompare(b.last_name, "fr", { sensitivity: "base" })
+    );
   }, [trombi]);
 
   const lycraById = useMemo(
@@ -50,6 +56,18 @@ const RelanceManager = () => {
         return allMembers.filter((m) => m.outings_count === 0);
     }
   }, [allMembers, lycraById, getStatusForMember, listKey]);
+
+  const handleCopy = async () => {
+    const text = filtered
+      .map((m) => `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${filtered.length} nom${filtered.length > 1 ? "s" : ""} copié${filtered.length > 1 ? "s" : ""}`);
+    } catch {
+      toast.error("Copie impossible");
+    }
+  };
 
   if (trombiLoading || directoryLoading || statusLoading) {
     return (
@@ -81,9 +99,15 @@ const RelanceManager = () => {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Badge variant="secondary">{filtered.length}</Badge>
-          <span>membre{filtered.length > 1 ? "s" : ""} à relancer</span>
+        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{filtered.length}</Badge>
+            <span>membre{filtered.length > 1 ? "s" : ""} à relancer</span>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={handleCopy} disabled={filtered.length === 0}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copier la liste
+          </Button>
         </div>
 
         {filtered.length === 0 ? (
