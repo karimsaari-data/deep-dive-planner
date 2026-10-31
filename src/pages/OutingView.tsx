@@ -57,6 +57,7 @@ import SatelliteMiniMap from "@/components/locations/SatelliteMiniMap";
 import { Anchor, Satellite } from "lucide-react";
 import { useApneaLevels, type ApneaLevel } from "@/hooks/useApneaLevels";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useMissingLicenseUserIds } from "@/hooks/useLicenseStatus";
 import { useIsCurrentUserEncadrant } from "@/hooks/useIsCurrentUserEncadrant";
 import { useViewMode } from "@/contexts/ViewModeContext";
 
@@ -151,6 +152,12 @@ const OutingView = () => {
       setCarpoolSeats(1);
     }
   };
+
+  const { data: missingLicenseIds } = useMissingLicenseUserIds(
+    (participantsQuery.data?.confirmed ?? outing?.reservations?.filter((r) => r.status === "confirmé") ?? []).map(
+      (r: { user_id: string }) => r.user_id
+    )
+  );
 
   if (authLoading || isLoading) {
     return (
@@ -750,6 +757,12 @@ const OutingView = () => {
                             )}
                             {isCoInstr && !isOrg && (
                               <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Coencadrant</Badge>
+                            )}
+                            {missingLicenseIds?.has(reservation.user_id) && (
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0 gap-1">
+                                <AlertTriangle className="h-3 w-3" />
+                                Licence manquante
+                              </Badge>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">

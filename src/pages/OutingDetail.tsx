@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useMissingLicenseUserIds } from "@/hooks/useLicenseStatus";
 import { useOuting, useUpdateReservationPresence, useUpdateAllPresence, useUpdateSessionReport, useCancelOuting, useArchiveOuting, useLockPOSS, useUnlockPOSS, useAddCoInstructor, useRemoveCoInstructor, useDeleteOuting, useAdminRemoveReservation, useAdminAddParticipant, useSetReservationGroup } from "@/hooks/useOutings";
 import { useMembersForEncadrant } from "@/hooks/useMembersForEncadrant";
 import { usePOSSGenerator } from "@/hooks/usePOSSGenerator";
@@ -296,6 +297,10 @@ const OutingDetail = () => {
       }
     }
   }, [authLoading, roleLoading, isLoading, outing, user, isAdmin, navigate]);
+
+  const { data: missingLicenseIds } = useMissingLicenseUserIds(
+    (outing?.reservations ?? []).filter((r) => r.status === "confirmé").map((r) => r.user_id)
+  );
 
   if (authLoading || roleLoading || isLoading) {
     return (
@@ -974,6 +979,12 @@ const OutingDetail = () => {
                         )}
                         {isCoInstructor && (
                           <Badge className="bg-purple-500 text-white text-[10px] px-1.5 py-0">Co-encadrant</Badge>
+                        )}
+                        {missingLicenseIds?.has(reservation.user_id) && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0 gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Licence manquante
+                          </Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
