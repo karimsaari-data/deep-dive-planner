@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 // Renvoie l'ensemble des user_id dont la licence (saison en cours) n'est pas saisie.
-export const useMissingLicenseUserIds = (userIds: string[]) => {
+export const useMissingLicenseUserIds = (userIds: string[], enabled = true) => {
   const ids = [...new Set(userIds)].sort();
 
   return useQuery({
@@ -20,7 +20,7 @@ export const useMissingLicenseUserIds = (userIds: string[]) => {
           .map((r) => r.user_id)
       );
     },
-    enabled: ids.length > 0,
+    enabled: enabled && ids.length > 0,
     staleTime: 60_000,
   });
 };
