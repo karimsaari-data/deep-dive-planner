@@ -12,6 +12,8 @@ export interface TrombiMember {
   phone: string | null;
   avatar_url: string | null;
   license_number: string | null;
+  // Fichier de licence uploadé ET date de validité non dépassée
+  license_ok: boolean;
   outings_count: number;
 }
 
@@ -151,6 +153,12 @@ export const useTrombinoscope = () => {
         if (email) countByEmail.set(email, (countByEmail.get(email) || 0) + 1);
       });
 
+      // Indicateur licence OK par adhérent (RPC absente de types.ts, auto-généré)
+      const { data: licenseRows } = await supabase.rpc("get_trombinoscope_license_ok" as never);
+      const licenseOkById = new Map(
+        ((licenseRows as { member_id: string; license_ok: boolean }[] | null) ?? []).map((r) => [r.member_id, r.license_ok])
+      );
+
       // Map directly - avatar_url is now included in the RPC result
       const allMembers: TrombiMember[] = (members || []).map((m) => ({
         id: m.id,
@@ -163,6 +171,7 @@ export const useTrombinoscope = () => {
         phone: m.phone || null,
         avatar_url: m.avatar_url || null,
         license_number: m.license_number || null,
+        license_ok: licenseOkById.get(m.id) ?? false,
         outings_count: countByEmail.get(m.email?.toLowerCase() || "") || 0,
       }));
 

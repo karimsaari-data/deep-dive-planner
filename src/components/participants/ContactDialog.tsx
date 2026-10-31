@@ -12,6 +12,8 @@ export interface ContactDialogMember {
   email: string | null;
   phone: string | null;
   license_number?: string | null;
+  // Fichier uploadé et date de validité non dépassée ; undefined = inconnu
+  license_ok?: boolean;
 }
 
 // Normalize phone for tel: / WhatsApp links (strip spaces, dashes, dots; add +33 if French)
@@ -26,7 +28,7 @@ const normalizePhone = (phone: string): string => {
 interface ContactDialogProps {
   member: ContactDialogMember | null;
   onClose: () => void;
-  // Réservé aux admins et encadrants : mention "Licence non saisie" quand le n° est absent
+  // Réservé aux admins et encadrants : mention "Licence non uploadée ou expirée"
   showLicense?: boolean;
 }
 
@@ -50,16 +52,15 @@ const ContactDialog = ({ member, onClose, showLicense = false }: ContactDialogPr
               <p className="font-semibold">{formatFirstName(member.first_name)}</p>
               <p className="text-sm font-normal text-muted-foreground">{formatLastName(member.last_name)}</p>
             </DialogTitle>
-            {member.license_number ? (
+            {member.license_number && (
               <Badge variant="outline" className="font-mono text-xs">
                 N° licence {member.license_number}
               </Badge>
-            ) : (
-              showLicense && (
-                <Badge variant="destructive" className="text-xs">
-                  Licence non saisie
-                </Badge>
-              )
+            )}
+            {showLicense && member.license_ok === false && (
+              <Badge variant="destructive" className="text-xs">
+                Licence non uploadée ou expirée
+              </Badge>
             )}
           </div>
         </DialogHeader>
