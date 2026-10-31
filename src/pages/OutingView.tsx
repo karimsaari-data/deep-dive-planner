@@ -166,6 +166,8 @@ const OutingView = () => {
     ),
     canSeeLicenseAlerts
   );
+  const { data: ownMissingLicense } = useMissingLicenseUserIds(user ? [user.id] : []);
+  const ownLicenseMissing = !!user && !!ownMissingLicense?.has(user.id);
 
   if (authLoading || isLoading) {
     return (
@@ -636,6 +638,11 @@ const OutingView = () => {
                       )}
                     </div>
 
+                    {ownLicenseMissing && (
+                      <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                        Une licence active est requise pour vous inscrire. Déposez votre licence depuis votre profil, rubrique « Ma licence ».
+                      </p>
+                    )}
                     <Button
                       variant="ocean"
                       className="w-full gap-2"

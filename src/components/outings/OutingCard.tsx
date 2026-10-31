@@ -89,6 +89,8 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
       fullName: formatFullName(r.profile!.first_name, r.profile!.last_name),
     }));
   const { data: missingLicenseIds } = useMissingLicenseUserIds(confirmedParticipants.map((p) => p.userId));
+  const { data: ownMissingLicense } = useMissingLicenseUserIds(user ? [user.id] : []);
+  const ownLicenseMissing = !!user && !!ownMissingLicense?.has(user.id);
   const waitlistedParticipants = (outing.reservations ?? [])
     .filter((r) => r.status === "en_attente" && r.profile)
     .map((r) => ({
@@ -484,6 +486,12 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
                         Maximum 8 places
                       </p>
                     </div>
+                  )}
+
+                  {ownLicenseMissing && (
+                    <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                      Une licence active est requise pour vous inscrire. Déposez votre licence depuis votre profil, rubrique « Ma licence ».
+                    </p>
                   )}
 
                   {isFull && (
