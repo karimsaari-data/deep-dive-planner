@@ -26,7 +26,7 @@ const normalizePhone = (phone: string): string => {
 interface ContactDialogProps {
   member: ContactDialogMember | null;
   onClose: () => void;
-  // Réservé aux admins : mention "Licence non saisie" quand le n° est absent
+  // Réservé aux admins et encadrants : mention "Licence non saisie" quand le n° est absent
   showLicense?: boolean;
 }
 
