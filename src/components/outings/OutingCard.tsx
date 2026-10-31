@@ -55,9 +55,11 @@ const typeColors: Record<OutingType, string> = {
 interface OutingCardProps {
   outing: Outing & { location_details?: { photo_url?: string | null; max_depth?: number | null } | null };
   carpoolInfo?: CarpoolInfo;
+  // Admin uniquement : noms en rouge si licence non saisie
+  isAdmin?: boolean;
 }
 
-const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
+const OutingCard = ({ outing, carpoolInfo, isAdmin = false }: OutingCardProps) => {
   const { user } = useAuth();
   const createReservation = useCreateReservation();
   const cancelReservation = useCancelReservation();
@@ -88,7 +90,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
       avatarUrl: r.profile!.avatar_url,
       fullName: formatFullName(r.profile!.first_name, r.profile!.last_name),
     }));
-  const { data: missingLicenseIds } = useMissingLicenseUserIds(confirmedParticipants.map((p) => p.userId));
+  const { data: missingLicenseIds } = useMissingLicenseUserIds(confirmedParticipants.map((p) => p.userId), isAdmin);
   const waitlistedParticipants = (outing.reservations ?? [])
     .filter((r) => r.status === "en_attente" && r.profile)
     .map((r) => ({
