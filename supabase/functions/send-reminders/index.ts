@@ -42,6 +42,45 @@ async function sendEmail(to: string, toName: string, subject: string, html: stri
   return { success: true, messageId: data.messageId };
 }
 
+const dateFr = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  });
+
+// Licence OK = fichier uploadé + date de validité non dépassée (saison en cours)
+async function getMissingLicenseUserIds(supabase: any, userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const { data } = await supabase.rpc("get_users_license_status", { p_user_ids: userIds });
+  return new Set<string>(
+    ((data ?? []) as { user_id: string; has_license: boolean }[])
+      .filter((r) => !r.has_license)
+      .map((r) => r.user_id)
+  );
+}
+
+// Organisateur + co-encadrants d'une sortie
+async function getEncadrants(supabase: any, outing: any) {
+  const { data: coInstructors } = await supabase
+    .from("outing_co_instructors")
+    .select("user_id")
+    .eq("outing_id", outing.id);
+  const ids = [
+    ...new Set([outing.organizer_id, ...(coInstructors ?? []).map((c: any) => c.user_id)].filter(Boolean)),
+  ];
+  if (ids.length === 0) return [];
+  const { data: encadrants } = await supabase
+    .from("profiles")
+    .select("email, first_name, last_name")
+    .in("id", ids);
+  return encadrants ?? [];
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -117,6 +156,90 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Starting reminder check...");
 
+    // Phase 1 : alerte licences à J-3 (une seule fois par sortie).
+    // Les participants sans licence à jour sont relancés et les encadrants reçoivent le récapitulatif.
+    const in72Hours = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    const { data: licenseOutings, error: licenseOutingsError } = await supabase
+      .from("outings")
+      .select(`
+        *,
+        location_details:locations(name, address)
+      `)
+      .eq("license_alert_sent", false)
+      .eq("is_deleted", false)
+      .gte("date_time", new Date().toISOString())
+      .lte("date_time", in72Hours.toISOString());
+
+    if (licenseOutingsError) {
+      console.error("Error fetching outings for license alert:", licenseOutingsError);
+    }
+
+    for (const outing of licenseOutings ?? []) {
+      const { data: confirmed } = await supabase
+        .from("reservations")
+        .select(`
+          user_id,
+          profile:profiles(email, first_name, last_name)
+        `)
+        .eq("outing_id", outing.id)
+        .eq("status", "confirmé");
+
+      const missing = await getMissingLicenseUserIds(supabase, (confirmed ?? []).map((r: any) => r.user_id));
+      const missingReservations = (confirmed ?? []).filter((r: any) => missing.has(r.user_id));
+      const when = dateFr(outing.date_time);
+
+      for (const r of missingReservations) {
+        const profile = (r as any).profile;
+        if (!profile?.email) continue;
+        try {
+          await sendEmail(
+            profile.email,
+            `${profile.first_name} ${profile.last_name}`,
+            `📄 Licence à fournir avant la sortie : ${outing.title}`,
+            `
+              <h1>Licence à fournir</h1>
+              <p>Bonjour ${profile.first_name},</p>
+              <p>Vous êtes inscrit(e) à la sortie <strong>${outing.title}</strong> (${when}).</p>
+              <p><strong>Une licence à jour est indispensable pour participer.</strong> Votre licence n'est pas à jour dans l'application (fichier non déposé ou date de validité dépassée).</p>
+              <p>Merci de la déposer dès maintenant depuis votre profil, rubrique « Ma licence ». Sans licence valide, l'accès à l'eau pourra vous être refusé.</p>
+              <p>L'équipe Team Oxygen</p>
+            `
+          );
+        } catch (emailError) {
+          console.error(`Failed to send license request to ${profile.email}:`, emailError);
+        }
+      }
+
+      if (missingReservations.length > 0) {
+        const names = missingReservations
+          .map((r: any) => `${r.profile?.first_name ?? ""} ${r.profile?.last_name ?? ""}`.trim())
+          .filter(Boolean);
+        for (const enc of await getEncadrants(supabase, outing)) {
+          if (!enc.email) continue;
+          try {
+            await sendEmail(
+              enc.email,
+              `${enc.first_name} ${enc.last_name}`,
+              `⚠️ ${outing.title} : ${names.length} participant(s) sans licence à jour`,
+              `
+                <h1>Licences à vérifier</h1>
+                <p>Bonjour ${enc.first_name},</p>
+                <p>Pour la sortie <strong>${outing.title}</strong> (${when}), ${names.length} participant(s) inscrit(s) n'ont pas de licence à jour dans l'application (fichier non déposé ou date de validité dépassée) :</p>
+                <ul>${names.map((n: string) => `<li>${n}</li>`).join("")}</ul>
+                <p>Une licence en cours de validité est <strong>indispensable</strong> pour participer. Ils viennent d'être relancés ; un nouveau récapitulatif vous sera envoyé la veille de la sortie.</p>
+                <p>L'équipe Team Oxygen</p>
+              `
+            );
+          } catch (emailError) {
+            console.error(`Failed to send license alert to ${enc.email}:`, emailError);
+          }
+        }
+      }
+
+      await supabase.from("outings").update({ license_alert_sent: true }).eq("id", outing.id);
+    }
+
+    // Phase 2 : rappel de la veille.
     // Find upcoming outings (within the next 24h) that haven't had reminders sent yet.
     // Using a rolling [now, now+24h] window (rather than a narrow 24-26h band) makes the
     // job robust to its scheduling cadence: an hourly cron reminds each outing as soon as

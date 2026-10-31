@@ -127,6 +127,14 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const fullName = `${profile.first_name} ${profile.last_name}`;
+
+    // Licence OK = fichier uploadé + date de validité non dépassée (saison en cours)
+    let licenseMissing = false;
+    if (type === "registration") {
+      const { data: licenseRows } = await supabase.rpc("get_users_license_status", { p_user_ids: [user.id] });
+      licenseMissing = ((licenseRows ?? []) as { has_license: boolean }[]).some((r) => !r.has_license);
+    }
+
     let subject: string;
     let htmlContent: string;
 
@@ -145,6 +153,9 @@ const handler = async (req: Request): Promise<Response> => {
           ${outing.organizer ? `<li><strong>Organisateur :</strong> ${outing.organizer.first_name} ${outing.organizer.last_name}</li>` : ""}
         </ul>
         ${outing.description ? `<p><strong>Description :</strong> ${outing.description}</p>` : ""}
+        <h2>📄 Licence à jour indispensable</h2>
+        <p>Une licence en cours de validité est <strong>obligatoire</strong> pour participer à la sortie.</p>
+        ${licenseMissing ? `<p style="color:#b91c1c;"><strong>⚠️ Votre licence n'est pas à jour dans l'application</strong> (fichier non déposé ou date de validité dépassée). Merci de la déposer dès maintenant depuis votre profil, rubrique « Ma licence ».</p>` : ""}
         <p>En cas d'empêchement, merci d'annuler votre inscription dès que possible pour libérer une place.</p>
         <p>À bientôt !</p>
         <p>L'équipe Team Oxygen</p>
@@ -173,6 +184,41 @@ const handler = async (req: Request): Promise<Response> => {
         <p>Nous espérons vous retrouver lors d'une prochaine sortie !</p>
         <p>L'équipe Team Oxygen</p>
       `;
+    }
+
+    // Inscription tardive (alerte J-3 déjà passée) sans licence à jour : prévenir immédiatement les encadrants
+    if (licenseMissing && outing.license_alert_sent) {
+      try {
+        const { data: coInstructors } = await supabase
+          .from("outing_co_instructors")
+          .select("user_id")
+          .eq("outing_id", outing.id);
+        const encadrantIds = [
+          ...new Set([outing.organizer_id, ...(coInstructors ?? []).map((c: any) => c.user_id)].filter(Boolean)),
+        ];
+        const { data: encadrants } = await supabase
+          .from("profiles")
+          .select("email, first_name, last_name")
+          .in("id", encadrantIds);
+
+        for (const enc of encadrants ?? []) {
+          if (!enc.email) continue;
+          await sendEmail(
+            enc.email,
+            `${enc.first_name} ${enc.last_name}`,
+            `⚠️ ${outing.title} : inscription sans licence à jour`,
+            `
+              <h1>Inscription sans licence à jour</h1>
+              <p>Bonjour ${enc.first_name},</p>
+              <p><strong>${fullName}</strong> vient de s'inscrire à la sortie <strong>${outing.title}</strong> (${dateFormatted}) sans licence à jour dans l'application (fichier non déposé ou date de validité dépassée).</p>
+              <p>Une licence en cours de validité est <strong>indispensable</strong> pour participer. Le participant a été invité à la déposer.</p>
+              <p>L'équipe Team Oxygen</p>
+            `
+          );
+        }
+      } catch (alertError) {
+        console.error("Failed to send late license alert:", alertError);
+      }
     }
 
     try {
