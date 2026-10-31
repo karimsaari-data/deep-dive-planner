@@ -139,7 +139,6 @@ const Index = () => {
                   <OutingCard
                     outing={outing}
                     carpoolInfo={carpoolCountsMap?.get(outing.id)}
-                    isAdmin={isAdmin}
                   />
                 </div>
               ))}
