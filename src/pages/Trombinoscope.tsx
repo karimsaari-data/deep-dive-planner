@@ -56,17 +56,16 @@ interface MemberCardProps {
   member: TrombiMember;
   showBoardRole?: boolean;
   showTechnicalLevel?: boolean;
-  isAdmin?: boolean;
   onClick: (member: TrombiMember) => void;
 }
 
-const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false, isAdmin = false, onClick }: MemberCardProps) => {
+const MemberCard = ({ member, showBoardRole = false, showTechnicalLevel = false, onClick }: MemberCardProps) => {
   const initials = getInitials(member.first_name, member.last_name);
   const avatarColor = getAvatarColor(member.first_name + member.last_name);
   const isTopTier = showTechnicalLevel && hasTopTierQualification(member.apnea_level);
   const isBureau = showBoardRole && !!member.board_role;
   const fish = getFishLevel(member.outings_count);
-  const missingLicense = isAdmin && !member.license_number;
+  const missingLicense = !member.license_number;
 
   // Ring: bureau/top-tier override fish color, else fish level
   const ringClass = missingLicense
@@ -160,7 +159,6 @@ interface SectionProps {
   showBoardRole?: boolean;
   showTechnicalLevel?: boolean;
   accentColor?: string;
-  isAdmin?: boolean;
   onMemberClick: (member: TrombiMember) => void;
 }
 
@@ -171,7 +169,6 @@ const Section = ({
   showBoardRole = false,
   showTechnicalLevel = false,
   accentColor = "bg-primary",
-  isAdmin = false,
   onMemberClick,
 }: SectionProps) => {
   if (!members.length) return null;
@@ -191,7 +188,6 @@ const Section = ({
             member={member}
             showBoardRole={showBoardRole}
             showTechnicalLevel={showTechnicalLevel}
-            isAdmin={isAdmin}
             onClick={onMemberClick}
           />
         ))}
@@ -213,7 +209,7 @@ const filterMembers = (members: TrombiMember[], query: string, levelName: string
 const Trombinoscope = () => {
   const { data, isLoading } = useTrombinoscope();
   const { data: apneaLevels } = useApneaLevels();
-  const { isAdmin, isOrganizer } = useUserRole();
+  const { isOrganizer } = useUserRole();
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
   const [search, setSearch] = useState("");
   const [levelsRefOpen, setLevelsRefOpen] = useState(false);
@@ -355,7 +351,6 @@ const Trombinoscope = () => {
               members={bureau}
               showBoardRole={true}
               accentColor="bg-amber-500"
-              isAdmin={isAdmin}
               onMemberClick={setSelectedMember}
             />
 
@@ -365,7 +360,6 @@ const Trombinoscope = () => {
               members={encadrants}
               showTechnicalLevel={true}
               accentColor="bg-primary"
-              isAdmin={isAdmin}
               onMemberClick={setSelectedMember}
             />
 
@@ -374,7 +368,6 @@ const Trombinoscope = () => {
               icon={<UserCircle className="h-4 w-4 text-muted-foreground" />}
               members={membres}
               accentColor="bg-muted-foreground"
-              isAdmin={isAdmin}
               onMemberClick={setSelectedMember}
             />
 
