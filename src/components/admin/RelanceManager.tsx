@@ -20,6 +20,15 @@ const RELANCE_LISTS: { key: RelanceListKey; label: string }[] = [
   { key: "inactive", label: "Adhérents inactifs (0 sortie cette année)" },
 ];
 
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL", "4XL", "5XL"];
+const sizeRank = (size: string) => {
+  const i = SIZE_ORDER.indexOf(size.toUpperCase());
+  return i === -1 ? SIZE_ORDER.length : i;
+};
+const GENDER_GROUPS = ["Homme", "Femme", "Autre / non renseigné"] as const;
+const genderGroup = (g: string | null | undefined) =>
+  g === "Homme" || g === "Femme" ? g : "Autre / non renseigné";
+
 const RelanceManager = () => {
   const { data: trombi, isLoading: trombiLoading } = useTrombinoscope();
   const { members: directory, isLoading: directoryLoading } = useClubMembersDirectory();
@@ -42,6 +51,10 @@ const RelanceManager = () => {
     () => new Map((directory ?? []).map((m) => [m.id, m.lycra_size])),
     [directory]
   );
+  const genderById = useMemo(
+    () => new Map((directory ?? []).map((m) => [m.id, genderGroup(m.gender)])),
+    [directory]
+  );
 
   const filtered = useMemo(() => {
     switch (listKey) {
@@ -50,24 +63,58 @@ const RelanceManager = () => {
       case "no-lycra":
         return allMembers.filter((m) => !lycraById.get(m.id)?.trim());
       case "lycra-sizes":
-        return allMembers.filter((m) => !!lycraById.get(m.id)?.trim());
+        return allMembers
+          .filter((m) => !!lycraById.get(m.id)?.trim())
+          .sort(
+            (a, b) =>
+              GENDER_GROUPS.indexOf(genderById.get(a.id) as (typeof GENDER_GROUPS)[number]) -
+                GENDER_GROUPS.indexOf(genderById.get(b.id) as (typeof GENDER_GROUPS)[number]) ||
+              sizeRank(lycraById.get(a.id)!.trim()) - sizeRank(lycraById.get(b.id)!.trim()) ||
+              a.first_name.localeCompare(b.first_name, "fr", { sensitivity: "base" })
+          );
       case "no-photo":
         return allMembers.filter((m) => !m.avatar_url);
       case "inactive":
         return allMembers.filter((m) => m.outings_count === 0);
     }
-  }, [allMembers, lycraById, listKey]);
+  }, [allMembers, lycraById, genderById, listKey]);
 
   const isLycraList = listKey === "lycra-sizes";
   const sizeOf = (id: string) => lycraById.get(id)?.trim() ?? "";
 
+  // Récapitulatif commande : genre -> taille -> quantité
+  const lycraSummary = useMemo(() => {
+    if (listKey !== "lycra-sizes") return [];
+    return GENDER_GROUPS.map((g) => {
+      const counts = new Map<string, number>();
+      filtered.forEach((m) => {
+        if (genderById.get(m.id) !== g) return;
+        const size = (lycraById.get(m.id) ?? "").trim().toUpperCase();
+        counts.set(size, (counts.get(size) ?? 0) + 1);
+      });
+      const sizes = [...counts.entries()].sort((a, b) => sizeRank(a[0]) - sizeRank(b[0]));
+      return { gender: g, sizes, total: sizes.reduce((n, [, c]) => n + c, 0) };
+    }).filter((g) => g.total > 0);
+  }, [filtered, genderById, lycraById, listKey]);
+
   const handleCopy = async () => {
-    const text = filtered
-      .map((m) => {
-        const name = `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`;
-        return isLycraList ? `• ${name} : ${sizeOf(m.id)}` : `• ${name}`;
-      })
-      .join("\n");
+    const nameOf = (m: TrombiMember) => `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`;
+    const text = isLycraList
+      ? [
+          "RÉCAPITULATIF",
+          ...lycraSummary.map(
+            (g) => `${g.gender} (${g.total}) : ${g.sizes.map(([s, c]) => `${s} x${c}`).join(", ")}`
+          ),
+          `TOTAL : ${filtered.length}`,
+          ...lycraSummary.flatMap((g) => [
+            "",
+            `${g.gender.toUpperCase()}`,
+            ...filtered
+              .filter((m) => genderById.get(m.id) === g.gender)
+              .map((m) => `• ${nameOf(m)} : ${sizeOf(m.id)}`),
+          ]),
+        ].join("\n")
+      : filtered.map((m) => `• ${nameOf(m)}`).join("\n");
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${filtered.length} nom${filtered.length > 1 ? "s" : ""} copié${filtered.length > 1 ? "s" : ""}`);
@@ -121,6 +168,23 @@ const RelanceManager = () => {
           </Button>
         </div>
 
+        {isLycraList && lycraSummary.length > 0 && (
+          <div className="space-y-2 rounded-lg border border-border p-3 text-sm">
+            {lycraSummary.map((g) => (
+              <div key={g.gender} className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">
+                  {g.gender} ({g.total})
+                </span>
+                {g.sizes.map(([size, count]) => (
+                  <Badge key={size} variant="secondary">
+                    {size} × {count}
+                  </Badge>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
         {filtered.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground">Aucun membre à relancer.</p>
         ) : (
@@ -137,7 +201,12 @@ const RelanceManager = () => {
                     <span className="font-medium">{formatFirstName(m.first_name)}</span>{" "}
                     {formatLastName(m.last_name)}
                   </span>
-                  {isLycraList && <Badge variant="outline">{sizeOf(m.id)}</Badge>}
+                  {isLycraList && (
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{genderById.get(m.id)}</span>
+                      <Badge variant="outline">{sizeOf(m.id)}</Badge>
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
