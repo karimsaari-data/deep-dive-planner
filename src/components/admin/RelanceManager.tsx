@@ -10,11 +10,12 @@ import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import ContactDialog from "@/components/participants/ContactDialog";
 
-type RelanceListKey = "no-license" | "no-lycra" | "no-photo" | "inactive";
+type RelanceListKey = "no-license" | "no-lycra" | "lycra-sizes" | "no-photo" | "inactive";
 
 const RELANCE_LISTS: { key: RelanceListKey; label: string }[] = [
   { key: "no-license", label: "Absence de licence (non uploadée ou expirée)" },
   { key: "no-lycra", label: "Taille lycra non saisie" },
+  { key: "lycra-sizes", label: "Tailles lycra (liste de commande)" },
   { key: "no-photo", label: "Absence de photo" },
   { key: "inactive", label: "Adhérents inactifs (0 sortie cette année)" },
 ];
@@ -48,6 +49,8 @@ const RelanceManager = () => {
         return allMembers.filter((m) => !m.license_ok);
       case "no-lycra":
         return allMembers.filter((m) => !lycraById.get(m.id)?.trim());
+      case "lycra-sizes":
+        return allMembers.filter((m) => !!lycraById.get(m.id)?.trim());
       case "no-photo":
         return allMembers.filter((m) => !m.avatar_url);
       case "inactive":
@@ -55,9 +58,15 @@ const RelanceManager = () => {
     }
   }, [allMembers, lycraById, listKey]);
 
+  const isLycraList = listKey === "lycra-sizes";
+  const sizeOf = (id: string) => lycraById.get(id)?.trim() ?? "";
+
   const handleCopy = async () => {
     const text = filtered
-      .map((m) => `• ${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`)
+      .map((m) => {
+        const name = `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`;
+        return isLycraList ? `• ${name} : ${sizeOf(m.id)}` : `• ${name}`;
+      })
       .join("\n");
     try {
       await navigator.clipboard.writeText(text);
@@ -100,7 +109,11 @@ const RelanceManager = () => {
         <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{filtered.length}</Badge>
-            <span>membre{filtered.length > 1 ? "s" : ""} à relancer</span>
+            <span>
+              {isLycraList
+                ? `membre${filtered.length > 1 ? "s" : ""} avec taille`
+                : `membre${filtered.length > 1 ? "s" : ""} à relancer`}
+            </span>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={handleCopy} disabled={filtered.length === 0}>
             <Copy className="mr-2 h-4 w-4" />
@@ -116,12 +129,15 @@ const RelanceManager = () => {
               <li key={m.id}>
                 <button
                   type="button"
-                  className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
+                  className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
                   onClick={() => setSelectedMember(m)}
                 >
-                  <span className="mr-2 text-primary" aria-hidden="true">•</span>
-                  <span className="font-medium">{formatFirstName(m.first_name)}</span>{" "}
-                  {formatLastName(m.last_name)}
+                  <span>
+                    <span className="mr-2 text-primary" aria-hidden="true">•</span>
+                    <span className="font-medium">{formatFirstName(m.first_name)}</span>{" "}
+                    {formatLastName(m.last_name)}
+                  </span>
+                  {isLycraList && <Badge variant="outline">{sizeOf(m.id)}</Badge>}
                 </button>
               </li>
             ))}
