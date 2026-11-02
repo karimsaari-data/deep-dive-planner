@@ -855,7 +855,7 @@ const ClubMembersDirectory = () => {
   const maleCount = membersWithStatus.filter((m) => m.gender === "Homme").length;
   const femaleCount = membersWithStatus.filter((m) => m.gender === "Femme").length;
   const genderPercent = (n: number) => (totalCount > 0 ? Math.round((n / totalCount) * 100) : 0);
-  const LYCRA_SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+  const LYCRA_SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL"];
   const lycraCounts = useMemo(() => {
     const acc: Record<string, number> = {};
     membersWithStatus.forEach((m) => {

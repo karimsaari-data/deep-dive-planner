@@ -59,11 +59,15 @@ const profileSchema = z.object({
 });
 
 const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+const LYCRA_SIZES_FEMME = ["XS", "S", "M", "L", "XL", "XXL"];
+const LYCRA_SIZES_HOMME = ["S", "M", "L", "XL", "XXL"];
+const lycraSizesFor = (gender?: string | null) =>
+  gender === "Homme" ? LYCRA_SIZES_HOMME : LYCRA_SIZES_FEMME;
 const FIN_SIZES = ["34-35", "36-37", "38-39", "40-41", "42-43", "44-45", "46-47"];
 
 const SIZE_FIELDS = [
   { name: "tshirt_size", label: "T-shirt", placeholder: "Taille", options: CLOTHING_SIZES },
-  { name: "lycra_size", label: "Lycra", placeholder: "Taille", options: CLOTHING_SIZES },
+  { name: "lycra_size", label: "Lycra", placeholder: "Taille", options: LYCRA_SIZES_FEMME },
   { name: "fin_size", label: "Palmes (pointure)", placeholder: "Pointure", options: FIN_SIZES },
 ] as const;
 
@@ -851,7 +855,15 @@ const Profile = () => {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {options.map((size) => (
+                                      {(name === "lycra_size"
+                                        ? (() => {
+                                            const base = lycraSizesFor(directoryProfile?.gender);
+                                            return field.value && !base.includes(field.value)
+                                              ? [...base, field.value]
+                                              : base;
+                                          })()
+                                        : options
+                                      ).map((size) => (
                                         <SelectItem key={size} value={size}>
                                           {size}
                                         </SelectItem>
