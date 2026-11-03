@@ -10,13 +10,14 @@ import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import ContactDialog from "@/components/participants/ContactDialog";
 
-type RelanceListKey = "no-license" | "no-lycra" | "lycra-sizes" | "no-photo" | "inactive";
+type RelanceListKey = "no-license" | "no-lycra" | "lycra-sizes" | "no-photo" | "no-account" | "inactive";
 
 const RELANCE_LISTS: { key: RelanceListKey; label: string }[] = [
   { key: "no-license", label: "Absence de licence (non uploadée ou expirée)" },
   { key: "no-lycra", label: "Taille lycra non saisie" },
   { key: "lycra-sizes", label: "Tailles lycra (liste de commande)" },
   { key: "no-photo", label: "Absence de photo" },
+  { key: "no-account", label: "Absence de compte app" },
   { key: "inactive", label: "Adhérents inactifs (0 sortie cette année)" },
 ];
 
@@ -31,7 +32,7 @@ const genderGroup = (g: string | null | undefined) =>
 
 const RelanceManager = () => {
   const { data: trombi, isLoading: trombiLoading } = useTrombinoscope();
-  const { members: directory, isLoading: directoryLoading } = useClubMembersDirectory();
+  const { members: directory, isLoading: directoryLoading, isEmailRegistered } = useClubMembersDirectory();
   const [listKey, setListKey] = useState<RelanceListKey>("no-license");
   const [selectedMember, setSelectedMember] = useState<TrombiMember | null>(null);
 
@@ -74,10 +75,12 @@ const RelanceManager = () => {
           );
       case "no-photo":
         return allMembers.filter((m) => !m.avatar_url);
+      case "no-account":
+        return allMembers.filter((m) => !m.email || !isEmailRegistered(m.email));
       case "inactive":
         return allMembers.filter((m) => m.outings_count === 0);
     }
-  }, [allMembers, lycraById, genderById, listKey]);
+  }, [allMembers, lycraById, genderById, listKey, isEmailRegistered]);
 
   const isLycraList = listKey === "lycra-sizes";
   const sizeOf = (id: string) => lycraById.get(id)?.trim() ?? "";
