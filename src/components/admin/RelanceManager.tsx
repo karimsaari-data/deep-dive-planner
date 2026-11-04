@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Loader2, BellRing, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,11 @@ const RelanceManager = () => {
     [directory]
   );
 
+  const hasAccount = useCallback(
+    (m: TrombiMember) => !!m.email && isEmailRegistered(m.email),
+    [isEmailRegistered]
+  );
+
   const filtered = useMemo(() => {
     switch (listKey) {
       case "no-license":
@@ -76,11 +81,11 @@ const RelanceManager = () => {
       case "no-photo":
         return allMembers.filter((m) => !m.avatar_url);
       case "no-account":
-        return allMembers.filter((m) => !m.email || !isEmailRegistered(m.email));
+        return allMembers.filter((m) => !hasAccount(m));
       case "inactive":
         return allMembers.filter((m) => m.outings_count === 0);
     }
-  }, [allMembers, lycraById, genderById, listKey, isEmailRegistered]);
+  }, [allMembers, lycraById, genderById, listKey, hasAccount]);
 
   const isLycraList = listKey === "lycra-sizes";
   const sizeOf = (id: string) => lycraById.get(id)?.trim() ?? "";
@@ -101,7 +106,10 @@ const RelanceManager = () => {
   }, [filtered, genderById, lycraById, listKey]);
 
   const handleCopy = async () => {
-    const nameOf = (m: TrombiMember) => `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}`;
+    const nameOf = (m: TrombiMember) =>
+      `${formatFirstName(m.first_name)} ${formatLastName(m.last_name)}${
+        listKey !== "no-account" && !hasAccount(m) ? " (sans compte)" : ""
+      }`;
     const text = isLycraList
       ? [
           "RÉCAPITULATIF",
@@ -204,12 +212,17 @@ const RelanceManager = () => {
                     <span className="font-medium">{formatFirstName(m.first_name)}</span>{" "}
                     {formatLastName(m.last_name)}
                   </span>
-                  {isLycraList && (
-                    <span className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{genderById.get(m.id)}</span>
-                      <Badge variant="outline">{sizeOf(m.id)}</Badge>
-                    </span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    {isLycraList && (
+                      <>
+                        <span className="text-xs text-muted-foreground">{genderById.get(m.id)}</span>
+                        <Badge variant="outline">{sizeOf(m.id)}</Badge>
+                      </>
+                    )}
+                    {listKey !== "no-account" && !hasAccount(m) && (
+                      <Badge variant="destructive" className="whitespace-nowrap">Sans compte</Badge>
+                    )}
+                  </span>
                 </button>
               </li>
             ))}
