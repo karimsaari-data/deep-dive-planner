@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Loader2, BellRing, Copy } from "lucide-react";
+import { Loader2, BellRing, Copy, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { useTableSort } from "@/hooks/useTableSort";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
+import { downloadXlsx, XlsxSheet } from "@/lib/exportXlsx";
 import ContactDialog from "@/components/participants/ContactDialog";
 
 type RelanceListKey = "no-license" | "no-lycra" | "lycra-sizes" | "no-photo" | "no-account" | "inactive";
@@ -162,6 +163,50 @@ const RelanceManager = () => {
     }
   };
 
+  const handleExport = async () => {
+    const list = rows ?? [];
+    const base = (m: TrombiMember) => [
+      formatFirstName(m.first_name),
+      formatLastName(m.last_name),
+      m.email ?? "",
+      m.phone ?? "",
+      hasAccount(m) ? "Oui" : "Non",
+    ];
+    const columns = [
+      { header: "Prénom", width: 18 },
+      { header: "Nom", width: 22 },
+      { header: "Email", width: 32 },
+      { header: "Téléphone", width: 16 },
+      { header: "Compte app", width: 12 },
+    ];
+    const label = RELANCE_LISTS.find((l) => l.key === listKey)?.label ?? "Relances";
+    const sheets: XlsxSheet[] = [
+      {
+        name: "Liste",
+        columns: isLycraList
+          ? [...columns, { header: "Genre", width: 20 }, { header: "Taille", width: 10 }]
+          : columns,
+        rows: list.map((m) =>
+          isLycraList ? [...base(m), genderById.get(m.id) ?? "", sizeOf(m.id)] : base(m)
+        ),
+      },
+    ];
+    if (isLycraList) {
+      sheets.push({
+        name: "Récapitulatif",
+        columns: [{ header: "Genre", width: 24 }, { header: "Taille", width: 10 }, { header: "Quantité", width: 10 }],
+        rows: lycraSummary.flatMap((g) => g.sizes.map(([size, count]) => [g.gender, size, count])),
+      });
+    }
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      await downloadXlsx(`relances-${listKey}-${date}.xlsx`, sheets);
+      toast.success(`${list.length} ligne${list.length > 1 ? "s" : ""} exportée${list.length > 1 ? "s" : ""} (${label})`);
+    } catch {
+      toast.error("Export impossible");
+    }
+  };
+
   if (trombiLoading || directoryLoading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center">
@@ -207,10 +252,16 @@ const RelanceManager = () => {
                 : `membre${filtered.length > 1 ? "s" : ""} à relancer`}
             </span>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={handleCopy} disabled={filtered.length === 0}>
-            <Copy className="mr-2 h-4 w-4" />
-            Copier la liste
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              Exporter Excel
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={handleCopy} disabled={filtered.length === 0}>
+              <Copy className="mr-2 h-4 w-4" />
+              Copier la liste
+            </Button>
+          </div>
         </div>
 
         {isLycraList && lycraSummary.length > 0 && (
