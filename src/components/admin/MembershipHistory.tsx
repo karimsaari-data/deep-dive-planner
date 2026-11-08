@@ -11,6 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,7 +102,20 @@ interface HistoryTableProps {
   onSelectMember: (member: MemberHistory) => void;
 }
 
-const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailRegistered, onSelectMember }: HistoryTableProps) => (
+const HISTORY_SORT_ACCESSORS = {
+  member_id: (m: MemberHistory) => m.member_id,
+  name: (m: MemberHistory) => `${m.last_name} ${m.first_name}`,
+  level: (m: MemberHistory) => lastKnownApneaLevel(m),
+  joined_at: (m: MemberHistory) => m.joined_at,
+  departure_date: (m: MemberHistory) => m.departure_date,
+  license: (m: MemberHistory) => lastKnownLicense(m),
+  seasons: (m: MemberHistory) => m.seasons.length,
+};
+
+const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailRegistered, onSelectMember }: HistoryTableProps) => {
+  const { sorted, sortKey, direction, toggleSort } = useTableSort(members, HISTORY_SORT_ACCESSORS);
+  const sortProps = { activeKey: sortKey, direction, onSort: toggleSort };
+  return (
   <div className="mb-8">
     <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
       {icon}
@@ -114,18 +129,18 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailR
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">ID</TableHead>
-              <TableHead>Identité</TableHead>
-              <TableHead>Niveau</TableHead>
-              <TableHead>Arrivée</TableHead>
-              {showDeparture && <TableHead>Départ</TableHead>}
-              <TableHead>N° licence</TableHead>
-              <TableHead>Saisons</TableHead>
+              <SortableTableHead sortKey="member_id" {...sortProps} className="w-[80px]">ID</SortableTableHead>
+              <SortableTableHead sortKey="name" {...sortProps}>Identité</SortableTableHead>
+              <SortableTableHead sortKey="level" {...sortProps}>Niveau</SortableTableHead>
+              <SortableTableHead sortKey="joined_at" {...sortProps}>Arrivée</SortableTableHead>
+              {showDeparture && <SortableTableHead sortKey="departure_date" {...sortProps}>Départ</SortableTableHead>}
+              <SortableTableHead sortKey="license" {...sortProps}>N° licence</SortableTableHead>
+              <SortableTableHead sortKey="seasons" {...sortProps}>Saisons</SortableTableHead>
               {onArchive && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {members.map((member) => (
+            {(sorted ?? []).map((member) => (
               <TableRow key={member.id}>
                 <TableCell className="font-mono text-xs">{member.member_id}</TableCell>
                 <TableCell className="font-medium">
@@ -177,7 +192,8 @@ const HistoryTable = ({ title, icon, members, showDeparture, onArchive, isEmailR
       </div>
     )}
   </div>
-);
+  );
+};
 
 const MembershipHistory = () => {
   const { data, isLoading } = useMembershipHistory();

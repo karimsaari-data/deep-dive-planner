@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import { useTrombinoscope, TrombiMember } from "@/hooks/useTrombinoscope";
 import { useClubMembersDirectory } from "@/hooks/useClubMembersDirectory";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
@@ -90,6 +93,31 @@ const RelanceManager = () => {
   const isLycraList = listKey === "lycra-sizes";
   const sizeOf = (id: string) => lycraById.get(id)?.trim() ?? "";
 
+  // Tri par clic sur entête (sans clic : ordre par défaut de la liste)
+  const sortAccessors = useMemo(
+    () => ({
+      first_name: (m: TrombiMember) => m.first_name,
+      last_name: (m: TrombiMember) => m.last_name,
+      gender: (m: TrombiMember) =>
+        GENDER_GROUPS.indexOf(genderById.get(m.id) as (typeof GENDER_GROUPS)[number]),
+      size: (m: TrombiMember) => {
+        const s = lycraById.get(m.id)?.trim();
+        return s ? sizeRank(s) : null;
+      },
+      account: (m: TrombiMember) => hasAccount(m),
+    }),
+    [genderById, lycraById, hasAccount]
+  );
+  const {
+    sorted: rows,
+    sortKey,
+    direction,
+    toggleSort,
+    resetSort,
+  } = useTableSort(filtered, sortAccessors);
+  const sortProps = { activeKey: sortKey, direction, onSort: toggleSort };
+  const showAccountColumn = listKey !== "no-account";
+
   // Récapitulatif commande : genre -> taille -> quantité
   const lycraSummary = useMemo(() => {
     if (listKey !== "lycra-sizes") return [];
@@ -120,12 +148,12 @@ const RelanceManager = () => {
           ...lycraSummary.flatMap((g) => [
             "",
             `${g.gender.toUpperCase()}`,
-            ...filtered
+            ...(rows ?? [])
               .filter((m) => genderById.get(m.id) === g.gender)
               .map((m) => `• ${nameOf(m)} : ${sizeOf(m.id)}`),
           ]),
         ].join("\n")
-      : filtered.map((m) => `• ${nameOf(m)}`).join("\n");
+      : (rows ?? []).map((m) => `• ${nameOf(m)}`).join("\n");
     try {
       await navigator.clipboard.writeText(text);
       toast.success(`${filtered.length} nom${filtered.length > 1 ? "s" : ""} copié${filtered.length > 1 ? "s" : ""}`);
@@ -151,7 +179,13 @@ const RelanceManager = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Select value={listKey} onValueChange={(v) => setListKey(v as RelanceListKey)}>
+        <Select
+          value={listKey}
+          onValueChange={(v) => {
+            setListKey(v as RelanceListKey);
+            resetSort();
+          }}
+        >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -199,34 +233,59 @@ const RelanceManager = () => {
         {filtered.length === 0 ? (
           <p className="py-6 text-center text-muted-foreground">Aucun membre à relancer.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {filtered.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
-                  onClick={() => setSelectedMember(m)}
-                >
-                  <span>
-                    <span className="mr-2 text-primary" aria-hidden="true">•</span>
-                    <span className="font-medium">{formatFirstName(m.first_name)}</span>{" "}
-                    {formatLastName(m.last_name)}
-                  </span>
-                  <span className="flex items-center gap-2">
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableTableHead sortKey="first_name" {...sortProps}>Prénom</SortableTableHead>
+                  <SortableTableHead sortKey="last_name" {...sortProps}>Nom</SortableTableHead>
+                  {isLycraList && (
+                    <>
+                      <SortableTableHead sortKey="gender" {...sortProps}>Genre</SortableTableHead>
+                      <SortableTableHead sortKey="size" {...sortProps}>Taille</SortableTableHead>
+                    </>
+                  )}
+                  {showAccountColumn && (
+                    <SortableTableHead sortKey="account" {...sortProps}>Compte</SortableTableHead>
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(rows ?? []).map((m) => (
+                  <TableRow
+                    key={m.id}
+                    tabIndex={0}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedMember(m)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedMember(m);
+                      }
+                    }}
+                  >
+                    <TableCell className="font-medium">{formatFirstName(m.first_name)}</TableCell>
+                    <TableCell>{formatLastName(m.last_name)}</TableCell>
                     {isLycraList && (
                       <>
-                        <span className="text-xs text-muted-foreground">{genderById.get(m.id)}</span>
-                        <Badge variant="outline">{sizeOf(m.id)}</Badge>
+                        <TableCell className="text-xs text-muted-foreground">{genderById.get(m.id)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{sizeOf(m.id)}</Badge>
+                        </TableCell>
                       </>
                     )}
-                    {listKey !== "no-account" && !hasAccount(m) && (
-                      <Badge variant="destructive" className="whitespace-nowrap">Sans compte</Badge>
+                    {showAccountColumn && (
+                      <TableCell>
+                        {!hasAccount(m) && (
+                          <Badge variant="destructive" className="whitespace-nowrap">Sans compte</Badge>
+                        )}
+                      </TableCell>
                     )}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
 
