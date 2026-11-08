@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import { formatFirstName, formatLastName } from "@/lib/formatName";
 import type { OutingListItem } from "@/lib/outingsList";
 
@@ -58,6 +60,15 @@ const RegistrantsPopover = ({ outing }: { outing: OutingListItem }) => {
   );
 };
 
+const SORT_ACCESSORS = {
+  date: (o: OutingListItem) => new Date(o.date_time),
+  title: (o: OutingListItem) => o.title,
+  organizer: (o: OutingListItem) => formatOrganizer(o.organizer_name) === "—" ? null : formatOrganizer(o.organizer_name),
+  type: (o: OutingListItem) => o.outing_type,
+  registrants: (o: OutingListItem) => o.registrants?.length ?? 0,
+  participants: (o: OutingListItem) => o.participant_count,
+};
+
 interface OutingsListCardProps {
   outings: OutingListItem[] | undefined;
   year: number;
@@ -78,11 +89,17 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
     return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
   }, [outings]);
 
-  const visible = outings?.filter(
-    (o) =>
-      (!onlyEmpty || o.participant_count === 0) &&
-      (organizer === ALL_ORGANIZERS || o.organizer_name === organizer)
+  const filteredOutings = useMemo(
+    () =>
+      outings?.filter(
+        (o) =>
+          (!onlyEmpty || o.participant_count === 0) &&
+          (organizer === ALL_ORGANIZERS || o.organizer_name === organizer)
+      ),
+    [outings, onlyEmpty, organizer]
   );
+  const { sorted: visible, sortKey, direction, toggleSort } = useTableSort(filteredOutings, SORT_ACCESSORS);
+  const sortProps = { activeKey: sortKey, direction, onSort: toggleSort };
   const isFiltered = onlyEmpty || organizer !== ALL_ORGANIZERS;
 
   return (
@@ -133,12 +150,12 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[110px]">Date</TableHead>
-                  <TableHead className="min-w-[180px]">Nom</TableHead>
-                  <TableHead className="min-w-[130px]">Encadrant</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-center">Inscrits</TableHead>
-                  <TableHead className="text-center">Participants</TableHead>
+                  <SortableTableHead sortKey="date" {...sortProps} className="min-w-[110px]">Date</SortableTableHead>
+                  <SortableTableHead sortKey="title" {...sortProps} className="min-w-[180px]">Nom</SortableTableHead>
+                  <SortableTableHead sortKey="organizer" {...sortProps} className="min-w-[130px]">Encadrant</SortableTableHead>
+                  <SortableTableHead sortKey="type" {...sortProps}>Type</SortableTableHead>
+                  <SortableTableHead sortKey="registrants" {...sortProps} className="text-center">Inscrits</SortableTableHead>
+                  <SortableTableHead sortKey="participants" {...sortProps} className="text-center">Participants</SortableTableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
