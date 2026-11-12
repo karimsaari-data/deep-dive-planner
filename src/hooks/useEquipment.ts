@@ -327,6 +327,50 @@ export const useDecommissionEquipment = () => {
   });
 };
 
+// Hook SAV : changer le statut d'un matériel cassé (réparé -> disponible, rebuté, perdu)
+export const useResolveBrokenEquipment = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ inventoryId, status, notes }: { inventoryId: string; status: "disponible" | "rebuté" | "perdu"; notes?: string }) => {
+      if (!user) throw new Error("Non authentifié");
+
+      const { data: item, error: fetchError } = await supabase
+        .from("equipment_inventory")
+        .select("owner_id, status")
+        .eq("id", inventoryId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      const { error: updateError } = await supabase
+        .from("equipment_inventory")
+        .update({ status })
+        .eq("id", inventoryId);
+      if (updateError) throw updateError;
+
+      await supabase.from("equipment_history").insert({
+        inventory_id: inventoryId,
+        action_type: "status_change",
+        from_user_id: item.owner_id,
+        old_status: item.status,
+        new_status: status,
+        notes,
+        created_by: user.id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-equipment-inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["global-equipment-inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["equipment-history"] });
+      toast.success("Statut mis à jour !");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erreur lors de la mise à jour");
+    },
+  });
+};
+
 export const useUpdateEquipmentPhoto = () => {
   const queryClient = useQueryClient();
 
