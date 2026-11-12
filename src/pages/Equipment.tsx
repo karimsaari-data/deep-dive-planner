@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { formatFullName } from "@/lib/formatName";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter, Camera, Upload, Hash, BarChart3, List } from "lucide-react";
+import { Loader2, Package, Plus, ArrowRightLeft, Trash2, Download, History, Users, Filter, Camera, Upload, Hash, BarChart3, List, Wrench, CheckCircle2 } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   useEncadrants,
   useAllEncadrants,
   useEquipmentHistory,
+  useResolveBrokenEquipment,
   EquipmentInventoryItem,
 } from "@/hooks/useEquipment";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +89,10 @@ const Equipment = () => {
             <TabsList>
               <TabsTrigger value="my-inventory">Mon inventaire</TabsTrigger>
               <TabsTrigger value="global">Vue globale</TabsTrigger>
+              <TabsTrigger value="sav" className="flex items-center gap-1">
+                <Wrench className="h-4 w-4" />
+                SAV
+              </TabsTrigger>
               <TabsTrigger value="history">Historique</TabsTrigger>
             </TabsList>
 
@@ -97,6 +102,10 @@ const Equipment = () => {
 
             <TabsContent value="global">
               <GlobalInventoryTab />
+            </TabsContent>
+
+            <TabsContent value="sav">
+              <SavTab />
             </TabsContent>
 
             <TabsContent value="history">
@@ -835,6 +844,149 @@ const GlobalInventoryTab = () => {
           </TabsContent>
         </Tabs>
       </CardContent>
+    </Card>
+  );
+};
+
+const SavTab = () => {
+  const { data: inventory, isLoading } = useGlobalEquipmentInventory();
+  const resolve = useResolveBrokenEquipment();
+  const [selectedItem, setSelectedItem] = useState<EquipmentInventoryItem | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [ownerFilter, setOwnerFilter] = useState<string>("all");
+
+  const broken = useMemo(
+    () => (inventory || []).filter((i) => i.status === "cassé"),
+    [inventory]
+  );
+
+  const owners = useMemo(() => {
+    const m = new Map<string, string>();
+    broken.forEach((i) => {
+      if (i.owner) m.set(i.owner.id, formatFullName(i.owner.first_name, i.owner.last_name));
+    });
+    return Array.from(m.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [broken]);
+
+  const filtered = broken.filter((i) => ownerFilter === "all" || i.owner?.id === ownerFilter);
+
+  // Regroupement par article du catalogue
+  const summary = useMemo(() => {
+    const m = new Map<string, number>();
+    filtered.forEach((i) => {
+      const n = i.catalog?.name || "Inconnu";
+      m.set(n, (m.get(n) || 0) + 1);
+    });
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [filtered]);
+
+  const exportToCsv = () => {
+    const headers = ["ID Unique", "Article", "Détenteur", "Notes", "Dernière mise à jour"];
+    const rows = filtered.map((item) => [
+      item.unique_code || "",
+      item.catalog?.name || "",
+      item.owner ? formatFullName(item.owner.first_name, item.owner.last_name) : "",
+      (item.notes || "").replace(/"/g, '""'),
+      format(new Date(item.updated_at), "dd/MM/yyyy"),
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sav_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <Card className="shadow-card">
+      <CardHeader>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <CardTitle className="flex items-center gap-2">
+            <Wrench className="h-5 w-5 text-primary" />
+            SAV – Matériel cassé
+            <Badge variant="destructive">{broken.length}</Badge>
+          </CardTitle>
+          <Button variant="outline" size="sm" onClick={exportToCsv} disabled={filtered.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : broken.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">Aucun matériel cassé</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+                <SelectTrigger className="w-[220px]">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder="Filtrer par détenteur" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les détenteurs</SelectItem>
+                  {owners.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {ownerFilter !== "all" && (
+                <Button variant="ghost" size="sm" onClick={() => setOwnerFilter("all")}>
+                  Réinitialiser
+                </Button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {summary.map(([name, count]) => (
+                <Badge key={name} variant="secondary">{name} × {count}</Badge>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              {filtered.map((item) => (
+                <div key={item.id} className="space-y-2">
+                  <ClickableInventoryItemCard
+                    item={item}
+                    onClick={() => {
+                      setSelectedItem(item);
+                      setIsDetailOpen(true);
+                    }}
+                  />
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={resolve.isPending}
+                      onClick={() => resolve.mutate({ inventoryId: item.id, status: "disponible", notes: "Réparé / remis en service" })}
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Réparé
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      disabled={resolve.isPending}
+                      onClick={() => resolve.mutate({ inventoryId: item.id, status: "rebuté", notes: "Irréparable – mis au rebus" })}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Mettre au rebus
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </CardContent>
+      <EquipmentDetailSheet item={selectedItem} open={isDetailOpen} onOpenChange={setIsDetailOpen} />
     </Card>
   );
 };
