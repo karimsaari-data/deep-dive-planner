@@ -157,6 +157,7 @@ const slideSummary = (pptx: PptxGenJS, sections: string[]) => {
     encadrants: "Nos encadrants certifiés",
     dashboard: "Chiffres clés de l'année",
     demographics: "Profil des adhérents",
+    membership: "Parité H/F et nouvelles adhésions",
     levels: "Castagnole, Dauphin, Requin…",
     topPlongeurs: "Les mordus de l'apnée",
     photos: "Les moments forts de la saison",
@@ -338,6 +339,73 @@ const slideDemographics = (pptx: PptxGenJS, d: PDFReportData["demographics"]) =>
       barOpts(PALETTE, M + 2 * (cw + gap))
     );
   }
+};
+
+const slideMembership = (pptx: PptxGenJS, data: PDFReportData) => {
+  const m = data.membership;
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  const pct = (n: number, t: number) => (t > 0 ? Math.round((n / t) * 100) : 0);
+  const delta = m.total - m.previousSeasonTotal;
+  addTitle(
+    slide,
+    "Parité & Nouveaux Adhérents",
+    `Saison ${m.seasonYear - 1}-${m.seasonYear}` +
+      (m.previousSeasonTotal > 0
+        ? ` · ${delta >= 0 ? "+" : "-"}${Math.abs(delta)} adhérents vs saison précédente (${m.previousSeasonTotal}, ${delta >= 0 ? "+" : "-"}${pct(Math.abs(delta), m.previousSeasonTotal)}%)`
+        : ""),
+    "Adhérents"
+  );
+
+  const kpis = [
+    { label: "Adhérents saison", value: m.total, sub: `${m.seasonYear - 1}-${m.seasonYear}`, color: C.navy },
+    { label: "Nouveaux adhérents", value: m.newCount, sub: `${pct(m.newCount, m.total)}% des adhérents`, color: C.green },
+    { label: "Renouvellements", value: m.renewedCount, sub: `${pct(m.renewedCount, m.total)}% des adhérents`, color: C.cyan },
+  ];
+  const gap = 0.35;
+  const cw = (W - 2 * M - 2 * gap) / 3;
+  kpis.forEach((k, i) => {
+    const x = M + i * (cw + gap);
+    card(slide, x, 1.7, cw, 1.75, k.color);
+    slide.addText(String(k.value), { x, y: 1.75, w: cw, h: 0.9, align: "center", valign: "middle", fontFace: FONT, fontSize: 48, bold: true, color: k.color });
+    slide.addText(k.label, { x, y: 2.62, w: cw, h: 0.4, align: "center", fontFace: FONT, fontSize: 16, color: "444444" });
+    slide.addText(k.sub, { x, y: 3.0, w: cw, h: 0.3, align: "center", fontFace: FONT, fontSize: 11, color: "888888" });
+  });
+
+  card(slide, M, 3.7, W - 2 * M, 3.2);
+  slide.addText("Parité Homme / Femme", { x: M + 0.2, y: 3.75, w: 5, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  const groups = [
+    { name: `Tous les adhérents (${m.total})`, g: m.all },
+    { name: `Nouveaux adhérents (${m.newCount})`, g: m.newMembers },
+    { name: `Renouvellements (${m.renewedCount})`, g: m.renewed },
+  ];
+  const labels = groups.map((x) => x.name);
+  const series = [
+    { name: "Hommes", labels, values: groups.map((x) => x.g.homme) },
+    { name: "Femmes", labels, values: groups.map((x) => x.g.femme) },
+  ];
+  if (groups.some((x) => x.g.autre > 0)) series.push({ name: "Non renseigné", labels, values: groups.map((x) => x.g.autre) });
+  slide.addChart("bar", series, {
+    x: M + 0.1, y: 4.1, w: W - 2 * M - 0.2, h: 2.75,
+    barDir: "bar",
+    barGrouping: "percentStacked",
+    chartColors: [C.cyan, "EC4899", "9CA3AF"].slice(0, series.length),
+    catAxisOrientation: TOP_DOWN,
+    valAxisHidden: true,
+    valGridLine: { style: "none" },
+    showValue: true,
+    dataLabelColor: "FFFFFF",
+    dataLabelFontSize: 13,
+    dataLabelFontBold: true,
+    catAxisLabelFontSize: 12,
+    catAxisLabelFontFace: FONT,
+    showLegend: true,
+    legendPos: "t",
+    legendFontSize: 12,
+    barGapWidthPct: 40,
+  });
+  slide.addText(`Nouvel adhérent : date d'entrée dans le club à partir du 1er septembre ${m.seasonYear - 1}.`, {
+    x: M, y: 6.92, w: W - 2 * M, h: 0.2, fontFace: FONT, fontSize: 9, color: "888888",
+  });
 };
 
 const slideLevels = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
@@ -678,6 +746,7 @@ export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptio
       case "encadrants": await slideEncadrants(pptx, data.allEncadrants); break;
       case "dashboard": slideDashboard(pptx, data, year); break;
       case "demographics": slideDemographics(pptx, data.demographics); break;
+      case "membership": slideMembership(pptx, data); break;
       case "levels": slideLevels(pptx, data, year); break;
       case "topPlongeurs": slideTopPlongeurs(pptx, data, year); break;
       case "encadrantsActivity": slideEncadrantsActivity(pptx, data, year); break;
