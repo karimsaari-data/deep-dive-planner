@@ -173,7 +173,7 @@ Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni pa
 
 **Règles de données** (identiques au PDF) : adhérents, bureau, encadrants et parité = saison en cours ; sorties, niveaux, top plongeurs, sites = année civile ; sorties = toutes les sorties passées non supprimées (même nombre que « Liste des sorties » de l'app).
 
-**Écarts connus entre `buildPptx.ts` et la trame** (à résorber) : la trame a les 6 mises en page nommées ci-dessus (le code n'en définit que `Titre seul` et `Vide`), le logo en haut à droite du master, le thème marine `0A3A49`/orange `F08814` (le code utilise `1E3A5F`/`E67E22`), la page de titre via placeholders (le code utilise des zones de texte) et des tableaux natifs pour les diapos 9, 10 et 8.
+**Alignement** : `buildPptx.ts` reproduit la trame (6 mises en page, logo en haut à droite, barre du bas, pied, thème, couverture en placeholders). Seul écart connu : pptxgenjs ajoute une mise en page `DEFAULT` inutilisée. Les mises en page `Titre et contenu`, `Deux colonnes` et `Section` sont définies mais aucune diapo générée ne les utilise encore.
 
 ## Triggers DWH (datawarehouse externe)
 

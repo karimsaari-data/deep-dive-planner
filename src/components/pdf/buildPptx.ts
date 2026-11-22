@@ -12,19 +12,20 @@ const H = 7.5;
 const M = 0.6; // marge
 
 const C = {
-  navy: "1E3A5F",
-  orange: "E67E22",
+  navy: "0A3A49",
+  orange: "F08814",
   cyan: "0891B2",
   green: "059669",
   lime: "65A30D",
   amber: "CA8A04",
+  brown: "C2410C",
   red: "DC2626",
   grey: "666666",
   light: "F8FAFC",
   border: "E2E8F0",
   text: "1A1A1A",
 };
-const PALETTE = [C.navy, C.cyan, C.green, C.lime, C.amber, "EA580C"];
+const PALETTE = [C.navy, C.cyan, C.green, C.lime, C.amber, C.brown];
 const FONT = "Calibri";
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -33,7 +34,7 @@ const LEVEL_COLORS: Record<string, string> = {
   Crabe: "22D3EE",
   Méduse: "EF4444",
   Poulpe: "D946EF",
-  Dauphin: "1E3A5F",
+  Dauphin: "0A3A49",
   Requin: "F59E0B",
 };
 
@@ -91,24 +92,91 @@ const avatarColor = (name: string) => {
 const fmtDate = (iso: string | Date) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
-// Gabarits (équivalent des mises en page "Titre seul" / "Vide") : titre 26 pt et
-// petit intitulé en vrais placeholders, pied de page et numéro sur chaque diapo.
+// Gabarits alignés sur la trame validée (voir CLAUDE.md) : Page de titre, Titre seul,
+// Vide, Titre et contenu, Deux colonnes, Section. Titre 26 pt et petit intitulé en
+// vrais placeholders, logo en haut à droite, pied de page, barre du bas, numéro.
+const LAYOUT_COVER = "Page de titre";
 const LAYOUT_TITLE = "Titre seul";
 const LAYOUT_BLANK = "Vide";
+const LAYOUT_CONTENT = "Titre et contenu";
+const LAYOUT_TWO_COLS = "Deux colonnes";
+const LAYOUT_SECTION = "Section";
 
-const defineMasters = (pptx: PptxGenJS, footer: string) => {
+const bar = (x: number, y: number, w: number, h: number, color: string) => ({
+  rect: { x, y, w, h, fill: { color }, line: { color, width: 0 } },
+});
+
+const getAspect = (dataUrl: string): Promise<number> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalWidth / img.naturalHeight || 1.6);
+    img.onerror = () => resolve(1.6);
+    img.src = dataUrl;
+  });
+
+const defineMasters = async (pptx: PptxGenJS, year: number, logo: string | null) => {
+  const aspect = logo ? await getAspect(logo) : 1.6;
+  const footer = `Team Oxygen · Assemblée Générale ${year}`;
+
+  // Éléments communs aux mises en page de contenu : logo, pied, barre du bas
+  const chrome: PptxGenJS.SlideMasterProps["objects"] = [
+    ...(logo ? [{ image: { data: logo, x: 12.73 - 0.64 * aspect, y: 0.12, w: 0.64 * aspect, h: 0.64 } }] : []),
+    bar(0, 7.42, W, 0.08, C.navy),
+    bar(0, 7.42, 1.6, 0.08, C.orange),
+    { text: { text: footer, options: { x: M, y: 7.1, w: 8, h: 0.3, fontFace: FONT, fontSize: 10, color: C.grey, valign: "middle" as const } } },
+  ];
+  const slideNumber = { x: 12.13, y: 7.1, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 10, color: "666666", align: "right" as const };
+  const kicker = (x: number, y: number, w: number, h: number) => ({
+    placeholder: { options: { name: "kicker", type: "body" as const, x, y, w, h, fontFace: FONT, fontSize: 13, bold: true, color: C.orange, align: "left" as const, valign: "middle" as const }, text: "SECTION" },
+  });
+  const title = (x: number, y: number, w: number, h: number) => ({
+    placeholder: { options: { name: "title", type: "title" as const, x, y, w, h, fontFace: FONT, fontSize: 26, bold: true, color: C.navy, align: "left" as const, valign: "middle" as const }, text: "Titre de la diapositive" },
+  });
+  const titleBlock = [kicker(M, 0.2, 10.9, 0.3), title(M, 0.48, 10.9, 0.55), bar(M, 1.05, 1.2, 0.05, C.orange)];
+  const bodyPh = (name: string, x: number, w: number, text: string) => ({
+    placeholder: { options: { name, type: "body" as const, x, y: 1.7, w, h: 5.2, fontFace: FONT, fontSize: 16, color: C.text, valign: "top" as const }, text },
+  });
+
   pptx.defineSlideMaster({
-    title: LAYOUT_TITLE,
+    title: LAYOUT_COVER,
     background: { color: "FFFFFF" },
     objects: [
-      { placeholder: { options: { name: "kicker", type: "body", x: M, y: 0.2, w: W - 2 * M, h: 0.3, fontFace: FONT, fontSize: 13, bold: true, color: C.orange, align: "left", valign: "middle" }, text: "" } },
-      { placeholder: { options: { name: "title", type: "title", x: M, y: 0.48, w: W - 2 * M, h: 0.55, fontFace: FONT, fontSize: 26, bold: true, color: C.navy, align: "left", valign: "middle" }, text: "" } },
-      { rect: { x: M, y: 1.05, w: 1.2, h: 0.05, fill: { color: C.orange }, line: { color: C.orange, width: 0 } } },
-      { text: { text: footer, options: { x: M, y: 7.1, w: 8, h: 0.3, fontFace: FONT, fontSize: 10, color: C.grey, valign: "middle" } } },
+      ...(logo ? [{ image: { data: logo, x: 4.37, y: 0.9, w: 4.6, h: 2.8 } }] : []),
+      {
+        placeholder: { options: { name: "title", type: "title" as const, x: M, y: 4.0, w: 12.13, h: 0.8, fontFace: FONT, fontSize: 36, bold: true, color: C.navy, align: "center" as const, valign: "middle" as const }, text: "Titre de la présentation" },
+      },
+      {
+        placeholder: { options: { name: "subtitle", type: "body" as const, x: M, y: 4.8, w: 12.13, h: 0.6, fontFace: FONT, fontSize: 24, color: C.orange, align: "center" as const, valign: "middle" as const }, text: "Sous-titre" },
+      },
+      bar(5.87, 5.6, 1.6, 0.06, C.orange),
+      bar(0, 7.1, W, 0.4, C.navy),
+      bar(0, 7.1, 1.6, 0.4, C.orange),
     ],
-    slideNumber: { x: W - M - 0.6, y: 7.1, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 10, color: C.grey, align: "right" },
   });
-  pptx.defineSlideMaster({ title: LAYOUT_BLANK, background: { color: "FFFFFF" }, objects: [] });
+  pptx.defineSlideMaster({ title: LAYOUT_TITLE, background: { color: "FFFFFF" }, objects: [...chrome, ...titleBlock], slideNumber });
+  pptx.defineSlideMaster({ title: LAYOUT_BLANK, background: { color: "FFFFFF" }, objects: [...chrome], slideNumber });
+  pptx.defineSlideMaster({
+    title: LAYOUT_CONTENT,
+    background: { color: "FFFFFF" },
+    objects: [...chrome, ...titleBlock, bodyPh("content", M, 12.13, "Texte")],
+    slideNumber,
+  });
+  pptx.defineSlideMaster({
+    title: LAYOUT_TWO_COLS,
+    background: { color: "FFFFFF" },
+    objects: [...chrome, ...titleBlock, bodyPh("left", M, 5.9, "Colonne gauche"), bodyPh("right", 6.83, 5.9, "Colonne droite")],
+    slideNumber,
+  });
+  pptx.defineSlideMaster({
+    title: LAYOUT_SECTION,
+    background: { color: "FFFFFF" },
+    objects: [
+      kicker(0.9, 2.6, 11.5, 0.4),
+      title(0.9, 3.05, 11.5, 1.2),
+      bar(0.9, 4.35, 1.6, 0.06, C.orange),
+      bar(0, 7.42, 1.6, 0.08, C.orange),
+    ],
+  });
 };
 
 const addTitle = (slide: Slide, text: string, subtitle?: string, kicker?: string) => {
@@ -139,13 +207,10 @@ const addAvatar = async (slide: Slide, m: PDFMember, x: number, y: number, size:
 };
 
 // --- Slides -----------------------------------------------------------------
-const slideCover = async (pptx: PptxGenJS, year: number) => {
-  const slide = pptx.addSlide({ masterName: LAYOUT_BLANK });
-  const logo = await loadImage(logoTeamOxygen);
-  if (logo) slide.addImage({ data: logo, x: (W - 4.6) / 2, y: 0.9, w: 4.6, h: 2.8 });
-  slide.addText(`Rapport d'Activité & Statistiques ${year}`, { x: M, y: 4.0, w: W - 2 * M, h: 0.8, align: "center", fontFace: FONT, fontSize: 36, bold: true, color: C.navy });
-  slide.addText("Assemblée Générale", { x: M, y: 4.8, w: W - 2 * M, h: 0.6, align: "center", fontFace: FONT, fontSize: 24, color: C.orange });
-  slide.addShape("rect", { x: (W - 1.6) / 2, y: 5.6, w: 1.6, h: 0.06, fill: { color: C.orange }, line: { color: C.orange, width: 0 } });
+const slideCover = (pptx: PptxGenJS, year: number) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_COVER });
+  slide.addText(`Rapport d'Activité & Statistiques ${year}`, { placeholder: "title" });
+  slide.addText("Assemblée Générale", { placeholder: "subtitle" });
   slide.addText(`Document généré le ${fmtDate(new Date())}`, { x: M, y: 5.85, w: W - 2 * M, h: 0.4, align: "center", fontFace: FONT, fontSize: 13, color: C.grey });
 };
 
@@ -733,14 +798,15 @@ export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptio
   pptx.layout = "WIDE";
   pptx.title = `Rapport AG Team Oxygen ${year}`;
   pptx.company = "Team Oxygen";
-  defineMasters(pptx, `Team Oxygen · Assemblée Générale ${year}`);
+  const logo = await loadImage(logoTeamOxygen);
+  await defineMasters(pptx, year, logo);
 
   // Ordre = celui du sélecteur
   const ordered = PDF_SECTIONS.map((s) => s.id).filter((id) => selectedSections.includes(id));
 
   for (const id of ordered) {
     switch (id) {
-      case "cover": await slideCover(pptx, year); break;
+      case "cover": slideCover(pptx, year); break;
       case "summary": slideSummary(pptx, selectedSections); break;
       case "bureau": await slideBureau(pptx, data.bureau); break;
       case "encadrants": await slideEncadrants(pptx, data.allEncadrants); break;
