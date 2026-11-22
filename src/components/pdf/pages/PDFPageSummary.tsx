@@ -3,10 +3,11 @@ import { PDF_SECTIONS } from "../PDFSectionSelector";
 
 interface PDFPageSummaryProps {
   selectedSections?: string[];
+  photoPages?: number;
   pageNumber?: number;
 }
 
-export const PDFPageSummary = ({ selectedSections, pageNumber }: PDFPageSummaryProps) => {
+export const PDFPageSummary = ({ selectedSections, photoPages = 0, pageNumber }: PDFPageSummaryProps) => {
   // Filter to show only selected sections (excluding cover and summary themselves)
   const contentSections = PDF_SECTIONS.filter(
     s => s.id !== "cover" && s.id !== "summary" && 
@@ -17,15 +18,20 @@ export const PDFPageSummary = ({ selectedSections, pageNumber }: PDFPageSummaryP
   let currentPage = 2; // Summary is page 2 if included
   if (selectedSections?.includes("cover")) currentPage = 3;
   
-  const sectionsWithPages = contentSections.map((section, index) => {
-    const page = currentPage + index;
-    return {
-      number: index + 1,
-      title: section.label,
-      description: getSectionDescription(section.id),
-      page,
-    };
-  });
+  // Les sections photos occupent 1 à 2 pages : on cumule les pages réellement utilisées
+  let page = currentPage;
+  const sectionsWithPages = contentSections
+    .filter(section => section.id !== "photos" || photoPages > 0)
+    .map((section, index) => {
+      const start = page;
+      page += section.id === "photos" ? photoPages : 1;
+      return {
+        number: index + 1,
+        title: section.label,
+        description: getSectionDescription(section.id),
+        page: start,
+      };
+    });
 
   return (
     <PDFPageWrapper pageNumber={pageNumber}>
@@ -119,6 +125,7 @@ function getSectionDescription(sectionId: string): string {
     dashboard: "Chiffres clés de l'année",
     demographics: "Profil des adhérents",
     levels: "Castagnole, Dauphin, Requin…",
+    photos: "Les moments forts de la saison",
     topPlongeurs: "Les mordus de l'apnée",
     encadrantsActivity: "Implication du staff",
     topSites: "Nos spots favoris",

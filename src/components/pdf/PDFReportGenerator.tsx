@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { buildPptx } from "./buildPptx";
+import { PHOTOS_PER_PAGE } from "@/hooks/usePDFReportData";
 import { PDFReportPages } from "./PDFReportPages";
 import { usePDFReportData } from "@/hooks/usePDFReportData";
 import { CONTACT_LINKS } from "./pages/PDFPageContact";
@@ -44,6 +45,13 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   const { data, isLoading, refetch } = usePDFReportData(year);
+
+  // Nombre réel de pages : la section photos en occupe 1 à 2, ou 0 si l'album est vide
+  const photoPages = data ? Math.ceil(data.photos.items.length / PHOTOS_PER_PAGE) : 1;
+  const pageCount = selectedSections.reduce(
+    (n, id) => n + (id === "photos" ? photoPages : 1),
+    0
+  );
 
   const handleSectionToggle = (sectionId: string) => {
     setSelectedSections(prev => 
@@ -175,7 +183,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       await buildPptx({ data: reportData, year, selectedSections });
       toast.success("Présentation téléchargée avec succès !", {
         id: toastId,
-        description: `${selectedSections.length} diapositives éditables`,
+        description: `${pageCount} diapositives éditables`,
       });
     } catch (error) {
       console.error("Error generating pptx:", error);
@@ -238,7 +246,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
               className="gap-2"
             >
               <Presentation className="h-4 w-4" />
-              PowerPoint ({selectedSections.length} diapos)
+              PowerPoint ({pageCount} diapos)
             </Button>
             <Button
               onClick={generatePDF}
@@ -246,7 +254,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
               className="gap-2"
             >
               <FileDown className="h-4 w-4" />
-              PDF ({selectedSections.length} pages)
+              PDF ({pageCount} pages)
             </Button>
           </DialogFooter>
         </DialogContent>
