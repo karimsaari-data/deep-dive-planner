@@ -1,0 +1,651 @@
+import PptxGenJS from "pptxgenjs";
+import type { PDFMember, PDFReportData } from "@/hooks/usePDFReportData";
+import { formatFullName } from "@/lib/formatName";
+import { CONTACT_LINKS } from "./pages/PDFPageContact";
+import { PDF_SECTIONS } from "./PDFSectionSelector";
+import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
+
+// Diapositives natives (textes, formes, tableaux et graphiques modifiables dans PowerPoint).
+// Format 16:9, en pouces.
+const W = 13.333;
+const H = 7.5;
+const M = 0.6; // marge
+
+const C = {
+  navy: "1E3A5F",
+  orange: "E67E22",
+  cyan: "0891B2",
+  green: "059669",
+  lime: "65A30D",
+  amber: "CA8A04",
+  red: "DC2626",
+  grey: "666666",
+  light: "F8FAFC",
+  border: "E2E8F0",
+  text: "1A1A1A",
+};
+const PALETTE = [C.navy, C.cyan, C.green, C.lime, C.amber, "EA580C"];
+const FONT = "Calibri";
+
+const LEVEL_COLORS: Record<string, string> = {
+  Inactif: "9CA3AF",
+  Castagnole: "60A5FA",
+  Crabe: "22D3EE",
+  Méduse: "EF4444",
+  Poulpe: "D946EF",
+  Dauphin: "1E3A5F",
+  Requin: "F59E0B",
+};
+
+type Slide = PptxGenJS.Slide;
+
+// Barres horizontales : première catégorie en haut. Valeur supportée par PowerPoint
+// ("maxMin") mais absente des types de pptxgenjs.
+const TOP_DOWN = "maxMin" as unknown as "minMax";
+
+export interface BuildPptxOptions {
+  data: PDFReportData;
+  year: number;
+  selectedSections: string[];
+}
+
+// --- Images -----------------------------------------------------------------
+// Charge une image, la recadre (cover) au ratio demandé et la renvoie en data URI.
+// Retourne null si le chargement échoue (CORS, 404...) : on affiche alors un repli.
+const loadImage = (url: string, aspect?: number): Promise<string | null> =>
+  new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+        if (aspect) {
+          const cur = sw / sh;
+          if (cur > aspect) { sw = sh * aspect; sx = (img.naturalWidth - sw) / 2; }
+          else { sh = sw / aspect; sy = (img.naturalHeight - sh) / 2; }
+        }
+        const maxW = 600;
+        const scale = Math.min(1, maxW / sw);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(sw * scale);
+        canvas.height = Math.round(sh * scale);
+        canvas.getContext("2d")!.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      } catch {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+
+// --- Helpers ----------------------------------------------------------------
+const initials = (m: PDFMember) => `${m.first_name.charAt(0)}${m.last_name.charAt(0)}`.toUpperCase();
+
+const avatarColor = (name: string) => {
+  const colors = [C.navy, "2563EB", C.cyan, "0D9488", C.green, C.lime, C.amber, "EA580C"];
+  const hash = name.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return colors[hash % colors.length];
+};
+
+const fmtDate = (iso: string | Date) =>
+  new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
+// Gabarits (équivalent des mises en page "Titre seul" / "Vide") : titre 26 pt et
+// petit intitulé en vrais placeholders, pied de page et numéro sur chaque diapo.
+const LAYOUT_TITLE = "Titre seul";
+const LAYOUT_BLANK = "Vide";
+
+const defineMasters = (pptx: PptxGenJS, footer: string) => {
+  pptx.defineSlideMaster({
+    title: LAYOUT_TITLE,
+    background: { color: "FFFFFF" },
+    objects: [
+      { placeholder: { options: { name: "kicker", type: "body", x: M, y: 0.2, w: W - 2 * M, h: 0.3, fontFace: FONT, fontSize: 13, bold: true, color: C.orange, align: "left", valign: "middle" }, text: "" } },
+      { placeholder: { options: { name: "title", type: "title", x: M, y: 0.48, w: W - 2 * M, h: 0.55, fontFace: FONT, fontSize: 26, bold: true, color: C.navy, align: "left", valign: "middle" }, text: "" } },
+      { rect: { x: M, y: 1.05, w: 1.2, h: 0.05, fill: { color: C.orange }, line: { color: C.orange, width: 0 } } },
+      { text: { text: footer, options: { x: M, y: 7.1, w: 8, h: 0.3, fontFace: FONT, fontSize: 10, color: C.grey, valign: "middle" } } },
+    ],
+    slideNumber: { x: W - M - 0.6, y: 7.1, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 10, color: C.grey, align: "right" },
+  });
+  pptx.defineSlideMaster({ title: LAYOUT_BLANK, background: { color: "FFFFFF" }, objects: [] });
+};
+
+const addTitle = (slide: Slide, text: string, subtitle?: string, kicker?: string) => {
+  slide.addText((kicker || "").toUpperCase(), { placeholder: "kicker" });
+  slide.addText(text, { placeholder: "title" });
+  if (subtitle) {
+    slide.addText(subtitle, { x: M, y: 1.15, w: W - 2 * M, h: 0.4, fontFace: FONT, fontSize: 13, color: C.grey, valign: "middle" });
+  }
+};
+
+const card = (slide: Slide, x: number, y: number, w: number, h: number, borderColor = C.border, fill = C.light) =>
+  slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.1, fill: { color: fill }, line: { color: borderColor, width: 1 } });
+
+// Pastille cercle : photo si disponible, sinon initiales sur fond coloré
+const addAvatar = async (slide: Slide, m: PDFMember, x: number, y: number, size: number, ring: string, fontSize: number) => {
+  const photo = m.avatar_url ? await loadImage(m.avatar_url, 1) : null;
+  if (photo) {
+    slide.addImage({ data: photo, x, y, w: size, h: size, rounding: true });
+    slide.addShape("ellipse", { x, y, w: size, h: size, fill: { type: "none" }, line: { color: ring, width: 2 } });
+  } else {
+    slide.addShape("ellipse", {
+      x, y, w: size, h: size,
+      fill: { color: avatarColor(m.first_name + m.last_name) },
+      line: { color: ring, width: 2 },
+    });
+    slide.addText(initials(m), { x, y, w: size, h: size, align: "center", valign: "middle", fontFace: FONT, fontSize, bold: true, color: "FFFFFF" });
+  }
+};
+
+// --- Slides -----------------------------------------------------------------
+const slideCover = async (pptx: PptxGenJS, year: number) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_BLANK });
+  const logo = await loadImage(logoTeamOxygen);
+  if (logo) slide.addImage({ data: logo, x: (W - 4.6) / 2, y: 0.9, w: 4.6, h: 2.8 });
+  slide.addText(`Rapport d'Activité & Statistiques ${year}`, { x: M, y: 4.0, w: W - 2 * M, h: 0.8, align: "center", fontFace: FONT, fontSize: 36, bold: true, color: C.navy });
+  slide.addText("Assemblée Générale", { x: M, y: 4.8, w: W - 2 * M, h: 0.6, align: "center", fontFace: FONT, fontSize: 24, color: C.orange });
+  slide.addShape("rect", { x: (W - 1.6) / 2, y: 5.6, w: 1.6, h: 0.06, fill: { color: C.orange }, line: { color: C.orange, width: 0 } });
+  slide.addText(`Document généré le ${fmtDate(new Date())}`, { x: M, y: 5.85, w: W - 2 * M, h: 0.4, align: "center", fontFace: FONT, fontSize: 13, color: C.grey });
+};
+
+const slideSummary = (pptx: PptxGenJS, sections: string[]) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Sommaire", undefined, "Assemblée Générale");
+  const descriptions: Record<string, string> = {
+    bureau: "Composition du bureau du club",
+    encadrants: "Nos encadrants certifiés",
+    dashboard: "Chiffres clés de l'année",
+    demographics: "Profil des adhérents",
+    levels: "Castagnole, Dauphin, Requin…",
+    topPlongeurs: "Les mordus de l'apnée",
+    encadrantsActivity: "Implication du staff",
+    topSites: "Nos spots favoris",
+    map: "Géolocalisation des sites",
+    equipment: "Inventaire et valorisation",
+    contact: "Restons connectés",
+  };
+  const items = PDF_SECTIONS.filter((s) => s.id !== "cover" && s.id !== "summary" && sections.includes(s.id));
+  const colW = (W - 2 * M - 0.4) / 2;
+  const perCol = Math.ceil(items.length / 2);
+  items.forEach((s, i) => {
+    const col = Math.floor(i / perCol);
+    const row = i % perCol;
+    const x = M + col * (colW + 0.4);
+    const y = 1.5 + row * 0.9;
+    card(slide, x, y, colW, 0.75);
+    slide.addShape("ellipse", { x: x + 0.15, y: y + 0.12, w: 0.5, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+    slide.addText(String(i + 1), { x: x + 0.15, y: y + 0.12, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: FONT, fontSize: 15, bold: true, color: "FFFFFF" });
+    slide.addText(
+      [
+        { text: s.label, options: { bold: true, fontSize: 16, color: C.text, breakLine: true } },
+        { text: descriptions[s.id] || "", options: { fontSize: 11, color: C.grey } },
+      ],
+      { x: x + 0.8, y: y + 0.05, w: colW - 0.95, h: 0.65, fontFace: FONT, valign: "middle" }
+    );
+  });
+};
+
+const slideBureau = async (pptx: PptxGenJS, members: PDFMember[]) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Le Bureau", `${members.length} membres · composition au ${fmtDate(new Date())}`, "Gouvernance");
+  const cols = 4;
+  const gap = 0.25;
+  const cw = (W - 2 * M - gap * (cols - 1)) / cols;
+  const ch = 1.9;
+  for (let i = 0; i < members.length; i++) {
+    const m = members[i];
+    const x = M + (i % cols) * (cw + gap);
+    const y = 1.7 + Math.floor(i / cols) * (ch + 0.2);
+    card(slide, x, y, cw, ch);
+    await addAvatar(slide, m, x + (cw - 0.95) / 2, y + 0.15, 0.95, C.navy, 22);
+    slide.addText(formatFullName(m.first_name, m.last_name), { x, y: y + 1.12, w: cw, h: 0.35, align: "center", fontFace: FONT, fontSize: 14, bold: true, color: C.text });
+    slide.addText(m.board_role || "", { x, y: y + 1.45, w: cw, h: 0.3, align: "center", fontFace: FONT, fontSize: 11, color: C.orange, bold: true });
+  }
+};
+
+const slideEncadrants = async (pptx: PptxGenJS, members: PDFMember[]) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Nos Encadrants", `${members.length} encadrants · composition au ${fmtDate(new Date())}`, "Équipe technique");
+  const cols = 6;
+  const gap = 0.18;
+  const cw = (W - 2 * M - gap * (cols - 1)) / cols;
+  const ch = 1.95;
+  const shown = members.slice(0, 18);
+  for (let i = 0; i < shown.length; i++) {
+    const m = shown[i];
+    const x = M + (i % cols) * (cw + gap);
+    const y = 1.7 + Math.floor(i / cols) * (ch + 0.15);
+    card(slide, x, y, cw, ch);
+    await addAvatar(slide, m, x + (cw - 0.75) / 2, y + 0.12, 0.75, C.cyan, 16);
+    slide.addText(
+      [
+        { text: m.first_name, options: { bold: true, fontSize: 11, color: C.text, breakLine: true } },
+        { text: m.last_name, options: { fontSize: 10, color: C.grey, breakLine: true } },
+        { text: m.apnea_level || "", options: { fontSize: 9, color: C.cyan, bold: true, breakLine: true } },
+        { text: m.board_role || "", options: { fontSize: 9, color: C.orange } },
+      ],
+      { x: x + 0.05, y: y + 0.9, w: cw - 0.1, h: 1.0, align: "center", valign: "top", fontFace: FONT }
+    );
+  }
+  if (members.length > 18) {
+    slide.addText(`+ ${members.length - 18} autres encadrants`, { x: M, y: 7.0, w: W - 2 * M, h: 0.3, align: "center", fontFace: FONT, fontSize: 11, color: C.grey });
+  }
+};
+
+const slideDashboard = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const { stats } = data;
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, `Bilan Global ${year}`, undefined, "Chiffres clés");
+  const kpis = [
+    { label: "Adhérents saison", sub: `${stats.seasonYear - 1}-${stats.seasonYear} · dont ${stats.totalEncadrants} encadrants`, value: stats.totalMembers, color: C.navy },
+    { label: "Sorties réalisées", sub: `du 1er janvier au ${fmtDate(stats.periodEnd)}`, value: stats.totalOutings, color: C.cyan },
+    { label: "Plongées cumulées", sub: "participations cumulées", value: stats.totalParticipations, color: C.green },
+  ];
+  const gap = 0.4;
+  const cw = (W - 2 * M - 2 * gap) / 3;
+  kpis.forEach((k, i) => {
+    const x = M + i * (cw + gap);
+    card(slide, x, 1.8, cw, 3.3, k.color);
+    slide.addText(k.value.toLocaleString("fr-FR"), { x, y: 2.2, w: cw, h: 1.3, align: "center", valign: "middle", fontFace: FONT, fontSize: 66, bold: true, color: k.color });
+    slide.addText(k.label, { x, y: 3.55, w: cw, h: 0.5, align: "center", fontFace: FONT, fontSize: 20, color: C.grey });
+    slide.addText(k.sub, { x, y: 4.1, w: cw, h: 0.4, align: "center", fontFace: FONT, fontSize: 12, color: "888888" });
+  });
+  const avg = stats.totalOutings > 0 ? Math.round(stats.totalParticipations / stats.totalOutings) : 0;
+  slide.addShape("rect", { x: M, y: 5.5, w: W - 2 * M, h: 1.2, fill: { color: "ECFDF5" }, line: { color: "ECFDF5", width: 0 } });
+  slide.addShape("rect", { x: M, y: 5.5, w: 0.07, h: 1.2, fill: { color: C.green }, line: { color: C.green, width: 0 } });
+  slide.addText(
+    [
+      { text: `En moyenne, chaque sortie a réuni ${avg} participants`, options: { fontSize: 15, color: "166534", breakLine: true } },
+      {
+        text:
+          "Sorties comptabilisées depuis la mise en service de l'application" +
+          (stats.firstOutingDate ? ` (première sortie : ${fmtDate(stats.firstOutingDate)})` : "") +
+          ". Quelques sorties antérieures ne sont pas incluses.",
+        options: { fontSize: 12, color: "92400E" },
+      },
+    ],
+    { x: M + 0.25, y: 5.5, w: W - 2 * M - 0.4, h: 1.2, fontFace: FONT, valign: "middle" }
+  );
+};
+
+const slideDemographics = (pptx: PptxGenJS, d: PDFReportData["demographics"]) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Démographie", `${d.totalMembers} adhérents · âge moyen ${d.averageAge} ans`, "Adhérents");
+  const gap = 0.3;
+  const cw = (W - 2 * M - 2 * gap) / 3;
+  const y = 1.7;
+  const ch = 5.3;
+  const panels = ["Pyramide des âges", "Parité H/F", "Répartition des niveaux"];
+  panels.forEach((t, i) => {
+    const x = M + i * (cw + gap);
+    card(slide, x, y, cw, ch);
+    slide.addText(t, { x: x + 0.2, y: y + 0.1, w: cw - 0.4, h: 0.45, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  });
+
+  const barOpts = (colors: string[], x: number): PptxGenJS.IChartOpts => ({
+    x: x + 0.1, y: y + 0.6, w: cw - 0.2, h: ch - 0.75,
+    barDir: "bar",
+    chartColors: colors,
+    catAxisOrientation: TOP_DOWN,
+    valAxisHidden: true,
+    valGridLine: { style: "none" },
+    showValue: true,
+    dataLabelFontSize: 11,
+    dataLabelFontBold: true,
+    catAxisLabelFontSize: 11,
+    catAxisLabelFontFace: FONT,
+    showLegend: false,
+    barGapWidthPct: 40,
+  });
+
+  if (d.ageData.length) {
+    slide.addChart(
+      "bar",
+      [{ name: "Adhérents", labels: d.ageData.map((a) => a.name), values: d.ageData.map((a) => a.value) }],
+      barOpts(PALETTE, M)
+    );
+  }
+
+  const genderColors: Record<string, string> = { Homme: C.cyan, Femme: "EC4899", "Non renseigné": "9CA3AF" };
+  if (d.genderData.length) {
+    slide.addChart(
+      "doughnut",
+      [{ name: "Genre", labels: d.genderData.map((g) => g.name), values: d.genderData.map((g) => g.value) }],
+      {
+        x: M + (cw + gap) + 0.1, y: y + 0.6, w: cw - 0.2, h: ch - 0.75,
+        chartColors: d.genderData.map((g) => genderColors[g.name] || "9CA3AF"),
+        holeSize: 55,
+        showLegend: true,
+        legendPos: "b",
+        legendFontSize: 12,
+        legendFontFace: FONT,
+        showPercent: true,
+        showValue: false,
+        dataLabelColor: "FFFFFF",
+        dataLabelFontSize: 13,
+        dataLabelFontBold: true,
+      }
+    );
+  }
+
+  const levels = d.levelData.slice(0, 8);
+  if (levels.length) {
+    slide.addChart(
+      "bar",
+      [{ name: "Adhérents", labels: levels.map((l) => l.name), values: levels.map((l) => l.value) }],
+      barOpts(PALETTE, M + 2 * (cw + gap))
+    );
+  }
+};
+
+const slideLevels = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const { fishLevels, stats } = data;
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  const total = fishLevels.reduce((s, l) => s + l.count, 0);
+  const active = fishLevels.filter((l) => l.min > 0).reduce((s, l) => s + l.count, 0);
+  addTitle(
+    slide,
+    `Niveaux des adhérents ${year}`,
+    `Niveau selon le nombre de sorties depuis le 1er janvier · ${total} adhérents saison ${stats.seasonYear - 1}-${stats.seasonYear} · dont ${active} actifs`,
+    "Adhérents"
+  );
+
+  slide.addChart(
+    "bar",
+    [{ name: "Adhérents", labels: fishLevels.map((l) => `${l.emoji} ${l.name}`), values: fishLevels.map((l) => l.count) }],
+    {
+      x: M, y: 1.7, w: 7.4, h: 5.3,
+      barDir: "bar",
+      chartColors: fishLevels.map((l) => LEVEL_COLORS[l.name] || C.navy),
+      catAxisOrientation: TOP_DOWN,
+      valAxisHidden: true,
+      valGridLine: { style: "none" },
+      showValue: true,
+      dataLabelFontSize: 13,
+      dataLabelFontBold: true,
+      catAxisLabelFontSize: 13,
+      catAxisLabelFontFace: FONT,
+      showLegend: false,
+      barGapWidthPct: 35,
+    }
+  );
+
+  const head = (t: string, align: "left" | "center" | "right" = "left") => ({
+    text: t,
+    options: { bold: true, color: "FFFFFF", fill: { color: C.navy }, align, fontFace: FONT, fontSize: 12 },
+  });
+  const rows: PptxGenJS.TableRow[] = [[head("Niveau"), head("Sorties"), head("Adhérents", "center"), head("%", "center")]];
+  fishLevels.forEach((l, i) => {
+    const range = l.max === null ? `${l.min}+` : l.min === l.max ? `${l.min}` : `${l.min}-${l.max}`;
+    const fill = { color: i % 2 === 0 ? C.light : "FFFFFF" };
+    const pct = total > 0 ? Math.round((l.count / total) * 100) : 0;
+    rows.push([
+      { text: `${l.emoji} ${l.name}`, options: { fill, fontFace: FONT, fontSize: 12 } },
+      { text: range, options: { fill, fontFace: FONT, fontSize: 12, color: C.grey } },
+      { text: String(l.count), options: { fill, fontFace: FONT, fontSize: 12, bold: true, align: "center" } },
+      { text: `${pct}%`, options: { fill, fontFace: FONT, fontSize: 12, color: C.grey, align: "center" } },
+    ]);
+  });
+  slide.addTable(rows, { x: 8.3, y: 1.9, w: W - M - 8.3, colW: [1.7, 1, 1.0, 0.73], rowH: 0.45, border: { type: "solid", color: C.border, pt: 0.5 } });
+};
+
+const rankTable = (
+  slide: Slide,
+  headers: string[],
+  rows: (string | number)[][],
+  colW: number[],
+  centerCols: number[],
+  highlightTop3: string
+) => {
+  const head = headers.map((h, i) => ({
+    text: h,
+    options: { bold: true, color: "FFFFFF", fill: { color: C.navy }, fontFace: FONT, fontSize: 12, align: (centerCols.includes(i) ? "center" : "left") as "left" | "center" },
+  }));
+  const body: PptxGenJS.TableRow[] = rows.map((r, idx) => {
+    const top = idx < 3;
+    const fill = { color: top ? highlightTop3 : idx % 2 === 0 ? C.light : "FFFFFF" };
+    return r.map((cell, i) => ({
+      text: String(cell),
+      options: {
+        fill,
+        fontFace: FONT,
+        fontSize: 12,
+        bold: top || centerCols.includes(i),
+        color: i === 2 && headers.length === 4 ? C.grey : C.text,
+        align: (centerCols.includes(i) ? "center" : "left") as "left" | "center",
+      },
+    }));
+  });
+  slide.addTable([head, ...body], { x: M, y: 1.7, w: W - 2 * M, colW, rowH: 0.31, border: { type: "solid", color: C.border, pt: 0.5 } });
+};
+
+const slideTopPlongeurs = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, `Les Mordus de l'Apnée ${year}`, "Top 15 des participants les plus assidus", "Participation");
+  const medals = ["🥇", "🥈", "🥉"];
+  const rows = data.topParticipants.slice(0, 15).map((p, i) => [
+    `${medals[i] ? medals[i] + " " : ""}${i + 1}`,
+    p.name,
+    p.memberCode || "-",
+    p.participations,
+  ]);
+  if (rows.length === 0) {
+    slide.addText(`Aucune donnée de participation disponible pour ${year}`, { x: M, y: 3, w: W - 2 * M, h: 1, align: "center", fontFace: FONT, fontSize: 16, color: C.grey });
+    return;
+  }
+  const total = W - 2 * M;
+  rankTable(slide, ["Rang", "Nom", "Code Membre", "Participations"], rows, [1.1, total - 1.1 - 2.2 - 2.2, 2.2, 2.2], [3], "FEF3C7");
+};
+
+const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, `Implication du Staff ${year}`, "Top Directeurs de Plongée par nombre de sorties encadrées", "Encadrement");
+  const list = data.topEncadrants.slice(0, 12);
+  const medals = ["🥇", "🥈", "🥉"];
+  const rows = list.map((e, i) => [`${medals[i] ? medals[i] + " " : ""}${i + 1}`, e.name, e.outingsOrganized]);
+  const total = W - 2 * M;
+  if (rows.length) {
+    rankTable(slide, ["Rang", "Encadrant", "Sorties encadrées"], rows, [1.1, total - 1.1 - 2.6, 2.6], [2], "FEF3C7");
+  }
+  const sum = data.topEncadrants.reduce((s, e) => s + e.outingsOrganized, 0);
+  slide.addText(`Total des sorties encadrées : ${sum}`, { x: M, y: 6.55, w: W - 2 * M, h: 0.4, fontFace: FONT, fontSize: 13, color: C.grey, align: "right" });
+};
+
+const slideTopSites = async (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, `Top 10 des Sites ${year}`, undefined, "Sites de plongée");
+  const cols = 5;
+  const gap = 0.2;
+  const cw = (W - 2 * M - gap * (cols - 1)) / cols;
+  const ph = 1.45;
+  const ch = 2.55;
+  const locs = data.topLocations.slice(0, 10);
+  for (let i = 0; i < locs.length; i++) {
+    const loc = locs[i];
+    const x = M + (i % cols) * (cw + gap);
+    const y = 1.5 + Math.floor(i / cols) * (ch + 0.2);
+    card(slide, x, y, cw, ch);
+    const photo = loc.photo_url ? await loadImage(loc.photo_url, cw / ph) : null;
+    if (photo) {
+      slide.addImage({ data: photo, x: x + 0.05, y: y + 0.05, w: cw - 0.1, h: ph });
+    } else {
+      slide.addShape("rect", { x: x + 0.05, y: y + 0.05, w: cw - 0.1, h: ph, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+      slide.addText("🌊", { x: x + 0.05, y: y + 0.05, w: cw - 0.1, h: ph, align: "center", valign: "middle", fontSize: 30 });
+    }
+    slide.addText(`#${i + 1}`, { x: x + 0.1, y: y + ph + 0.1, w: cw - 0.2, h: 0.3, fontFace: FONT, fontSize: 14, bold: true, color: C.orange });
+    slide.addText(loc.name, { x: x + 0.1, y: y + ph + 0.4, w: cw - 0.2, h: 0.35, fontFace: FONT, fontSize: 12, bold: true, color: C.text, fit: "shrink" });
+    slide.addText(`${loc.count} sortie${loc.count > 1 ? "s" : ""}`, { x: x + 0.1, y: y + ph + 0.75, w: cw - 0.2, h: 0.3, fontFace: FONT, fontSize: 12, bold: true, color: C.green });
+  }
+};
+
+const slideMap = (pptx: PptxGenJS, data: PDFReportData) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Carte des Spots", undefined, "Sites de plongée");
+  const locs = data.topLocations.slice(0, 8).map((l, i) => ({ ...l, rank: i + 1 }));
+
+  // Liste
+  const lx = M;
+  const lw = 5.6;
+  card(slide, lx, 1.5, lw, 5.5);
+  slide.addText("Coordonnées GPS", { x: lx + 0.2, y: 1.55, w: lw - 0.4, h: 0.4, fontFace: FONT, fontSize: 14, bold: true, color: C.text });
+  locs.forEach((l, i) => {
+    const y = 2.0 + i * 0.6;
+    slide.addShape("ellipse", { x: lx + 0.2, y: y + 0.08, w: 0.36, h: 0.36, fill: { color: C.red }, line: { color: C.red, width: 0 } });
+    slide.addText(String(l.rank), { x: lx + 0.2, y: y + 0.08, w: 0.36, h: 0.36, align: "center", valign: "middle", fontFace: FONT, fontSize: 11, bold: true, color: "FFFFFF" });
+    slide.addText(
+      [
+        { text: l.name, options: { bold: true, fontSize: 12, color: C.text, breakLine: true } },
+        { text: l.latitude && l.longitude ? `${l.latitude.toFixed(4)}° N, ${l.longitude.toFixed(4)}° E` : "GPS non renseigné", options: { fontSize: 9, color: C.grey } },
+      ],
+      { x: lx + 0.7, y, w: lw - 2.1, h: 0.52, fontFace: FONT, valign: "middle" }
+    );
+    slide.addText(`${l.count} sortie${l.count > 1 ? "s" : ""}`, { x: lx + lw - 1.4, y, w: 1.2, h: 0.52, align: "right", valign: "middle", fontFace: FONT, fontSize: 11, color: C.cyan });
+  });
+
+  // Carte schématique (formes natives)
+  const mx = M + lw + 0.3;
+  const mw = W - M - mx;
+  const mh = 5.5;
+  slide.addShape("rect", { x: mx, y: 1.5, w: mw, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+  slide.addText("Zone Méditerranée - Marseille et environs", { x: mx + 0.15, y: 1.5, w: mw - 0.3, h: 0.5, fontFace: FONT, fontSize: 13, bold: true, color: "FFFFFF", valign: "middle" });
+  const sx = mx;
+  const sy = 2.0;
+  const sh = mh - 0.5 - 0.4;
+  slide.addShape("rect", { x: sx, y: sy, w: mw, h: sh, fill: { color: "BFDBFE" }, line: { color: C.border, width: 1 } });
+
+  const valid = locs.filter((l) => l.latitude && l.longitude);
+  if (valid.length) {
+    const lats = valid.map((l) => l.latitude!);
+    const lons = valid.map((l) => l.longitude!);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+    const latPad = Math.max((maxLat - minLat) * 0.2, 0.05);
+    const lonPad = Math.max((maxLon - minLon) * 0.2, 0.05);
+    const latRange = maxLat - minLat + latPad * 2;
+    const lonRange = maxLon - minLon + lonPad * 2;
+    const toX = (lon: number) => sx + 0.3 + ((lon - minLon + lonPad) / lonRange) * (mw - 0.6);
+    const toY = (lat: number) => sy + sh - 0.3 - ((lat - minLat + latPad) / latRange) * (sh - 0.6);
+    valid.forEach((l) => {
+      const px = toX(l.longitude!);
+      const py = toY(l.latitude!);
+      slide.addShape("ellipse", { x: px - 0.16, y: py - 0.16, w: 0.32, h: 0.32, fill: { color: C.red }, line: { color: "FFFFFF", width: 1.5 } });
+      slide.addText(String(l.rank), { x: px - 0.16, y: py - 0.16, w: 0.32, h: 0.32, align: "center", valign: "middle", fontFace: FONT, fontSize: 10, bold: true, color: "FFFFFF" });
+      const label = l.name.length > 18 ? l.name.slice(0, 18) + "…" : l.name;
+      slide.addText(label, { x: px + 0.2, y: py - 0.13, w: Math.max(0.5, label.length * 0.068 + 0.15), h: 0.26, fontFace: FONT, fontSize: 9, color: C.navy, fill: { color: "FFFFFF" }, valign: "middle", margin: 2 });
+    });
+  } else {
+    slide.addText("Aucune coordonnée GPS disponible", { x: sx, y: sy, w: mw, h: sh, align: "center", valign: "middle", fontFace: FONT, fontSize: 14, color: C.grey });
+  }
+  slide.addText(`${valid.length} spot${valid.length > 1 ? "s" : ""} géolocalisé${valid.length > 1 ? "s" : ""} sur la carte`, {
+    x: mx, y: 1.5 + mh - 0.4, w: mw, h: 0.4, align: "center", valign: "middle", fontFace: FONT, fontSize: 11, color: "0369A1", fill: { color: "F0F9FF" },
+  });
+};
+
+const slideEquipment = (pptx: PptxGenJS, data: PDFReportData) => {
+  const { equipment } = data;
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Parc Matériel & Valorisation", undefined, "Matériel");
+  card(slide, M, 1.5, 3.6, 5.5, C.green, "ECFDF5");
+  slide.addText("Valeur totale du parc", { x: M, y: 2.5, w: 3.6, h: 0.5, align: "center", fontFace: FONT, fontSize: 15, color: "166534" });
+  slide.addText(`${equipment.totalValue.toLocaleString("fr-FR")} €`, { x: M, y: 3.1, w: 3.6, h: 1.0, align: "center", valign: "middle", fontFace: FONT, fontSize: 44, bold: true, color: C.green });
+  slide.addText("Valeur de remplacement estimée", { x: M, y: 4.2, w: 3.6, h: 0.4, align: "center", fontFace: FONT, fontSize: 12, color: C.grey });
+
+  const items = equipment.items.slice(0, 15);
+  slide.addText("Top 15 des équipements par valeur (€)", { x: M + 3.9, y: 1.5, w: W - 2 * M - 3.9, h: 0.4, fontFace: FONT, fontSize: 14, bold: true, color: C.text });
+  if (items.length) {
+    slide.addChart(
+      "bar",
+      [{ name: "Valeur (€)", labels: items.map((e) => `${e.name} (x${e.quantity})`), values: items.map((e) => e.totalValue) }],
+      {
+        x: M + 3.9, y: 1.9, w: W - 2 * M - 3.9, h: 5.1,
+        barDir: "bar",
+        chartColors: items.map((_, i) => (i < 3 ? C.green : C.cyan)),
+        catAxisOrientation: TOP_DOWN,
+        valAxisHidden: true,
+        valGridLine: { style: "none" },
+        showValue: true,
+        dataLabelFormatCode: "#,##0 €",
+        dataLabelFontSize: 10,
+        catAxisLabelFontSize: 10,
+        catAxisLabelFontFace: FONT,
+        showLegend: false,
+        barGapWidthPct: 30,
+      }
+    );
+  }
+};
+
+const slideContact = (pptx: PptxGenJS) => {
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(slide, "Restons Connectés", undefined, "Contact");
+  const gap = 0.4;
+  const cw = (W - 2 * M - gap) / 2;
+  const block = (x: number, heading: string, entries: { name: string; badge: string; sub?: string; url: string; color: string }[]) => {
+    slide.addText(heading, { x, y: 1.5, w: cw, h: 0.45, fontFace: FONT, fontSize: 18, bold: true, color: C.text });
+    entries.forEach((e, i) => {
+      const y = 2.1 + i * 1.15;
+      card(slide, x, y, cw, 0.95, C.border, "FFFFFF");
+      slide.addShape("roundRect", { x: x + 0.2, y: y + 0.17, w: 0.6, h: 0.6, rectRadius: 0.1, fill: { color: e.color }, line: { color: e.color, width: 0 } });
+      slide.addText(e.badge, { x: x + 0.2, y: y + 0.17, w: 0.6, h: 0.6, align: "center", valign: "middle", fontFace: FONT, fontSize: 16, bold: true, color: "FFFFFF" });
+      slide.addText(
+        [
+          { text: e.name, options: { bold: true, fontSize: 16, color: C.text, breakLine: true } },
+          ...(e.sub ? [{ text: e.sub, options: { fontSize: 11, color: C.grey, breakLine: true } }] : []),
+          { text: e.url.replace(/^https?:\/\/(www\.)?/, ""), options: { fontSize: 11, color: C.cyan, hyperlink: { url: e.url } } },
+        ],
+        { x: x + 0.95, y: y + 0.05, w: cw - 1.1, h: 0.85, fontFace: FONT, valign: "middle" }
+      );
+    });
+  };
+  block(M, "Nos Réseaux Sociaux", [
+    { name: "Facebook", badge: "f", url: CONTACT_LINKS.facebook, color: "1877F2" },
+    { name: "Instagram", badge: "IG", url: CONTACT_LINKS.instagram, color: "E1306C" },
+    { name: "LinkedIn", badge: "in", url: CONTACT_LINKS.linkedin, color: "0A66C2" },
+  ]);
+  block(M + cw + gap, "Nos Localisations", [
+    { name: "Siège Social", badge: "📍", sub: "Association Team Oxygen", url: CONTACT_LINKS.siege, color: C.red },
+    { name: "Local Club", badge: "⚓", sub: "Base nautique", url: CONTACT_LINKS.local, color: C.cyan },
+  ]);
+  slide.addShape("roundRect", { x: M + cw + gap, y: 4.6, w: cw, h: 1.6, rectRadius: 0.1, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+  slide.addText(
+    [
+      { text: "Team Oxygen - Eco Exploration", options: { bold: true, fontSize: 20, color: "FFFFFF", breakLine: true } },
+      { text: "Club d'apnée éco-responsable à Marseille", options: { fontSize: 13, color: "FFFFFF" } },
+    ],
+    { x: M + cw + gap, y: 4.6, w: cw, h: 1.6, align: "center", valign: "middle", fontFace: FONT }
+  );
+};
+
+// --- Entrée -----------------------------------------------------------------
+export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptions): Promise<void> => {
+  const pptx = new PptxGenJS();
+  pptx.defineLayout({ name: "WIDE", width: W, height: H });
+  pptx.layout = "WIDE";
+  pptx.title = `Rapport AG Team Oxygen ${year}`;
+  pptx.company = "Team Oxygen";
+  defineMasters(pptx, `Team Oxygen · Assemblée Générale ${year}`);
+
+  // Ordre = celui du sélecteur
+  const ordered = PDF_SECTIONS.map((s) => s.id).filter((id) => selectedSections.includes(id));
+
+  for (const id of ordered) {
+    switch (id) {
+      case "cover": await slideCover(pptx, year); break;
+      case "summary": slideSummary(pptx, selectedSections); break;
+      case "bureau": await slideBureau(pptx, data.bureau); break;
+      case "encadrants": await slideEncadrants(pptx, data.allEncadrants); break;
+      case "dashboard": slideDashboard(pptx, data, year); break;
+      case "demographics": slideDemographics(pptx, data.demographics); break;
+      case "levels": slideLevels(pptx, data, year); break;
+      case "topPlongeurs": slideTopPlongeurs(pptx, data, year); break;
+      case "encadrantsActivity": slideEncadrantsActivity(pptx, data, year); break;
+      case "topSites": await slideTopSites(pptx, data, year); break;
+      case "map": slideMap(pptx, data); break;
+      case "equipment": slideEquipment(pptx, data); break;
+      case "contact": slideContact(pptx); break;
+    }
+  }
+
+  await pptx.writeFile({ fileName: `Rapport_AG_TeamOxygen_${year}.pptx` });
+};
