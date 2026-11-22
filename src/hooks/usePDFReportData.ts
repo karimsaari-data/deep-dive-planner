@@ -417,45 +417,63 @@ export const usePDFReportData = (year: number) => {
         }
       });
 
-      const organizerIds = [...new Set(outings?.map(o => o.organizer_id).filter(Boolean) || [])];
+      // Co-encadrants (table absente des types générés)
+      type CoInstructorRow = { outing_id: string; user_id: string };
+      const coInstructorQuery = supabase.from("outing_co_instructors" as never) as unknown as {
+        select: (cols: string) => {
+          in: (col: string, values: string[]) => Promise<{ data: CoInstructorRow[] | null }>;
+        };
+      };
+      const { data: coRows } = await coInstructorQuery
+        .select("outing_id, user_id")
+        .in("outing_id", outingIds.length > 0 ? outingIds : ['00000000-0000-0000-0000-000000000000']);
+
+      const organizerIds = [...new Set(outings?.map(o => o.organizer_id).filter(Boolean) || [])] as string[];
+      const coUserIds = (coRows || []).map(r => r.user_id);
+      const staffProfileIds = [...new Set([...organizerIds, ...coUserIds])];
       const { data: organizerProfiles } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, email")
-        .in("id", organizerIds.length > 0 ? organizerIds : ['00000000-0000-0000-0000-000000000000']);
+        .in("id", staffProfileIds.length > 0 ? staffProfileIds : ['00000000-0000-0000-0000-000000000000']);
 
       const organizerProfileMap = new Map(organizerProfiles?.map(p => [p.id, p]) || []);
 
+      const coByOuting = new Map<string, string[]>();
+      (coRows || []).forEach(r => {
+        const list = coByOuting.get(r.outing_id) || [];
+        list.push(r.user_id);
+        coByOuting.set(r.outing_id, list);
+      });
+
+      // Règle du club : une sortie compte 1 pour chaque encadrant, y compris en
+      // co-encadrement (même règle que Statistiques > Encadrants).
       outings?.forEach(o => {
         if (!validOutingIds.has(o.id)) return;
-        
-        const isHistorical = historicalOutingIds.has(o.id);
-        let encadrantEmail = "";
-        let encadrantName = "";
-        
-        if (isHistorical) {
-          encadrantEmail = encadrantByHistoricalOuting.get(o.id) || "";
-          if (encadrantEmail) {
-            const member = clubMembers?.find(m => m.email?.toLowerCase() === encadrantEmail);
-            if (member) {
-              encadrantName = `${member.first_name} ${member.last_name}`;
-            }
-          }
-        } else {
-          const profile = organizerProfileMap.get(o.organizer_id!);
-          if (profile) {
-            encadrantEmail = profile.email?.toLowerCase() || "";
-            encadrantName = `${profile.first_name} ${profile.last_name}`;
-          }
+
+        const staff = new Map<string, string>(); // email -> nom (dédoublonné par sortie)
+
+        if (historicalOutingIds.has(o.id)) {
+          const email = encadrantByHistoricalOuting.get(o.id) || "";
+          const member = email ? clubMembers?.find(m => m.email?.toLowerCase() === email) : undefined;
+          if (member) staff.set(email, `${member.first_name} ${member.last_name}`);
         }
-        
-        if (!encadrantEmail || !encadrantName) return;
-        
-        const existing = encadrantCountMap.get(encadrantEmail);
-        if (existing) {
-          existing.count++;
-        } else {
-          encadrantCountMap.set(encadrantEmail, { name: encadrantName, count: 1 });
+
+        // Organisateur (sortie classique, ou sortie historique sans encadrant identifié)
+        if (staff.size === 0 && o.organizer_id) {
+          const profile = organizerProfileMap.get(o.organizer_id);
+          if (profile?.email) staff.set(profile.email.toLowerCase(), `${profile.first_name} ${profile.last_name}`);
         }
+
+        (coByOuting.get(o.id) || []).forEach(userId => {
+          const profile = organizerProfileMap.get(userId);
+          if (profile?.email) staff.set(profile.email.toLowerCase(), `${profile.first_name} ${profile.last_name}`);
+        });
+
+        staff.forEach((name, email) => {
+          const existing = encadrantCountMap.get(email);
+          if (existing) existing.count++;
+          else encadrantCountMap.set(email, { name, count: 1 });
+        });
       });
 
       const topEncadrants: PDFTopEncadrant[] = Array.from(encadrantCountMap.values())
