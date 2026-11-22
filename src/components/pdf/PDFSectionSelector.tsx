@@ -12,6 +12,7 @@ import {
   Map, 
   Package, 
   Phone,
+  Camera,
   FileText
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export const PDF_SECTIONS: PDFSection[] = [
   { id: "topSites", label: "Top Sites", icon: <MapPin className="h-4 w-4" />, defaultSelected: true },
   { id: "map", label: "Carte des Spots", icon: <Map className="h-4 w-4" />, defaultSelected: true },
   { id: "equipment", label: "Parc Matériel", icon: <Package className="h-4 w-4" />, defaultSelected: true },
+  { id: "photos", label: "Souvenirs (photos)", icon: <Camera className="h-4 w-4" />, defaultSelected: true },
   { id: "contact", label: "Contact & Réseaux", icon: <Phone className="h-4 w-4" />, defaultSelected: true },
 ];
 

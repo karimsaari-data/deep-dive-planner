@@ -66,7 +66,24 @@ export interface PDFFishLevel {
   count: number;
 }
 
+export interface PDFPhoto {
+  url: string;
+  title: string;
+  dateTime: string;
+  location: string;
+}
+
+export interface PDFPhotos {
+  items: PDFPhoto[]; // sélection répartie sur l'année (12 max)
+  totalPhotos: number;
+  totalOutings: number;
+}
+
+export const PHOTOS_PER_PAGE = 6;
+export const MAX_PHOTOS = 12;
+
 export interface PDFReportData {
+  photos: PDFPhotos;
   fishLevels: PDFFishLevel[];
   bureau: PDFMember[];
   allEncadrants: PDFMember[];
@@ -496,6 +513,57 @@ export const usePDFReportData = (year: number) => {
         count: levelCounts.get(l.name) || 0,
       }));
 
+      // 6c. Album photos (même source que l'album du club : outings.photos)
+      const { data: photoOutings } = await supabase
+        .from("outings")
+        .select("id, title, date_time, location, photos, location_details:locations(name)")
+        .eq("is_deleted", false)
+        .neq("photos", "{}" as unknown as string[])
+        .gte("date_time", startOfYear)
+        .lte("date_time", endOfYear)
+        .lt("date_time", now)
+        .order("date_time", { ascending: true });
+
+      const withPhotos = (photoOutings || [])
+        .map((o: any) => ({
+          title: o.title as string,
+          dateTime: o.date_time as string,
+          location: (o.location_details?.name || o.location || "") as string,
+          urls: ((o.photos || []) as string[]).filter(Boolean),
+        }))
+        .filter(o => o.urls.length > 0);
+
+      const toPhoto = (o: (typeof withPhotos)[number], url: string): PDFPhoto => ({
+        url, title: o.title, dateTime: o.dateTime, location: o.location,
+      });
+
+      // Une photo par sortie, réparties sur l'année ; complétées par d'autres photos
+      // des mêmes sorties s'il y a moins de sorties que de places.
+      let picked: PDFPhoto[] = [];
+      if (withPhotos.length >= MAX_PHOTOS) {
+        picked = Array.from({ length: MAX_PHOTOS }, (_, i) => {
+          const o = withPhotos[Math.floor((i * withPhotos.length) / MAX_PHOTOS)];
+          return toPhoto(o, o.urls[0]);
+        });
+      } else {
+        picked = withPhotos.map(o => toPhoto(o, o.urls[0]));
+        for (let round = 1; picked.length < MAX_PHOTOS; round++) {
+          const before = picked.length;
+          for (const o of withPhotos) {
+            if (picked.length >= MAX_PHOTOS) break;
+            if (o.urls[round]) picked.push(toPhoto(o, o.urls[round]));
+          }
+          if (picked.length === before) break;
+        }
+        picked.sort((a, b) => a.dateTime.localeCompare(b.dateTime));
+      }
+
+      const photos: PDFPhotos = {
+        items: picked,
+        totalPhotos: withPhotos.reduce((sum, o) => sum + o.urls.length, 0),
+        totalOutings: withPhotos.length,
+      };
+
       // 7. Equipment inventory
       const { data: inventory } = await supabase
         .from("equipment_inventory")
@@ -531,6 +599,7 @@ export const usePDFReportData = (year: number) => {
       const totalEquipmentValue = equipmentItems.reduce((sum, e) => sum + e.totalValue, 0);
 
       return {
+        photos,
         fishLevels,
         bureau,
         allEncadrants,

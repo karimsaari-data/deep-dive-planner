@@ -1,5 +1,5 @@
 import PptxGenJS from "pptxgenjs";
-import type { PDFMember, PDFReportData } from "@/hooks/usePDFReportData";
+import { PHOTOS_PER_PAGE, type PDFMember, type PDFReportData } from "@/hooks/usePDFReportData";
 import { formatFullName } from "@/lib/formatName";
 import { CONTACT_LINKS } from "./pages/PDFPageContact";
 import { PDF_SECTIONS } from "./PDFSectionSelector";
@@ -159,6 +159,7 @@ const slideSummary = (pptx: PptxGenJS, sections: string[]) => {
     demographics: "Profil des adhérents",
     levels: "Castagnole, Dauphin, Requin…",
     topPlongeurs: "Les mordus de l'apnée",
+    photos: "Les moments forts de la saison",
     encadrantsActivity: "Implication du staff",
     topSites: "Nos spots favoris",
     map: "Géolocalisation des sites",
@@ -576,6 +577,46 @@ const slideEquipment = (pptx: PptxGenJS, data: PDFReportData) => {
   }
 };
 
+const slidePhotos = async (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const { photos } = data;
+  const pages = Math.ceil(photos.items.length / PHOTOS_PER_PAGE);
+  const cols = 3;
+  const gap = 0.25;
+  const cw = (W - 2 * M - gap * (cols - 1)) / cols;
+  const ph = 2.0;
+  const ch = ph + 0.55;
+  for (let part = 0; part < pages; part++) {
+    const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+    addTitle(
+      slide,
+      part === 0 ? `Souvenirs ${year}` : `Souvenirs ${year} (suite)`,
+      `${photos.totalPhotos} photos dans l'album du club · ${photos.totalOutings} sortie${photos.totalOutings > 1 ? "s" : ""} photographiée${photos.totalOutings > 1 ? "s" : ""}`,
+      "Album photo"
+    );
+    const items = photos.items.slice(part * PHOTOS_PER_PAGE, (part + 1) * PHOTOS_PER_PAGE);
+    for (let i = 0; i < items.length; i++) {
+      const p = items[i];
+      const x = M + (i % cols) * (cw + gap);
+      const y = 1.65 + Math.floor(i / cols) * (ch + 0.2);
+      card(slide, x, y, cw, ch);
+      const img = await loadImage(p.url, (cw - 0.1) / ph);
+      if (img) {
+        slide.addImage({ data: img, x: x + 0.05, y: y + 0.05, w: cw - 0.1, h: ph, altText: p.title });
+      } else {
+        slide.addShape("rect", { x: x + 0.05, y: y + 0.05, w: cw - 0.1, h: ph, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+        slide.addText("📸", { x: x + 0.05, y: y + 0.05, w: cw - 0.1, h: ph, align: "center", valign: "middle", fontSize: 30 });
+      }
+      slide.addText(
+        [
+          { text: p.title, options: { bold: true, fontSize: 12, color: C.text, breakLine: true } },
+          { text: `${fmtDate(p.dateTime)}${p.location ? ` · ${p.location}` : ""}`, options: { fontSize: 10, color: C.grey } },
+        ],
+        { x: x + 0.1, y: y + ph + 0.08, w: cw - 0.2, h: 0.45, fontFace: FONT, valign: "top", fit: "shrink" }
+      );
+    }
+  }
+};
+
 const slideContact = (pptx: PptxGenJS) => {
   const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
   addTitle(slide, "Restons Connectés", undefined, "Contact");
@@ -643,6 +684,7 @@ export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptio
       case "topSites": await slideTopSites(pptx, data, year); break;
       case "map": slideMap(pptx, data); break;
       case "equipment": slideEquipment(pptx, data); break;
+      case "photos": await slidePhotos(pptx, data, year); break;
       case "contact": slideContact(pptx); break;
     }
   }

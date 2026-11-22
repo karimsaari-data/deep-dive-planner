@@ -1,4 +1,4 @@
-import { PDFReportData } from "@/hooks/usePDFReportData";
+import { PDFReportData, PHOTOS_PER_PAGE } from "@/hooks/usePDFReportData";
 import { PDFPageCover } from "./pages/PDFPageCover";
 import { PDFPageSummary } from "./pages/PDFPageSummary";
 import { PDFPageBureau } from "./pages/PDFPageBureau";
@@ -11,6 +11,7 @@ import { PDFPageEncadrantsActivity } from "./pages/PDFPageEncadrantsActivity";
 import { PDFPageTopSites } from "./pages/PDFPageTopSites";
 import { PDFPageMap } from "./pages/PDFPageMap";
 import { PDFPageEquipment } from "./pages/PDFPageEquipment";
+import { PDFPagePhotos } from "./pages/PDFPagePhotos";
 import { PDFPageContact } from "./pages/PDFPageContact";
 
 interface PDFReportPagesProps {
@@ -24,7 +25,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
   const sections = selectedSections || [
     "cover", "summary", "bureau", "encadrants", "dashboard", 
     "demographics", "levels", "topPlongeurs", "encadrantsActivity", 
-    "topSites", "map", "equipment", "contact"
+    "topSites", "map", "equipment", "photos", "contact"
   ];
 
   // Calculate dynamic page numbers based on selected sections
@@ -37,10 +38,12 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
     return 0;
   };
 
+  const photoPages = Math.ceil(data.photos.items.length / PHOTOS_PER_PAGE);
+
   return (
     <div className="flex flex-col">
       {sections.includes("cover") && <PDFPageCover year={year} pageNumber={getPageNumber("cover")} />}
-      {sections.includes("summary") && <PDFPageSummary selectedSections={sections} pageNumber={getPageNumber("summary")} />}
+      {sections.includes("summary") && <PDFPageSummary selectedSections={sections} photoPages={photoPages} pageNumber={getPageNumber("summary")} />}
       {sections.includes("bureau") && <PDFPageBureau members={data.bureau} pageNumber={getPageNumber("bureau")} />}
       {sections.includes("encadrants") && <PDFPageEncadrants members={data.allEncadrants} pageNumber={getPageNumber("encadrants")} />}
       {sections.includes("dashboard") && <PDFPageDashboard stats={data.stats} year={year} pageNumber={getPageNumber("dashboard")} />}
@@ -51,6 +54,9 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
       {sections.includes("topSites") && <PDFPageTopSites locations={data.topLocations} year={year} pageNumber={getPageNumber("topSites")} />}
       {sections.includes("map") && <PDFPageMap locations={data.topLocations} pageNumber={getPageNumber("map")} />}
       {sections.includes("equipment") && <PDFPageEquipment equipment={data.equipment} pageNumber={getPageNumber("equipment")} />}
+      {sections.includes("photos") && Array.from({ length: photoPages }, (_, part) => (
+        <PDFPagePhotos key={part} photos={data.photos} year={year} part={part} pageNumber={getPageNumber("photos")} />
+      ))}
       {sections.includes("contact") && <PDFPageContact pageNumber={getPageNumber("contact")} />}
     </div>
   );
