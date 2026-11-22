@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileDown, Loader2, Settings2 } from "lucide-react";
+import { FileDown, Loader2, Presentation, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import PptxGenJS from "pptxgenjs";
 import { PDFReportPages } from "./PDFReportPages";
 import { usePDFReportData } from "@/hooks/usePDFReportData";
 import { CONTACT_LINKS } from "./pages/PDFPageContact";
@@ -72,7 +73,47 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
     return orderedSections[index]?.label || `Page ${index + 1}`;
   };
 
-  const generatePDF = async () => {
+  const isContactAt = (i: number, total: number) =>
+    selectedSections.includes("contact") &&
+    i === total - 1 &&
+    PDF_SECTIONS.filter(s => selectedSections.includes(s.id)).at(-1)?.id === "contact";
+
+  // Capture chaque page du rapport en image JPEG (même rendu pour PDF et PowerPoint)
+  const capturePages = async (toastId: string | number): Promise<string[]> => {
+    await refetch();
+    // Wait for images to load and render
+    await new Promise(r => setTimeout(r, 1000));
+
+    const pages = containerRef.current!.querySelectorAll('[data-pdf-page]');
+    const images: string[] = [];
+
+    for (let i = 0; i < pages.length; i++) {
+      toast.loading(`Génération de la page ${i + 1} sur ${pages.length}...`, {
+        id: toastId,
+        description: getPageTitle(i),
+      });
+
+      const canvas = await html2canvas(pages[i] as HTMLElement, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        windowWidth: 1123,
+        windowHeight: 794,
+      });
+      images.push(canvas.toDataURL("image/jpeg", 0.95));
+
+      // Let UI breathe
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return images;
+  };
+
+  const runExport = async (
+    format: "pdf" | "pptx",
+    build: (images: string[]) => Promise<void>
+  ) => {
     if (!containerRef.current || selectedSections.length === 0) {
       toast.error("Veuillez sélectionner au moins une section");
       return;
@@ -85,71 +126,15 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
     });
 
     try {
-      // Ensure data is fresh
-      await refetch();
-      
-      // Wait for images to load and render
-      await new Promise(r => setTimeout(r, 1000));
-
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pages = containerRef.current.querySelectorAll('[data-pdf-page]');
-      
-      for (let i = 0; i < pages.length; i++) {
-        const page = pages[i] as HTMLElement;
-        
-        toast.loading(`Génération de la page ${i + 1} sur ${pages.length}...`, {
-          id: toastId,
-          description: getPageTitle(i),
-        });
-
-        // Capture the page
-        const canvas = await html2canvas(page, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          backgroundColor: "#ffffff",
-          windowWidth: 1123,
-          windowHeight: 794,
-        });
-
-        const imgData = canvas.toDataURL("image/jpeg", 0.95);
-        
-        if (i > 0) {
-          pdf.addPage();
-        }
-
-        // A4 landscape dimensions: 297mm x 210mm
-        pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
-
-        // Add clickable links if contact page is the last selected page
-        const isContactPage = selectedSections.includes("contact") && 
-          i === pages.length - 1 && 
-          PDF_SECTIONS.filter(s => selectedSections.includes(s.id)).at(-1)?.id === "contact";
-        
-        if (isContactPage) {
-          addContactPageLinks(pdf);
-        }
-
-        // Let UI breathe
-        await new Promise(r => setTimeout(r, 100));
-      }
-
-      // Download PDF
-      pdf.save(`Rapport_AG_TeamOxygen_${year}.pdf`);
-      
-      toast.success("Rapport téléchargé avec succès !", {
+      const images = await capturePages(toastId);
+      await build(images);
+      toast.success(format === "pdf" ? "Rapport téléchargé avec succès !" : "Présentation téléchargée avec succès !", {
         id: toastId,
-        description: `${pages.length} pages générées`,
+        description: `${images.length} pages générées`,
       });
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Erreur lors de la génération du PDF", {
+      console.error(`Error generating ${format}:`, error);
+      toast.error(`Erreur lors de la génération du ${format === "pdf" ? "PDF" : "PowerPoint"}`, {
         id: toastId,
         description: "Veuillez réessayer",
       });
@@ -157,6 +142,51 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       setIsGenerating(false);
     }
   };
+
+  const generatePDF = () =>
+    runExport("pdf", async (images) => {
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      images.forEach((imgData, i) => {
+        if (i > 0) pdf.addPage();
+        // A4 landscape dimensions: 297mm x 210mm
+        pdf.addImage(imgData, "JPEG", 0, 0, 297, 210);
+        // Add clickable links if contact page is the last selected page
+        if (isContactAt(i, images.length)) addContactPageLinks(pdf);
+      });
+      pdf.save(`Rapport_AG_TeamOxygen_${year}.pdf`);
+    });
+
+  const generatePPTX = () =>
+    runExport("pptx", async (images) => {
+      const pptx = new PptxGenJS();
+      // Même format que les pages du rapport (A4 paysage, en pouces)
+      const W = 297 / 25.4;
+      const H = 210 / 25.4;
+      pptx.defineLayout({ name: "A4_LANDSCAPE", width: W, height: H });
+      pptx.layout = "A4_LANDSCAPE";
+      pptx.title = `Rapport AG Team Oxygen ${year}`;
+      pptx.company = "Team Oxygen";
+
+      images.forEach((imgData, i) => {
+        const slide = pptx.addSlide();
+        slide.addImage({ data: imgData, x: 0, y: 0, w: W, h: H });
+        slide.addNotes(getPageTitle(i));
+        if (isContactAt(i, images.length)) {
+          // Zones cliquables transparentes (mêmes positions que le PDF, mm -> pouces)
+          CONTACT_PAGE_LINKS.forEach(link => {
+            slide.addText(" ", {
+              x: link.x / 25.4,
+              y: link.y / 25.4,
+              w: link.w / 25.4,
+              h: link.h / 25.4,
+              hyperlink: { url: link.url },
+            });
+          });
+        }
+      });
+
+      await pptx.writeFile({ fileName: `Rapport_AG_TeamOxygen_${year}.pptx` });
+    });
 
   return (
     <>
@@ -205,12 +235,21 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
               Annuler
             </Button>
             <Button
+              variant="secondary"
+              onClick={generatePPTX}
+              disabled={selectedSections.length === 0 || isLoading}
+              className="gap-2"
+            >
+              <Presentation className="h-4 w-4" />
+              PowerPoint ({selectedSections.length} diapos)
+            </Button>
+            <Button
               onClick={generatePDF}
               disabled={selectedSections.length === 0 || isLoading}
               className="gap-2"
             >
               <FileDown className="h-4 w-4" />
-              Générer ({selectedSections.length} pages)
+              PDF ({selectedSections.length} pages)
             </Button>
           </DialogFooter>
         </DialogContent>
