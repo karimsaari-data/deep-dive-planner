@@ -143,6 +143,38 @@ git push origin fix/mon-correctif
 - Chaque merge sur main déclenche un déploiement automatique sur **Vercel**
 - Tester sur la preview Vercel de la PR avant de merger si possible
 
+## Rapport AG PowerPoint — trame de référence
+
+Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni par l'utilisateur ; **non versionné** : il contient noms et photos de membres, le dépôt est public). Le PowerPoint est généré côté navigateur par `src/components/pdf/buildPptx.ts` (pptxgenjs) depuis l'onglet Admin « Rapport AG ». Toute évolution doit rester fidèle à cette trame.
+
+**Format** : 16:9 (13,333 x 7,5 in), police Calibri, titre de diapo 26 pt. Slides en éléments natifs (textes, tableaux, formes, graphiques éditables), jamais des images.
+
+**Gabarit (6 mises en page)** : `Page de titre` (placeholders 0 titre, 1 sous-titre ; logo centré 4,6 x 2,8 in en y 0,9), `Titre seul`, `Vide`, `Titre et contenu`, `Deux colonnes`, `Section`. Sur les mises en page à titre : placeholder 100 = petit intitulé en MAJUSCULES au-dessus (y 0,2), placeholder 101 = titre (y 0,48), filet orange sous le titre (y 1,05), numéro de diapo en bas à droite (x 12,13 / y 7,1). Master : logo en haut à droite (x 11,73 / y 0,12, 1,0 x 0,64), pied « Team Oxygen · Assemblée Générale <année> » (x 0,6 / y 7,1), bandeau bas marine + accent orange (y 7,42). Contenu utile entre y 1,5 et 7,0.
+
+**Thème** : marine `0A3A49`, orange `F08814`, cyan `0891B2`, vert `059669`, vert clair `65A30D`, brun `C2410C`, gris `64748B`, fond clair `F8FAFC`.
+
+**Ordre des 16 diapos** (intitulé / titre) :
+1. Page de titre : « Rapport d'Activité & Statistiques <année> », « Assemblée Générale », « Document généré le … »
+2. ASSEMBLÉE GÉNÉRALE / Sommaire (13 entrées numérotées, 2 colonnes)
+3. GOUVERNANCE / Le Bureau : « N membres · composition au <date> », cartes avatar + nom + rôle
+4. ÉQUIPE TECHNIQUE / Nos Encadrants : « N encadrants · composition au <date> », avatar, prénom, nom, niveau, rôle
+5. CHIFFRES CLÉS / Bilan Global : 3 KPI (adhérents saison, sorties, plongées cumulées) + encart moyenne par sortie et note « sorties comptabilisées depuis la mise en service de l'application »
+6. ADHÉRENTS / Démographie : 3 graphiques (âges, parité, niveaux d'apnée)
+7. ADHÉRENTS / Parité & Nouveaux Adhérents : 3 KPI (adhérents, nouveaux, renouvellements) + graphique parité H/F ; nouveau = `joined_at` >= 1er septembre de la saison
+8. ADHÉRENTS / Niveaux des adhérents : graphique + tableau (Inactif, Castagnole, Crabe, Méduse, Poulpe, Dauphin, Requin)
+9. PARTICIPATION / Les Mordus de l'Apnée : tableau top 15
+10. ENCADREMENT / Implication du Staff : tableau + total des sorties encadrées
+11. SITES DE PLONGÉE / Top 10 des Sites : 10 cartes photo + rang + nombre de sorties
+12. SITES DE PLONGÉE / Carte des Spots : liste GPS + carte schématique
+13. MATÉRIEL / Parc Matériel & Valorisation : valeur totale + graphique top 15
+14. ALBUM PHOTO / Souvenirs : 6 photos (titre, date, lieu)
+15. ALBUM PHOTO / Souvenirs (suite) : 6 photos
+16. CONTACT / Restons Connectés : réseaux, localisations, liens cliquables
+
+**Règles de données** (identiques au PDF) : adhérents, bureau, encadrants et parité = saison en cours ; sorties, niveaux, top plongeurs, sites = année civile ; sorties = toutes les sorties passées non supprimées (même nombre que « Liste des sorties » de l'app).
+
+**Écarts connus entre `buildPptx.ts` et la trame** (à résorber) : la trame a les 6 mises en page nommées ci-dessus (le code n'en définit que `Titre seul` et `Vide`), le logo en haut à droite du master, le thème marine `0A3A49`/orange `F08814` (le code utilise `1E3A5F`/`E67E22`), la page de titre via placeholders (le code utilise des zones de texte) et des tableaux natifs pour les diapos 9, 10 et 8.
+
 ## Triggers DWH (datawarehouse externe)
 
 Des triggers synchronisent certaines tables vers un DWH PowerBI. Leurs fonctions sont parfois **cassées** (colonnes manquantes). Si un INSERT/UPDATE échoue avec une erreur `column "xxx" of relation "dim_yyy" does not exist`, désactiver le trigger le temps de l'opération :
