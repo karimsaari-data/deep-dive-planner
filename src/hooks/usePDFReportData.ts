@@ -74,13 +74,13 @@ export interface PDFPhoto {
 }
 
 export interface PDFPhotos {
-  items: PDFPhoto[]; // sélection répartie sur l'année (12 max)
+  items: PDFPhoto[]; // sélection répartie sur l'année (24 max, 6 par page)
   totalPhotos: number;
   totalOutings: number;
 }
 
 export const PHOTOS_PER_PAGE = 6;
-export const MAX_PHOTOS = 12;
+export const MAX_PHOTOS = 24;
 
 export interface PDFGenderSplit {
   homme: number;
