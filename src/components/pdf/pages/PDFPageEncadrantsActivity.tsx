@@ -1,8 +1,11 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
-import { PDFStaffStats } from "@/hooks/usePDFReportData";
+import { PDFStaffStats, PDFStats } from "@/hooks/usePDFReportData";
+import { formatPeriod, periodLabel } from "../period";
+
 
 interface PDFPageEncadrantsActivityProps {
   staff: PDFStaffStats;
+  stats: PDFStats;
   year: number;
   pageNumber?: number;
 }
@@ -75,7 +78,7 @@ const LineChart = ({ staff }: { staff: PDFStaffStats }) => {
   );
 };
 
-export const PDFPageEncadrantsActivity = ({ staff, year, pageNumber }: PDFPageEncadrantsActivityProps) => {
+export const PDFPageEncadrantsActivity = ({ staff, stats, year, pageNumber }: PDFPageEncadrantsActivityProps) => {
   const kpis = [
     { label: "Encadrants actifs", value: fmtNum(staff.activeEncadrants), sub: "ont encadré au moins une sortie", color: "#0a3a49" },
     { label: "Sorties par encadrant", value: fmtNum(staff.avgOutingsPerEncadrant), sub: "en moyenne sur l'année", color: "#0891b2" },
@@ -93,7 +96,7 @@ export const PDFPageEncadrantsActivity = ({ staff, year, pageNumber }: PDFPageEn
           </h1>
         </div>
         <p style={{ fontSize: "14px", lineHeight: "20px", color: "#666666", margin: "0 0 18px 0" }}>
-          Mobilisation de l'équipe d'encadrement · {staff.totalOutings} sorties · une sortie compte pour chaque encadrant, co-encadrement inclus
+          {periodLabel(stats)} · {staff.totalOutings} sorties
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px", marginBottom: "20px" }}>
@@ -118,6 +121,9 @@ export const PDFPageEncadrantsActivity = ({ staff, year, pageNumber }: PDFPageEn
             <p style={{ fontSize: "14px", color: "#666666", textAlign: "center", padding: "60px 0" }}>Aucune sortie sur la période</p>
           )}
         </div>
+        <p style={{ fontSize: "11px", lineHeight: "16px", color: "#888888", margin: "10px 0 0 0" }}>
+          Une sortie compte pour chaque encadrant, co-encadrement inclus.
+        </p>
       </div>
     </PDFPageWrapper>
   );

@@ -1,8 +1,10 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
-import { PDFGenderSplit, PDFMembership } from "@/hooks/usePDFReportData";
+import { PDFGenderSplit, PDFMembership, PDFStats } from "@/hooks/usePDFReportData";
+import { formatDate } from "../period";
 
 interface PDFPageMembershipProps {
   membership: PDFMembership;
+  stats: PDFStats;
   year: number;
   pageNumber?: number;
 }
@@ -43,7 +45,7 @@ const SplitRow = ({ label, split }: { label: string; split: PDFGenderSplit }) =>
   );
 };
 
-export const PDFPageMembership = ({ membership: m, pageNumber }: PDFPageMembershipProps) => {
+export const PDFPageMembership = ({ membership: m, stats, pageNumber }: PDFPageMembershipProps) => {
   const delta = m.total - m.previousSeasonTotal;
   const deltaPct = pct(Math.abs(delta), m.previousSeasonTotal);
   const kpis = [
@@ -67,7 +69,7 @@ export const PDFPageMembership = ({ membership: m, pageNumber }: PDFPageMembersh
           </h1>
         </div>
         <p style={{ fontSize: "14px", lineHeight: "20px", color: "#666666", margin: "0 0 18px 0" }}>
-          Saison {m.seasonYear - 1}-{m.seasonYear}
+          Saison {m.seasonYear - 1}-{m.seasonYear}, situation au {formatDate(stats.periodEnd)}
           {m.previousSeasonTotal > 0 &&
             ` · ${delta >= 0 ? "+" : "-"}${Math.abs(delta)} adhérents vs saison précédente (${m.previousSeasonTotal}, ${delta >= 0 ? "+" : "-"}${deltaPct}%)`}
         </p>

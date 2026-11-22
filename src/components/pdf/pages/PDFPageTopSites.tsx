@@ -1,22 +1,27 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
-import { PDFTopLocation } from "@/hooks/usePDFReportData";
+import { PDFStats, PDFTopLocation } from "@/hooks/usePDFReportData";
+import { formatPeriod, periodLabel } from "../period";
+
 
 interface PDFPageTopSitesProps {
   locations: PDFTopLocation[];
+  stats: PDFStats;
   year: number;
   pageNumber?: number;
 }
 
-export const PDFPageTopSites = ({ locations, year, pageNumber }: PDFPageTopSitesProps) => {
+export const PDFPageTopSites = ({ locations, stats, year, pageNumber }: PDFPageTopSitesProps) => {
   return (
     <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
           <span style={{ fontSize: "28px" }}>📍</span>
           <h1 style={{ fontSize: "32px", fontWeight: "700", color: "#1e3a5f", margin: 0 }}>
             Top 10 des Sites {year}
           </h1>
         </div>
+
+        <p style={{ fontSize: "14px", lineHeight: "20px", color: "#666666", margin: "0 0 16px 0" }}>{periodLabel(stats)}</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "16px" }}>
           {locations.slice(0, 10).map((loc, index) => (

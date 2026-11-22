@@ -1,5 +1,7 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
 import { PDFFishLevel, PDFStats } from "@/hooks/usePDFReportData";
+import { formatPeriod } from "../period";
+
 
 interface PDFPageLevelsProps {
   levels: PDFFishLevel[];
@@ -33,7 +35,7 @@ export const PDFPageLevels = ({ levels, stats, year, pageNumber }: PDFPageLevels
           </h1>
         </div>
         <p style={{ fontSize: "14px", color: "#666666", margin: "0 0 24px 0", lineHeight: "20px" }}>
-          Niveau selon le nombre de sorties effectuées depuis le 1er janvier · {total} adhérents saison {stats.seasonYear - 1}-{stats.seasonYear}
+          Niveau selon le nombre de sorties {formatPeriod(stats)} (application en service depuis mai) · {total} adhérents saison {stats.seasonYear - 1}-{stats.seasonYear}
           {" "}· dont {active} actifs
         </p>
 

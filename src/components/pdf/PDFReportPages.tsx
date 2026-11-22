@@ -6,7 +6,7 @@ import { PDFPageEncadrants } from "./pages/PDFPageEncadrants";
 import { PDFPageDashboard } from "./pages/PDFPageDashboard";
 import { PDFPageDemographics } from "./pages/PDFPageDemographics";
 import { PDFPageLevels } from "./pages/PDFPageLevels";
-import { PDFPageTopPlongeurs } from "./pages/PDFPageTopPlongeurs";
+import { PDFPageParticipation } from "./pages/PDFPageParticipation";
 import { PDFPageEncadrantsActivity } from "./pages/PDFPageEncadrantsActivity";
 import { PDFPageTopSites } from "./pages/PDFPageTopSites";
 import { PDFPageEquipment } from "./pages/PDFPageEquipment";
@@ -24,7 +24,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
   // If no sections specified, render all
   const sections = selectedSections || [
     "cover", "summary", "bureau", "encadrants", "dashboard", 
-    "demographics", "membership", "levels", "topPlongeurs", "encadrantsActivity", 
+    "demographics", "membership", "levels", "participation", "encadrantsActivity", 
     "topSites", "equipment", "photos", "contact"
   ];
 
@@ -47,15 +47,15 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
       {sections.includes("bureau") && <PDFPageBureau members={data.bureau} pageNumber={getPageNumber("bureau")} />}
       {sections.includes("encadrants") && <PDFPageEncadrants members={data.allEncadrants} pageNumber={getPageNumber("encadrants")} />}
       {sections.includes("dashboard") && <PDFPageDashboard stats={data.stats} year={year} pageNumber={getPageNumber("dashboard")} />}
-      {sections.includes("demographics") && <PDFPageDemographics demographics={data.demographics} pageNumber={getPageNumber("demographics")} />}
-      {sections.includes("membership") && <PDFPageMembership membership={data.membership} year={year} pageNumber={getPageNumber("membership")} />}
+      {sections.includes("demographics") && <PDFPageDemographics demographics={data.demographics} stats={data.stats} pageNumber={getPageNumber("demographics")} />}
+      {sections.includes("membership") && <PDFPageMembership membership={data.membership} stats={data.stats} year={year} pageNumber={getPageNumber("membership")} />}
       {sections.includes("levels") && <PDFPageLevels levels={data.fishLevels} stats={data.stats} year={year} pageNumber={getPageNumber("levels")} />}
-      {sections.includes("topPlongeurs") && <PDFPageTopPlongeurs participants={data.topParticipants} year={year} pageNumber={getPageNumber("topPlongeurs")} />}
-      {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity staff={data.staff} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}
-      {sections.includes("topSites") && <PDFPageTopSites locations={data.topLocations} year={year} pageNumber={getPageNumber("topSites")} />}
+      {sections.includes("participation") && <PDFPageParticipation participation={data.participation} stats={data.stats} year={year} pageNumber={getPageNumber("participation")} />}
+      {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity staff={data.staff} stats={data.stats} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}
+      {sections.includes("topSites") && <PDFPageTopSites locations={data.topLocations} stats={data.stats} year={year} pageNumber={getPageNumber("topSites")} />}
       {sections.includes("equipment") && <PDFPageEquipment equipment={data.equipment} pageNumber={getPageNumber("equipment")} />}
       {sections.includes("photos") && Array.from({ length: photoPages }, (_, part) => (
-        <PDFPagePhotos key={part} photos={data.photos} year={year} part={part} pageNumber={getPageNumber("photos")} />
+        <PDFPagePhotos key={part} photos={data.photos} stats={data.stats} year={year} part={part} pageNumber={getPageNumber("photos")} />
       ))}
       {sections.includes("contact") && <PDFPageContact pageNumber={getPageNumber("contact")} />}
     </div>
