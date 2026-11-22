@@ -125,6 +125,8 @@ function getSectionDescription(sectionId: string): string {
     dashboard: "Chiffres clés de l'année",
     demographics: "Profil des adhérents",
     membership: "Parité H/F et nouvelles adhésions",
+    retention: "Réinscriptions et départs",
+    compliance: "Dossiers adhérents : certificats, licences, assurance",
     levels: "Castagnole, Dauphin, Requin…",
     photos: "Les moments forts de la saison",
     participation: "Qui participe, quand, à quoi",

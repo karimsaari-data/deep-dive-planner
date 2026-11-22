@@ -129,7 +129,40 @@ export interface PDFMembership {
   renewed: PDFGenderSplit;
 }
 
+export interface PDFRetentionSeason {
+  season: number;
+  total: number;
+  retained: number | null; // déjà adhérents la saison d'avant (null = saison d'avant non suivie)
+  entrants: number | null; // nouveaux ou de retour
+}
+
+export interface PDFRetention {
+  seasons: PDFRetentionSeason[]; // ordre chronologique
+  seasonYear: number;
+  previousSeasonTotal: number;
+  retained: number; // adhérents de la saison précédente réinscrits
+  departures: number; // adhérents de la saison précédente non réinscrits
+  retentionRate: number; // %
+  previousRetentionRate: number | null; // % de la transition d'avant
+  entrants: number;
+}
+
+export interface PDFComplianceItem {
+  label: string;
+  ok: number;
+  rate: number; // %
+}
+
+export interface PDFCompliance {
+  total: number;
+  items: PDFComplianceItem[];
+  complete: number; // dossiers avec tous les points ci-dessus
+  completeRate: number;
+}
+
 export interface PDFReportData {
+  retention: PDFRetention;
+  compliance: PDFCompliance;
   membership: PDFMembership;
   photos: PDFPhotos;
   fishLevels: PDFFishLevel[];
@@ -211,7 +244,7 @@ export const usePDFReportData = (year: number) => {
       // Adhérents de la saison courante uniquement (membership_yearly_status)
       const { data: seasonStatuses, error: seasonError } = await supabase
         .from("membership_yearly_status")
-        .select("member_id, apnea_level, is_encadrant")
+        .select("member_id, apnea_level, is_encadrant, payment_status, medical_certificate_ok, buddies_charter_signed, fsgt_insurance_ok, license_document_path, license_expiry_date")
         .eq("season_year", seasonYear);
 
       if (seasonError) throw seasonError;
@@ -707,6 +740,65 @@ export const usePDFReportData = (year: number) => {
         renewed: genderRenewed,
       };
 
+      // 6d. Fidélisation : réinscription d'une saison sur l'autre
+      const seasonSets = new Map<number, Set<string>>();
+      (priorStatuses || []).forEach(r => {
+        const set = seasonSets.get(r.season_year) ?? new Set<string>();
+        set.add(r.member_id);
+        seasonSets.set(r.season_year, set);
+      });
+      seasonSets.set(seasonYear, seasonMemberIds);
+      const pct1 = (n: number, t: number) => (t > 0 ? Math.round((n / t) * 100) : 0);
+      const retentionSeasons: PDFRetentionSeason[] = [seasonYear - 2, seasonYear - 1, seasonYear]
+        .filter(y => (seasonSets.get(y)?.size ?? 0) > 0)
+        .map(y => {
+          const cur = seasonSets.get(y)!;
+          const prev = seasonSets.get(y - 1);
+          const retained = prev && prev.size > 0 ? [...cur].filter(id => prev.has(id)).length : null;
+          return { season: y, total: cur.size, retained, entrants: retained === null ? null : cur.size - retained };
+        });
+      const prevSet = seasonSets.get(seasonYear - 1) ?? new Set<string>();
+      const retainedNow = [...prevSet].filter(id => seasonMemberIds.has(id)).length;
+      const prevPrevSet = seasonSets.get(seasonYear - 2);
+      const previousRetentionRate =
+        prevPrevSet && prevPrevSet.size > 0
+          ? pct1([...prevPrevSet].filter(id => prevSet.has(id)).length, prevPrevSet.size)
+          : null;
+      const retention: PDFRetention = {
+        seasons: retentionSeasons,
+        seasonYear,
+        previousSeasonTotal: prevSet.size,
+        retained: retainedNow,
+        departures: prevSet.size - retainedNow,
+        retentionRate: pct1(retainedNow, prevSet.size),
+        previousRetentionRate,
+        entrants: seasonMemberIds.size - retainedNow,
+      };
+
+      // 6e. Sécurité et conformité : taux uniquement, aucune donnée nominative
+      const todayIso = new Date().toISOString().slice(0, 10);
+      type SeasonStatus = (typeof membershipStatuses)[number];
+      const complianceTotal = membershipStatuses.length;
+      const isLicenseOk = (st: SeasonStatus) =>
+        !!st.license_document_path && (!st.license_expiry_date || st.license_expiry_date >= todayIso);
+      const countOk = (fn: (st: SeasonStatus) => boolean) => membershipStatuses.filter(fn).length;
+      const complianceItems: PDFComplianceItem[] = [
+        { label: "Cotisation payée", ok: countOk(st => !!st.payment_status) },
+        { label: "Certificat médical valide", ok: countOk(st => !!st.medical_certificate_ok) },
+        { label: "Charte des binômes signée", ok: countOk(st => !!st.buddies_charter_signed) },
+        { label: "Assurance FSGT à jour", ok: countOk(st => !!st.fsgt_insurance_ok) },
+        { label: "Licence FSGT déposée et valide", ok: countOk(isLicenseOk) },
+      ].map(i => ({ ...i, rate: pct1(i.ok, complianceTotal) }));
+      const completeCount = countOk(st =>
+        !!st.payment_status && !!st.medical_certificate_ok && !!st.buddies_charter_signed && !!st.fsgt_insurance_ok && isLicenseOk(st)
+      );
+      const compliance: PDFCompliance = {
+        total: complianceTotal,
+        items: complianceItems,
+        complete: completeCount,
+        completeRate: pct1(completeCount, complianceTotal),
+      };
+
       // 6c. Album photos (même source que l'album du club : outings.photos)
       const { data: photoOutings } = await supabase
         .from("outings")
@@ -793,6 +885,8 @@ export const usePDFReportData = (year: number) => {
       const totalEquipmentValue = equipmentItems.reduce((sum, e) => sum + e.totalValue, 0);
 
       return {
+        retention,
+        compliance,
         membership,
         photos,
         fishLevels,

@@ -229,6 +229,8 @@ const slideSummary = (pptx: PptxGenJS, sections: string[], startSlide: Record<st
     dashboard: "Chiffres clés de l'année",
     demographics: "Profil des adhérents",
     membership: "Parité H/F et nouvelles adhésions",
+    retention: "Réinscriptions et départs",
+    compliance: "Dossiers adhérents : certificats, licences, assurance",
     levels: "Castagnole, Dauphin, Requin…",
     participation: "Qui participe, quand, à quoi",
     photos: "Les moments forts de la saison",
@@ -243,27 +245,30 @@ const slideSummary = (pptx: PptxGenJS, sections: string[], startSlide: Record<st
   );
   const colW = (W - 2 * M - 0.4) / 2;
   const perCol = Math.ceil(items.length / 2);
+  // Pas vertical adapté au nombre de lignes pour rester au-dessus du pied de page (y 7,0)
+  const pitch = Math.min(0.85, (7.0 - 1.65) / Math.max(perCol, 1));
+  const cardH = pitch - 0.1;
   items.forEach((s, i) => {
     const col = Math.floor(i / perCol);
     const row = i % perCol;
     const x = M + col * (colW + 0.4);
-    const y = 1.65 + row * 0.85;
+    const y = 1.65 + row * pitch;
     const target = startSlide[s.id];
-    card(slide, x, y, colW, 0.72);
-    slide.addShape("ellipse", { x: x + 0.15, y: y + 0.11, w: 0.5, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
-    slide.addText(String(i + 1), { x: x + 0.15, y: y + 0.11, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: FONT, fontSize: 15, bold: true, color: "FFFFFF" });
+    card(slide, x, y, colW, cardH);
+    slide.addShape("ellipse", { x: x + 0.15, y: y + (cardH - 0.5) / 2, w: 0.5, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+    slide.addText(String(i + 1), { x: x + 0.15, y: y + (cardH - 0.5) / 2, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: FONT, fontSize: 15, bold: true, color: "FFFFFF" });
     slide.addText(
       [
         { text: s.label, options: { bold: true, fontSize: 16, color: C.text, breakLine: true } },
         { text: descriptions[s.id] || "", options: { fontSize: 11, color: C.grey } },
       ],
-      { x: x + 0.8, y: y + 0.04, w: colW - 1.8, h: 0.64, fontFace: FONT, valign: "middle" }
+      { x: x + 0.8, y: y + 0.02, w: colW - 1.8, h: cardH - 0.04, fontFace: FONT, valign: "middle" }
     );
-    slide.addText(`p.${target}`, { x: x + colW - 0.95, y: y + 0.04, w: 0.8, h: 0.64, align: "right", valign: "middle", fontFace: FONT, fontSize: 13, color: "888888" });
+    slide.addText(`p.${target}`, { x: x + colW - 0.95, y: y + 0.02, w: 0.8, h: cardH - 0.04, align: "right", valign: "middle", fontFace: FONT, fontSize: 13, color: "888888" });
     // Lien interne vers la première diapo de la rubrique
     slide.addImage({
       data: CLICK_ZONE,
-      x, y, w: colW, h: 0.72,
+      x, y, w: colW, h: cardH,
       altText: `Aller à ${s.label} (diapo ${target})`,
       hyperlink: { slide: target, tooltip: `Aller à ${s.label}` },
     });
@@ -487,6 +492,141 @@ const slideMembership = (pptx: PptxGenJS, data: PDFReportData) => {
   });
   slide.addText(`Nouvel adhérent : date d'entrée dans le club à partir du 1er septembre ${m.seasonYear - 1}.`, {
     x: M, y: 6.92, w: W - 2 * M, h: 0.2, fontFace: FONT, fontSize: 9, color: "888888",
+  });
+};
+
+const slideRetention = (pptx: PptxGenJS, data: PDFReportData) => {
+  const r = data.retention;
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(
+    slide,
+    "Fidélisation des adhérents",
+    `Saison ${r.seasonYear - 1}-${r.seasonYear}, situation au ${formatDate(data.stats.periodEnd)} · les réinscriptions peuvent se poursuivre en cours de saison`,
+    "Adhérents"
+  );
+  const kpis = [
+    { label: `Adhérents ${r.seasonYear - 2}-${r.seasonYear - 1}`, value: r.previousSeasonTotal, sub: "saison précédente", color: C.navy },
+    { label: "Réinscrits", value: r.retained, sub: `${r.retentionRate}% de la saison précédente`, color: C.green },
+    { label: "Départs", value: r.departures, sub: `${100 - r.retentionRate}% non réinscrits à ce jour`, color: C.orange },
+    { label: "Entrants", value: r.entrants, sub: "nouveaux adhérents ou retours", color: C.cyan },
+  ];
+  const gap = 0.25;
+  const cw = (W - 2 * M - 3 * gap) / 4;
+  kpis.forEach((k, i) => {
+    const x = M + i * (cw + gap);
+    card(slide, x, 1.7, cw, 1.6, k.color);
+    slide.addText(String(k.value), { x, y: 1.72, w: cw, h: 0.85, align: "center", valign: "middle", fontFace: FONT, fontSize: 40, bold: true, color: k.color });
+    slide.addText(k.label, { x, y: 2.55, w: cw, h: 0.35, align: "center", fontFace: FONT, fontSize: 14, bold: true, color: "444444" });
+    slide.addText(k.sub, { x, y: 2.88, w: cw, h: 0.3, align: "center", fontFace: FONT, fontSize: 10, color: "888888" });
+  });
+
+  const leftW = 7.4;
+  card(slide, M, 3.5, leftW, 3.45);
+  slide.addText("Effectifs par saison", { x: M + 0.2, y: 3.55, w: 5, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  const labels = r.seasons.map((x) => `${x.season - 1}-${x.season}`);
+  const known = r.seasons.some((x) => x.retained === null);
+  slide.addChart(
+    "bar",
+    [
+      { name: "Réinscrits", labels, values: r.seasons.map((x) => x.retained ?? 0) },
+      { name: "Entrants", labels, values: r.seasons.map((x) => x.entrants ?? 0) },
+      ...(known ? [{ name: "Effectif (saison d'avant non suivie)", labels, values: r.seasons.map((x) => (x.retained === null ? x.total : 0)) }] : []),
+    ],
+    {
+      x: M + 0.1, y: 3.9, w: leftW - 0.2, h: 3.0,
+      barDir: "col",
+      barGrouping: "stacked",
+      chartColors: [C.green, C.cyan, "94A3B8"],
+      showValue: true,
+      dataLabelColor: "FFFFFF",
+      dataLabelFontSize: 12,
+      dataLabelFontBold: true,
+      dataLabelFormatCode: "#,##0;;",
+      catAxisLabelFontSize: 12,
+      catAxisLabelFontFace: FONT,
+      valAxisHidden: true,
+      valGridLine: { style: "none" },
+      showLegend: true,
+      legendPos: "t",
+      legendFontSize: 11,
+      barGapWidthPct: 50,
+    }
+  );
+
+  const rx = M + leftW + 0.25;
+  const rw = W - M - rx;
+  card(slide, rx, 3.5, rw, 3.45);
+  slide.addText("Taux de réinscription", { x: rx + 0.2, y: 3.55, w: rw - 0.4, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  const rates = [
+    ...(r.previousRetentionRate !== null ? [{ label: `${r.seasonYear - 2} → ${r.seasonYear - 1}`, rate: r.previousRetentionRate }] : []),
+    { label: `${r.seasonYear - 1} → ${r.seasonYear}`, rate: r.retentionRate },
+  ];
+  slide.addChart(
+    "bar",
+    [{ name: "Taux de réinscription (%)", labels: rates.map((x) => `Saison ${x.label}`), values: rates.map((x) => x.rate) }],
+    {
+      x: rx + 0.1, y: 3.95, w: rw - 0.2, h: 2.3,
+      barDir: "col",
+      chartColors: [C.green],
+      showValue: true,
+      dataLabelFormatCode: '0"%"',
+      dataLabelFontSize: 14,
+      dataLabelFontBold: true,
+      catAxisLabelFontSize: 11,
+      catAxisLabelFontFace: FONT,
+      valAxisHidden: true,
+      valAxisMaxVal: 100,
+      valAxisMinVal: 0,
+      valGridLine: { style: "none" },
+      showLegend: false,
+      barGapWidthPct: 60,
+    }
+  );
+  slide.addText("Part des adhérents d'une saison de nouveau inscrits la saison suivante.", { x: rx + 0.2, y: 6.3, w: rw - 0.4, h: 0.55, fontFace: FONT, fontSize: 10, color: "888888", valign: "top" });
+};
+
+const slideCompliance = (pptx: PptxGenJS, data: PDFReportData) => {
+  const c = data.compliance;
+  const stats = data.stats;
+  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
+  addTitle(
+    slide,
+    "Sécurité & Conformité",
+    `Dossiers des ${c.total} adhérents de la saison ${stats.seasonYear - 1}-${stats.seasonYear}, situation au ${formatDate(stats.periodEnd)} · taux uniquement, aucune donnée nominative`,
+    "Adhérents"
+  );
+  const color = (rate: number) => (rate >= 90 ? C.green : rate >= 70 ? C.orange : C.brown);
+  card(slide, M, 1.7, 3.6, 4.6, color(c.completeRate));
+  slide.addText(`${c.completeRate}%`, { x: M, y: 2.2, w: 3.6, h: 1.4, align: "center", valign: "middle", fontFace: FONT, fontSize: 66, bold: true, color: color(c.completeRate) });
+  slide.addText("Dossiers complets", { x: M, y: 3.65, w: 3.6, h: 0.45, align: "center", fontFace: FONT, fontSize: 18, bold: true, color: "444444" });
+  slide.addText(`${c.complete} adhérents sur ${c.total}`, { x: M, y: 4.1, w: 3.6, h: 0.35, align: "center", fontFace: FONT, fontSize: 13, color: "888888" });
+  slide.addText("Cotisation, certificat médical, charte, assurance FSGT et licence FSGT : tous les points validés.", { x: M + 0.2, y: 4.6, w: 3.2, h: 0.9, align: "center", valign: "top", fontFace: FONT, fontSize: 11, color: "888888" });
+
+  card(slide, M + 3.9, 1.7, W - 2 * M - 3.9, 4.6);
+  slide.addChart(
+    "bar",
+    [{ name: "Taux (%)", labels: c.items.map((i) => `${i.label} (${i.ok}/${c.total})`), values: c.items.map((i) => i.rate) }],
+    {
+      x: M + 4.0, y: 1.8, w: W - 2 * M - 4.1, h: 4.4,
+      barDir: "bar",
+      chartColors: c.items.map((i) => color(i.rate)),
+      catAxisOrientation: TOP_DOWN,
+      valAxisHidden: true,
+      valAxisMaxVal: 100,
+      valAxisMinVal: 0,
+      valGridLine: { style: "none" },
+      showValue: true,
+      dataLabelFormatCode: '0"%"',
+      dataLabelFontSize: 13,
+      dataLabelFontBold: true,
+      catAxisLabelFontSize: 12,
+      catAxisLabelFontFace: FONT,
+      showLegend: false,
+      barGapWidthPct: 45,
+    }
+  );
+  slide.addText(`Les licences FSGT sont déposées dans l'application depuis la saison ${stats.seasonYear - 1}-${stats.seasonYear} : les saisons précédentes ne sont pas suivies.`, {
+    x: M, y: 6.5, w: W - 2 * M, h: 0.3, fontFace: FONT, fontSize: 10, color: "888888",
   });
 };
 
@@ -848,6 +988,8 @@ export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptio
       case "dashboard": slideDashboard(pptx, data, year); break;
       case "demographics": slideDemographics(pptx, data.demographics); break;
       case "membership": slideMembership(pptx, data); break;
+      case "retention": slideRetention(pptx, data); break;
+      case "compliance": slideCompliance(pptx, data); break;
       case "levels": slideLevels(pptx, data, year); break;
       case "participation": slideParticipation(pptx, data, year); break;
       case "encadrantsActivity": slideEncadrantsActivity(pptx, data, year); break;

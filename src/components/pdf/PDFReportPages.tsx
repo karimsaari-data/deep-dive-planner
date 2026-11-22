@@ -11,6 +11,8 @@ import { PDFPageEncadrantsActivity } from "./pages/PDFPageEncadrantsActivity";
 import { PDFPageTopSites } from "./pages/PDFPageTopSites";
 import { PDFPageEquipment } from "./pages/PDFPageEquipment";
 import { PDFPageMembership } from "./pages/PDFPageMembership";
+import { PDFPageFidelisation } from "./pages/PDFPageFidelisation";
+import { PDFPageConformite } from "./pages/PDFPageConformite";
 import { PDFPagePhotos } from "./pages/PDFPagePhotos";
 import { PDFPageContact } from "./pages/PDFPageContact";
 
@@ -24,7 +26,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
   // If no sections specified, render all
   const sections = selectedSections || [
     "cover", "summary", "bureau", "encadrants", "dashboard", 
-    "demographics", "membership", "levels", "participation", "encadrantsActivity", 
+    "demographics", "membership", "retention", "compliance", "levels", "participation", "encadrantsActivity", 
     "topSites", "equipment", "photos", "contact"
   ];
 
@@ -49,6 +51,8 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
       {sections.includes("dashboard") && <PDFPageDashboard stats={data.stats} year={year} pageNumber={getPageNumber("dashboard")} />}
       {sections.includes("demographics") && <PDFPageDemographics demographics={data.demographics} stats={data.stats} pageNumber={getPageNumber("demographics")} />}
       {sections.includes("membership") && <PDFPageMembership membership={data.membership} stats={data.stats} year={year} pageNumber={getPageNumber("membership")} />}
+      {sections.includes("retention") && <PDFPageFidelisation retention={data.retention} stats={data.stats} pageNumber={getPageNumber("retention")} />}
+      {sections.includes("compliance") && <PDFPageConformite compliance={data.compliance} stats={data.stats} pageNumber={getPageNumber("compliance")} />}
       {sections.includes("levels") && <PDFPageLevels levels={data.fishLevels} stats={data.stats} year={year} pageNumber={getPageNumber("levels")} />}
       {sections.includes("participation") && <PDFPageParticipation participation={data.participation} stats={data.stats} year={year} pageNumber={getPageNumber("participation")} />}
       {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity staff={data.staff} stats={data.stats} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}
