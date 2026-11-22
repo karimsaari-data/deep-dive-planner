@@ -128,9 +128,8 @@ function getSectionDescription(sectionId: string): string {
     levels: "Castagnole, Dauphin, Requin…",
     photos: "Les moments forts de la saison",
     topPlongeurs: "Les mordus de l'apnée",
-    encadrantsActivity: "Implication du staff",
+    encadrantsActivity: "Mobilisation de l'équipe",
     topSites: "Nos spots favoris",
-    map: "Géolocalisation des sites",
     equipment: "Inventaire et valorisation",
     contact: "Restons connectés",
   };

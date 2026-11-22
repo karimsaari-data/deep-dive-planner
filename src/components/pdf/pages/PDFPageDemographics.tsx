@@ -40,7 +40,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
             }}
           >
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#1a1a1a", margin: "0 0 16px 0" }}>
-              📅 Pyramide des Âges
+              📅 Pyramide des Âges ({demographics.totalMembers})
             </h3>
             <p style={{ fontSize: "12px", color: "#666666", margin: "0 0 16px 0" }}>
               Âge moyen: <strong>{demographics.averageAge} ans</strong>
@@ -78,7 +78,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
             }}
           >
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#1a1a1a", margin: "0 0 16px 0" }}>
-              ⚖️ Parité H/F
+              ⚖️ Parité H/F ({demographics.totalMembers})
             </h3>
             
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", marginTop: "24px" }}>
@@ -132,7 +132,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
             }}
           >
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#1a1a1a", margin: "0 0 16px 0" }}>
-              🎯 Répartition Niveaux
+              🎯 Répartition Niveaux ({demographics.totalMembers})
             </h3>
             
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>

@@ -226,9 +226,8 @@ const slideSummary = (pptx: PptxGenJS, sections: string[]) => {
     levels: "Castagnole, Dauphin, Requin…",
     topPlongeurs: "Les mordus de l'apnée",
     photos: "Les moments forts de la saison",
-    encadrantsActivity: "Implication du staff",
+    encadrantsActivity: "Mobilisation de l'équipe",
     topSites: "Nos spots favoris",
-    map: "Géolocalisation des sites",
     equipment: "Inventaire et valorisation",
     contact: "Restons connectés",
   };
@@ -343,7 +342,7 @@ const slideDemographics = (pptx: PptxGenJS, d: PDFReportData["demographics"]) =>
   const cw = (W - 2 * M - 2 * gap) / 3;
   const y = 1.7;
   const ch = 5.3;
-  const panels = ["Pyramide des âges", "Parité H/F", "Répartition des niveaux"];
+  const panels = [`Pyramide des âges (total ${d.totalMembers})`, `Parité H/F (total ${d.totalMembers})`, `Répartition des niveaux (total ${d.totalMembers})`];
   panels.forEach((t, i) => {
     const x = M + i * (cw + gap);
     card(slide, x, y, cw, ch);
@@ -573,17 +572,63 @@ const slideTopPlongeurs = (pptx: PptxGenJS, data: PDFReportData, year: number) =
 };
 
 const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const { staff } = data;
   const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
-  addTitle(slide, `Implication du Staff ${year}`, "Top Directeurs de Plongée par nombre de sorties encadrées", "Encadrement");
-  const list = data.topEncadrants.slice(0, 12);
-  const medals = ["🥇", "🥈", "🥉"];
-  const rows = list.map((e, i) => [`${medals[i] ? medals[i] + " " : ""}${i + 1}`, e.name, e.outingsOrganized]);
-  const total = W - 2 * M;
-  if (rows.length) {
-    rankTable(slide, ["Rang", "Encadrant", "Sorties encadrées"], rows, [1.1, total - 1.1 - 2.6, 2.6], [2], "FEF3C7");
+  addTitle(
+    slide,
+    `Implication du Staff ${year}`,
+    `Mobilisation de l'équipe d'encadrement · ${staff.totalOutings} sorties · une sortie compte pour chaque encadrant, co-encadrement inclus`,
+    "Encadrement"
+  );
+  const fmt = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  const kpis = [
+    { label: "Encadrants actifs", value: fmt(staff.activeEncadrants), sub: "ont encadré au moins une sortie", color: C.navy },
+    { label: "Sorties par encadrant", value: fmt(staff.avgOutingsPerEncadrant), sub: "en moyenne sur l'année", color: C.cyan },
+    { label: "Encadrants par sortie", value: fmt(staff.avgEncadrantsPerOuting), sub: "en moyenne", color: C.green },
+    { label: "Sorties co-encadrées", value: `${staff.coEncadrementRate}%`, sub: "au moins 2 encadrants", color: C.orange },
+  ];
+  const gap = 0.25;
+  const cw = (W - 2 * M - 3 * gap) / 4;
+  kpis.forEach((k, i) => {
+    const x = M + i * (cw + gap);
+    card(slide, x, 1.7, cw, 1.6, k.color);
+    slide.addText(k.value, { x, y: 1.72, w: cw, h: 0.85, align: "center", valign: "middle", fontFace: FONT, fontSize: 40, bold: true, color: k.color });
+    slide.addText(k.label, { x, y: 2.55, w: cw, h: 0.35, align: "center", fontFace: FONT, fontSize: 14, bold: true, color: "444444" });
+    slide.addText(k.sub, { x, y: 2.88, w: cw, h: 0.3, align: "center", fontFace: FONT, fontSize: 10, color: "888888" });
+  });
+
+  card(slide, M, 3.5, W - 2 * M, 3.45);
+  slide.addText("Évolution mensuelle", { x: M + 0.2, y: 3.55, w: 5, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  if (staff.monthly.length) {
+    const labels = staff.monthly.map((m) => m.month);
+    slide.addChart(
+      "line",
+      [
+        { name: "Sorties", labels, values: staff.monthly.map((m) => m.outings) },
+        { name: "Encadrants mobilisés", labels, values: staff.monthly.map((m) => m.encadrants) },
+      ],
+      {
+        x: M + 0.1, y: 3.9, w: W - 2 * M - 0.2, h: 3.0,
+        chartColors: [C.cyan, C.orange],
+        lineSize: 3,
+        lineDataSymbol: "circle",
+        lineDataSymbolSize: 8,
+        lineSmooth: true,
+        showValue: true,
+        dataLabelPosition: "t",
+        dataLabelFontSize: 11,
+        dataLabelFontBold: true,
+        catAxisLabelFontSize: 12,
+        catAxisLabelFontFace: FONT,
+        valAxisLabelFontSize: 11,
+        valAxisMinVal: 0,
+        valGridLine: { color: "E2E8F0", style: "solid", size: 0.5 },
+        showLegend: true,
+        legendPos: "t",
+        legendFontSize: 12,
+      }
+    );
   }
-  const sum = data.topEncadrants.reduce((s, e) => s + e.outingsOrganized, 0);
-  slide.addText(`Total des sorties encadrées : ${sum}`, { x: M, y: 6.55, w: W - 2 * M, h: 0.4, fontFace: FONT, fontSize: 13, color: C.grey, align: "right" });
 };
 
 const slideTopSites = async (pptx: PptxGenJS, data: PDFReportData, year: number) => {
@@ -611,69 +656,6 @@ const slideTopSites = async (pptx: PptxGenJS, data: PDFReportData, year: number)
     slide.addText(loc.name, { x: x + 0.1, y: y + ph + 0.4, w: cw - 0.2, h: 0.35, fontFace: FONT, fontSize: 12, bold: true, color: C.text, fit: "shrink" });
     slide.addText(`${loc.count} sortie${loc.count > 1 ? "s" : ""}`, { x: x + 0.1, y: y + ph + 0.75, w: cw - 0.2, h: 0.3, fontFace: FONT, fontSize: 12, bold: true, color: C.green });
   }
-};
-
-const slideMap = (pptx: PptxGenJS, data: PDFReportData) => {
-  const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
-  addTitle(slide, "Carte des Spots", undefined, "Sites de plongée");
-  const locs = data.topLocations.slice(0, 8).map((l, i) => ({ ...l, rank: i + 1 }));
-
-  // Liste
-  const lx = M;
-  const lw = 5.6;
-  card(slide, lx, 1.5, lw, 5.5);
-  slide.addText("Coordonnées GPS", { x: lx + 0.2, y: 1.55, w: lw - 0.4, h: 0.4, fontFace: FONT, fontSize: 14, bold: true, color: C.text });
-  locs.forEach((l, i) => {
-    const y = 2.0 + i * 0.6;
-    slide.addShape("ellipse", { x: lx + 0.2, y: y + 0.08, w: 0.36, h: 0.36, fill: { color: C.red }, line: { color: C.red, width: 0 } });
-    slide.addText(String(l.rank), { x: lx + 0.2, y: y + 0.08, w: 0.36, h: 0.36, align: "center", valign: "middle", fontFace: FONT, fontSize: 11, bold: true, color: "FFFFFF" });
-    slide.addText(
-      [
-        { text: l.name, options: { bold: true, fontSize: 12, color: C.text, breakLine: true } },
-        { text: l.latitude && l.longitude ? `${l.latitude.toFixed(4)}° N, ${l.longitude.toFixed(4)}° E` : "GPS non renseigné", options: { fontSize: 9, color: C.grey } },
-      ],
-      { x: lx + 0.7, y, w: lw - 2.1, h: 0.52, fontFace: FONT, valign: "middle" }
-    );
-    slide.addText(`${l.count} sortie${l.count > 1 ? "s" : ""}`, { x: lx + lw - 1.4, y, w: 1.2, h: 0.52, align: "right", valign: "middle", fontFace: FONT, fontSize: 11, color: C.cyan });
-  });
-
-  // Carte schématique (formes natives)
-  const mx = M + lw + 0.3;
-  const mw = W - M - mx;
-  const mh = 5.5;
-  slide.addShape("rect", { x: mx, y: 1.5, w: mw, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
-  slide.addText("Zone Méditerranée - Marseille et environs", { x: mx + 0.15, y: 1.5, w: mw - 0.3, h: 0.5, fontFace: FONT, fontSize: 13, bold: true, color: "FFFFFF", valign: "middle" });
-  const sx = mx;
-  const sy = 2.0;
-  const sh = mh - 0.5 - 0.4;
-  slide.addShape("rect", { x: sx, y: sy, w: mw, h: sh, fill: { color: "BFDBFE" }, line: { color: C.border, width: 1 } });
-
-  const valid = locs.filter((l) => l.latitude && l.longitude);
-  if (valid.length) {
-    const lats = valid.map((l) => l.latitude!);
-    const lons = valid.map((l) => l.longitude!);
-    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-    const latPad = Math.max((maxLat - minLat) * 0.2, 0.05);
-    const lonPad = Math.max((maxLon - minLon) * 0.2, 0.05);
-    const latRange = maxLat - minLat + latPad * 2;
-    const lonRange = maxLon - minLon + lonPad * 2;
-    const toX = (lon: number) => sx + 0.3 + ((lon - minLon + lonPad) / lonRange) * (mw - 0.6);
-    const toY = (lat: number) => sy + sh - 0.3 - ((lat - minLat + latPad) / latRange) * (sh - 0.6);
-    valid.forEach((l) => {
-      const px = toX(l.longitude!);
-      const py = toY(l.latitude!);
-      slide.addShape("ellipse", { x: px - 0.16, y: py - 0.16, w: 0.32, h: 0.32, fill: { color: C.red }, line: { color: "FFFFFF", width: 1.5 } });
-      slide.addText(String(l.rank), { x: px - 0.16, y: py - 0.16, w: 0.32, h: 0.32, align: "center", valign: "middle", fontFace: FONT, fontSize: 10, bold: true, color: "FFFFFF" });
-      const label = l.name.length > 18 ? l.name.slice(0, 18) + "…" : l.name;
-      slide.addText(label, { x: px + 0.2, y: py - 0.13, w: Math.max(0.5, label.length * 0.068 + 0.15), h: 0.26, fontFace: FONT, fontSize: 9, color: C.navy, fill: { color: "FFFFFF" }, valign: "middle", margin: 2 });
-    });
-  } else {
-    slide.addText("Aucune coordonnée GPS disponible", { x: sx, y: sy, w: mw, h: sh, align: "center", valign: "middle", fontFace: FONT, fontSize: 14, color: C.grey });
-  }
-  slide.addText(`${valid.length} spot${valid.length > 1 ? "s" : ""} géolocalisé${valid.length > 1 ? "s" : ""} sur la carte`, {
-    x: mx, y: 1.5 + mh - 0.4, w: mw, h: 0.4, align: "center", valign: "middle", fontFace: FONT, fontSize: 11, color: "0369A1", fill: { color: "F0F9FF" },
-  });
 };
 
 const slideEquipment = (pptx: PptxGenJS, data: PDFReportData) => {
@@ -817,7 +799,6 @@ export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptio
       case "topPlongeurs": slideTopPlongeurs(pptx, data, year); break;
       case "encadrantsActivity": slideEncadrantsActivity(pptx, data, year); break;
       case "topSites": await slideTopSites(pptx, data, year); break;
-      case "map": slideMap(pptx, data); break;
       case "equipment": slideEquipment(pptx, data); break;
       case "photos": await slidePhotos(pptx, data, year); break;
       case "contact": slideContact(pptx); break;

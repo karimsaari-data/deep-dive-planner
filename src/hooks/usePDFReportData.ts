@@ -26,9 +26,21 @@ export interface PDFTopParticipant {
   memberCode: string;
 }
 
-export interface PDFTopEncadrant {
-  name: string;
-  outingsOrganized: number;
+// Indicateurs d'encadrement agrégés (non nominatifs)
+export interface PDFStaffMonth {
+  month: string; // « janv. », « févr. »…
+  outings: number; // sorties du mois
+  encadrants: number; // encadrants différents mobilisés dans le mois
+}
+
+export interface PDFStaffStats {
+  activeEncadrants: number; // encadrants ayant encadré au moins une sortie
+  totalOutings: number;
+  avgOutingsPerEncadrant: number; // 1 décimale
+  avgEncadrantsPerOuting: number; // 1 décimale
+  coEncadrementRate: number; // % de sorties avec au moins 2 encadrants
+  outingsWithoutEncadrant: number;
+  monthly: PDFStaffMonth[];
 }
 
 export interface PDFTopLocation {
@@ -108,7 +120,7 @@ export interface PDFReportData {
   stats: PDFStats;
   demographics: PDFDemographics;
   topParticipants: PDFTopParticipant[];
-  topEncadrants: PDFTopEncadrant[];
+  staff: PDFStaffStats;
   topLocations: PDFTopLocation[];
   equipment: {
     items: PDFEquipmentItem[];
@@ -194,12 +206,13 @@ export const usePDFReportData = (year: number) => {
       const levelMap = new Map(membershipStatuses?.map(s => [s.member_id, s.apnea_level]) || []);
 
       const ageRanges: Record<string, number> = {
-        "18-25": 0, "26-35": 0, "36-45": 0, "46-55": 0, "56-65": 0, "65+": 0,
+        "Moins de 18": 0, "18-25": 0, "26-35": 0, "36-45": 0, "46-55": 0, "56-65": 0, "65+": 0, "Non renseigné": 0,
       };
       const genderCount: Record<string, number> = {
         "Homme": 0, "Femme": 0, "Non renseigné": 0,
       };
       const levelCount: Record<string, number> = {};
+      let levelMissing = 0;
 
       let totalAge = 0;
       let ageCount = 0;
@@ -211,12 +224,15 @@ export const usePDFReportData = (year: number) => {
           const age = Math.floor((nowDate.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
           totalAge += age;
           ageCount++;
-          if (age >= 18 && age <= 25) ageRanges["18-25"]++;
+          if (age < 18) ageRanges["Moins de 18"]++;
+          else if (age <= 25) ageRanges["18-25"]++;
           else if (age <= 35) ageRanges["26-35"]++;
           else if (age <= 45) ageRanges["36-45"]++;
           else if (age <= 55) ageRanges["46-55"]++;
           else if (age <= 65) ageRanges["56-65"]++;
           else ageRanges["65+"]++;
+        } else {
+          ageRanges["Non renseigné"]++;
         }
         if (m.gender === "Homme" || m.gender === "Femme") {
           genderCount[m.gender]++;
@@ -226,17 +242,32 @@ export const usePDFReportData = (year: number) => {
         const apneaLevel = levelMap.get(m.id);
         if (apneaLevel) {
           levelCount[apneaLevel] = (levelCount[apneaLevel] || 0) + 1;
+        } else {
+          levelMissing++;
         }
       });
+
+      // Répartition des niveaux sur 100 % des adhérents : les niveaux les moins
+      // fréquents sont regroupés en « Autres » et les niveaux absents en « Non renseigné ».
+      const MAX_LEVEL_BARS = 8;
+      const namedLevels = Object.entries(levelCount).sort((a, b) => b[1] - a[1]);
+      const slots = levelMissing > 0 ? MAX_LEVEL_BARS - 1 : MAX_LEVEL_BARS;
+      const levelData: Array<{ name: string; value: number }> = [];
+      if (namedLevels.length > slots) {
+        namedLevels.slice(0, slots - 1).forEach(([name, value]) => levelData.push({ name, value }));
+        const rest = namedLevels.slice(slots - 1);
+        levelData.push({ name: `Autres (${rest.length})`, value: rest.reduce((sum, [, v]) => sum + v, 0) });
+      } else {
+        namedLevels.forEach(([name, value]) => levelData.push({ name, value }));
+      }
+      if (levelMissing > 0) levelData.push({ name: "Non renseigné", value: levelMissing });
 
       const demographics: PDFDemographics = {
         totalMembers: membersDir?.length || 0,
         averageAge: ageCount > 0 ? Math.round(totalAge / ageCount) : 0,
         ageData: Object.entries(ageRanges).map(([name, value]) => ({ name, value })).filter(d => d.value > 0),
         genderData: Object.entries(genderCount).map(([name, value]) => ({ name, value })).filter(d => d.value > 0),
-        levelData: Object.entries(levelCount)
-          .map(([name, value]) => ({ name, value }))
-          .sort((a, b) => b.value - a.value),
+        levelData,
       };
 
       // 3. Fetch stats (outings count, participations)
@@ -397,7 +428,8 @@ export const usePDFReportData = (year: number) => {
         .slice(0, 15);
 
       // 5. Top encadrants
-      const encadrantCountMap = new Map<string, { name: string; count: number }>();
+      // Encadrants (emails) de chaque sortie, co-encadrants inclus
+      const staffByOuting = new Map<string, Set<string>>();
 
       const encadrantByHistoricalOuting = new Map<string, string>();
       const hpByOuting = new Map<string, any[]>();
@@ -469,16 +501,45 @@ export const usePDFReportData = (year: number) => {
           if (profile?.email) staff.set(profile.email.toLowerCase(), `${profile.first_name} ${profile.last_name}`);
         });
 
-        staff.forEach((name, email) => {
-          const existing = encadrantCountMap.get(email);
-          if (existing) existing.count++;
-          else encadrantCountMap.set(email, { name, count: 1 });
-        });
+        staffByOuting.set(o.id, new Set(staff.keys()));
       });
 
-      const topEncadrants: PDFTopEncadrant[] = Array.from(encadrantCountMap.values())
-        .map(e => ({ name: e.name, outingsOrganized: e.count }))
-        .sort((a, b) => b.outingsOrganized - a.outingsOrganized);
+      // Indicateurs agrégés : une sortie compte 1 pour chaque encadrant (co-encadrement inclus)
+      const monthFmt = new Intl.DateTimeFormat("fr-FR", { month: "short" });
+      const monthlyMap = new Map<number, { outings: number; staff: Set<string> }>();
+      const everyone = new Set<string>();
+      let staffSlots = 0;
+      let coOutings = 0;
+      let withoutEncadrant = 0;
+      outings?.forEach(o => {
+        if (!validOutingIds.has(o.id)) return;
+        const emails = staffByOuting.get(o.id) ?? new Set<string>();
+        const m = new Date(o.date_time).getMonth();
+        const entry = monthlyMap.get(m) ?? { outings: 0, staff: new Set<string>() };
+        entry.outings++;
+        emails.forEach(e => { entry.staff.add(e); everyone.add(e); });
+        monthlyMap.set(m, entry);
+        staffSlots += emails.size;
+        if (emails.size >= 2) coOutings++;
+        if (emails.size === 0) withoutEncadrant++;
+      });
+      const round1 = (n: number) => Math.round(n * 10) / 10;
+      const firstMonth = monthlyMap.size > 0 ? Math.min(...monthlyMap.keys()) : 0;
+      const lastMonth = monthlyMap.size > 0 ? Math.max(...monthlyMap.keys()) : -1;
+      const staffStats: PDFStaffStats = {
+        activeEncadrants: everyone.size,
+        totalOutings: totalValidOutings,
+        avgOutingsPerEncadrant: everyone.size > 0 ? round1(staffSlots / everyone.size) : 0,
+        avgEncadrantsPerOuting: totalValidOutings > 0 ? round1(staffSlots / totalValidOutings) : 0,
+        coEncadrementRate: totalValidOutings > 0 ? Math.round((coOutings / totalValidOutings) * 100) : 0,
+        outingsWithoutEncadrant: withoutEncadrant,
+        // Du premier au dernier mois avec une sortie, mois creux compris
+        monthly: Array.from({ length: Math.max(lastMonth - firstMonth + 1, 0) }, (_, i) => i + firstMonth).map((m) => ({
+          month: monthFmt.format(new Date(2000, m, 1)),
+          outings: monthlyMap.get(m)?.outings ?? 0,
+          encadrants: monthlyMap.get(m)?.staff.size ?? 0,
+        })),
+      };
 
       // 6. Top locations with photos
       const { data: locations } = await supabase
@@ -683,7 +744,7 @@ export const usePDFReportData = (year: number) => {
         stats,
         demographics,
         topParticipants,
-        topEncadrants,
+        staff: staffStats,
         topLocations,
         equipment: {
           items: equipmentItems.slice(0, 15),
