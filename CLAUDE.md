@@ -153,7 +153,7 @@ Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni pa
 
 **Thème** : marine `0A3A49`, orange `F08814`, cyan `0891B2`, vert `059669`, vert clair `65A30D`, brun `C2410C`, gris `64748B`, fond clair `F8FAFC`.
 
-**Ordre des 16 diapos** (intitulé / titre) :
+**Ordre des 18 diapos** (intitulé / titre) :
 1. Page de titre : « Rapport d'Activité & Statistiques <année> », « Assemblée Générale », « Document généré le … »
 2. ASSEMBLÉE GÉNÉRALE / Sommaire (13 entrées numérotées, 2 colonnes)
 3. GOUVERNANCE / Le Bureau : « N membres · composition au <date> », cartes avatar + nom + rôle
@@ -167,9 +167,8 @@ Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni pa
 11. SITES DE PLONGÉE / Top 10 des Sites : 10 cartes photo + rang + nombre de sorties
 12. SITES DE PLONGÉE / Carte des Spots : liste GPS + carte schématique
 13. MATÉRIEL / Parc Matériel & Valorisation : valeur totale + graphique top 15
-14. ALBUM PHOTO / Souvenirs : 6 photos (titre, date, lieu)
-15. ALBUM PHOTO / Souvenirs (suite) : 6 photos
-16. CONTACT / Restons Connectés : réseaux, localisations, liens cliquables
+14 à 17. ALBUM PHOTO / Souvenirs puis Souvenirs (suite) : 4 pages de 6 photos (titre, date, lieu), 24 photos max réparties sur l'année (moins si l'album est plus petit : 6 par page, 0 page si vide)
+18. CONTACT / Restons Connectés : réseaux, localisations, liens cliquables
 
 **Règles de données** (identiques au PDF) : adhérents, bureau, encadrants et parité = saison en cours ; sorties, niveaux, top plongeurs, sites = année civile ; sorties = toutes les sorties passées non supprimées (même nombre que « Liste des sorties » de l'app).
 
