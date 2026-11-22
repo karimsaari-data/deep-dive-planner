@@ -11,6 +11,7 @@ import { PDFPageEncadrantsActivity } from "./pages/PDFPageEncadrantsActivity";
 import { PDFPageTopSites } from "./pages/PDFPageTopSites";
 import { PDFPageMap } from "./pages/PDFPageMap";
 import { PDFPageEquipment } from "./pages/PDFPageEquipment";
+import { PDFPageMembership } from "./pages/PDFPageMembership";
 import { PDFPagePhotos } from "./pages/PDFPagePhotos";
 import { PDFPageContact } from "./pages/PDFPageContact";
 
@@ -24,7 +25,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
   // If no sections specified, render all
   const sections = selectedSections || [
     "cover", "summary", "bureau", "encadrants", "dashboard", 
-    "demographics", "levels", "topPlongeurs", "encadrantsActivity", 
+    "demographics", "membership", "levels", "topPlongeurs", "encadrantsActivity", 
     "topSites", "map", "equipment", "photos", "contact"
   ];
 
@@ -48,6 +49,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
       {sections.includes("encadrants") && <PDFPageEncadrants members={data.allEncadrants} pageNumber={getPageNumber("encadrants")} />}
       {sections.includes("dashboard") && <PDFPageDashboard stats={data.stats} year={year} pageNumber={getPageNumber("dashboard")} />}
       {sections.includes("demographics") && <PDFPageDemographics demographics={data.demographics} pageNumber={getPageNumber("demographics")} />}
+      {sections.includes("membership") && <PDFPageMembership membership={data.membership} year={year} pageNumber={getPageNumber("membership")} />}
       {sections.includes("levels") && <PDFPageLevels levels={data.fishLevels} stats={data.stats} year={year} pageNumber={getPageNumber("levels")} />}
       {sections.includes("topPlongeurs") && <PDFPageTopPlongeurs participants={data.topParticipants} year={year} pageNumber={getPageNumber("topPlongeurs")} />}
       {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity encadrants={data.topEncadrants} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}

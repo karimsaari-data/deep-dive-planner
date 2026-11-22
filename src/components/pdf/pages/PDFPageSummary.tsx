@@ -124,6 +124,7 @@ function getSectionDescription(sectionId: string): string {
     encadrants: "Nos encadrants certifiés",
     dashboard: "Chiffres clés de l'année",
     demographics: "Profil des adhérents",
+    membership: "Parité H/F et nouvelles adhésions",
     levels: "Castagnole, Dauphin, Requin…",
     photos: "Les moments forts de la saison",
     topPlongeurs: "Les mordus de l'apnée",

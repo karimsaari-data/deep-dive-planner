@@ -82,7 +82,25 @@ export interface PDFPhotos {
 export const PHOTOS_PER_PAGE = 6;
 export const MAX_PHOTOS = 12;
 
+export interface PDFGenderSplit {
+  homme: number;
+  femme: number;
+  autre: number;
+}
+
+export interface PDFMembership {
+  seasonYear: number;
+  total: number;
+  newCount: number; // date d'entrée dans la saison (joined_at)
+  renewedCount: number;
+  previousSeasonTotal: number; // adhérents de la saison précédente
+  all: PDFGenderSplit;
+  newMembers: PDFGenderSplit;
+  renewed: PDFGenderSplit;
+}
+
 export interface PDFReportData {
+  membership: PDFMembership;
   photos: PDFPhotos;
   fishLevels: PDFFishLevel[];
   bureau: PDFMember[];
@@ -156,7 +174,7 @@ export const usePDFReportData = (year: number) => {
       // 2. Fetch demographics from club_members_directory + membership_yearly_status
       const { data: allMembersDir, error: membersDirError } = await supabase
         .from("club_members_directory")
-        .select("id, birth_date, gender, email");
+        .select("id, birth_date, gender, email, joined_at");
 
       if (membersDirError) throw membersDirError;
 
@@ -513,6 +531,46 @@ export const usePDFReportData = (year: number) => {
         count: levelCounts.get(l.name) || 0,
       }));
 
+      // 6b'. Parité et nouveaux adhérents de la saison.
+      // Nouveau = date d'entrée (joined_at) à partir du 1er septembre de la saison ;
+      // à défaut de date, aucune inscription sur une saison précédente dans l'application.
+      const seasonStart = `${seasonYear - 1}-09-01`;
+      const { data: priorStatuses, error: priorError } = await supabase
+        .from("membership_yearly_status")
+        .select("member_id, season_year")
+        .lt("season_year", seasonYear);
+
+      if (priorError) throw priorError;
+
+      const priorIds = new Set((priorStatuses || []).map(p => p.member_id));
+      const previousSeasonTotal = (priorStatuses || []).filter(p => p.season_year === seasonYear - 1).length;
+
+      const emptySplit = (): PDFGenderSplit => ({ homme: 0, femme: 0, autre: 0 });
+      const addToSplit = (split: PDFGenderSplit, gender: string | null) => {
+        if (gender === "Homme") split.homme++;
+        else if (gender === "Femme") split.femme++;
+        else split.autre++;
+      };
+      const genderAll = emptySplit();
+      const genderNew = emptySplit();
+      const genderRenewed = emptySplit();
+      membersDir.forEach(m => {
+        addToSplit(genderAll, m.gender);
+        const isNew = m.joined_at ? m.joined_at >= seasonStart : !priorIds.has(m.id);
+        addToSplit(isNew ? genderNew : genderRenewed, m.gender);
+      });
+
+      const membership: PDFMembership = {
+        seasonYear,
+        total: membersDir.length,
+        newCount: genderNew.homme + genderNew.femme + genderNew.autre,
+        renewedCount: genderRenewed.homme + genderRenewed.femme + genderRenewed.autre,
+        previousSeasonTotal,
+        all: genderAll,
+        newMembers: genderNew,
+        renewed: genderRenewed,
+      };
+
       // 6c. Album photos (même source que l'album du club : outings.photos)
       const { data: photoOutings } = await supabase
         .from("outings")
@@ -599,6 +657,7 @@ export const usePDFReportData = (year: number) => {
       const totalEquipmentValue = equipmentItems.reduce((sum, e) => sum + e.totalValue, 0);
 
       return {
+        membership,
         photos,
         fishLevels,
         bureau,
