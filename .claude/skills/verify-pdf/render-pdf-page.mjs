@@ -40,7 +40,7 @@ if (!existsSync(resolve(root, componentFile))) {
 // --- Locate or install a Playwright Chromium ---------------------------------
 const findChrome = () =>
   [
-    ...globSync("/opt/pw-browsers/chromium-*/chrome-linux/chrome"),
+    ...globSync("/opt/pw-browsers/chromium-*/chrome-linux*/chrome"),
     ...globSync(`${process.env.HOME}/.cache/ms-playwright/chromium-*/chrome-linux/chrome`),
   ][0];
 let chrome = findChrome();

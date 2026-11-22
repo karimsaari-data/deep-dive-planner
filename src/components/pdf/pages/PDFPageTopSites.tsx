@@ -48,7 +48,7 @@ export const PDFPageTopSites = ({ locations, year, pageNumber }: PDFPageTopSites
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
                   <span style={{ fontSize: "14px", fontWeight: "700", color: "#e67e22" }}>#{index + 1}</span>
                 </div>
-                <h3 style={{ fontSize: "13px", fontWeight: "600", color: "#1a1a1a", margin: "0 0 4px 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <h3 style={{ fontSize: "13px", lineHeight: "18px", height: "18px", fontWeight: "600", color: "#1a1a1a", margin: "0 0 4px 0", overflow: "hidden", whiteSpace: "nowrap" }}>
                   {loc.name}
                 </h3>
                 <span style={{ fontSize: "12px", color: "#059669", fontWeight: "600" }}>

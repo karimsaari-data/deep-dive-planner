@@ -43,7 +43,7 @@ export const PDFPageBureau = ({ members, pageNumber }: PDFPageBureauProps) => {
               marginLeft: "8px",
             }}
           >
-            ({members.length} membres)
+            ({members.length} membres) · composition au {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
           </span>
         </div>
 
@@ -118,8 +118,12 @@ export const PDFPageBureau = ({ members, pageNumber }: PDFPageBureauProps) => {
                   fontWeight: "500",
                   color: "#ffffff",
                   backgroundColor: "#1e3a5f",
-                  padding: "4px 12px",
-                  borderRadius: "12px",
+                  display: "inline-block",
+                  height: "22px",
+                  lineHeight: "22px",
+                  padding: "0 12px",
+                  borderRadius: "11px",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {member.board_role}

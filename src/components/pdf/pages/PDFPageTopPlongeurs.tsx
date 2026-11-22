@@ -18,7 +18,7 @@ export const PDFPageTopPlongeurs = ({ participants, year, pageNumber }: PDFPageT
   return (
     <PDFPageWrapper pageNumber={pageNumber}>
       <div style={{ height: "100%" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
           <span style={{ fontSize: "28px" }}>🏆</span>
           <h1
             style={{
@@ -32,7 +32,7 @@ export const PDFPageTopPlongeurs = ({ participants, year, pageNumber }: PDFPageT
           </h1>
         </div>
 
-        <p style={{ fontSize: "14px", color: "#666666", margin: "0 0 20px 0" }}>
+        <p style={{ fontSize: "14px", color: "#666666", margin: "0 0 12px 0" }}>
           Top 15 des participants les plus assidus
         </p>
 
@@ -40,15 +40,15 @@ export const PDFPageTopPlongeurs = ({ participants, year, pageNumber }: PDFPageT
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            fontSize: "14px",
+            fontSize: "13px",
           }}
         >
           <thead>
             <tr style={{ backgroundColor: "#1e3a5f", color: "#ffffff" }}>
-              <th style={{ padding: "12px 16px", textAlign: "left", borderRadius: "8px 0 0 0", width: "80px" }}>Rang</th>
-              <th style={{ padding: "12px 16px", textAlign: "left" }}>Nom</th>
-              <th style={{ padding: "12px 16px", textAlign: "left", width: "140px" }}>Code Membre</th>
-              <th style={{ padding: "12px 16px", textAlign: "center", borderRadius: "0 8px 0 0", width: "140px" }}>Participations</th>
+              <th style={{ padding: "6px 16px", textAlign: "left", borderRadius: "8px 0 0 0", width: "80px" }}>Rang</th>
+              <th style={{ padding: "6px 16px", textAlign: "left" }}>Nom</th>
+              <th style={{ padding: "6px 16px", textAlign: "left", width: "140px" }}>Code Membre</th>
+              <th style={{ padding: "6px 16px", textAlign: "center", borderRadius: "0 8px 0 0", width: "140px" }}>Participations</th>
             </tr>
           </thead>
           <tbody>
@@ -64,18 +64,18 @@ export const PDFPageTopPlongeurs = ({ participants, year, pageNumber }: PDFPageT
                     borderBottom: "1px solid #e2e8f0",
                   }}
                 >
-                  <td style={{ padding: "10px 16px", fontWeight: isTop3 ? "600" : "400" }}>
+                  <td style={{ padding: "2px 16px", height: "30px", fontWeight: isTop3 ? "600" : "400" }}>
                     {getMedalEmoji(rank)} {rank}
                   </td>
-                  <td style={{ padding: "10px 16px", fontWeight: isTop3 ? "600" : "400" }}>
+                  <td style={{ padding: "2px 16px", height: "30px", fontWeight: isTop3 ? "600" : "400" }}>
                     {participant.name}
                   </td>
-                  <td style={{ padding: "10px 16px", color: "#666666" }}>
+                  <td style={{ padding: "2px 16px", height: "30px", color: "#666666" }}>
                     {participant.memberCode || "-"}
                   </td>
                   <td
                     style={{
-                      padding: "10px 16px",
+                      padding: "2px 16px", height: "30px",
                       textAlign: "center",
                       fontWeight: "600",
                     }}
@@ -84,8 +84,12 @@ export const PDFPageTopPlongeurs = ({ participants, year, pageNumber }: PDFPageT
                       style={{
                         backgroundColor: isTop3 ? "#1e3a5f" : "#e2e8f0",
                         color: isTop3 ? "#ffffff" : "#1a1a1a",
-                        padding: "4px 12px",
-                        borderRadius: "12px",
+                        display: "inline-block",
+                        minWidth: "28px",
+                        height: "22px",
+                        lineHeight: "22px",
+                        padding: "0 10px",
+                        borderRadius: "11px",
                         fontSize: "13px",
                       }}
                     >
