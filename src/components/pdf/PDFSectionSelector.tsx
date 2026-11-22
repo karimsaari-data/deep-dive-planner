@@ -14,6 +14,8 @@ import {
   Phone,
   Camera,
   UserPlus,
+  Repeat,
+  ShieldCheck,
   FileText
 } from "lucide-react";
 
@@ -32,6 +34,8 @@ export const PDF_SECTIONS: PDFSection[] = [
   { id: "dashboard", label: "Tableau de Bord", icon: <BarChart3 className="h-4 w-4" />, defaultSelected: true },
   { id: "demographics", label: "Démographie", icon: <PieChart className="h-4 w-4" />, defaultSelected: true },
   { id: "membership", label: "Parité & Nouveaux", icon: <UserPlus className="h-4 w-4" />, defaultSelected: true },
+  { id: "retention", label: "Fidélisation", icon: <Repeat className="h-4 w-4" />, defaultSelected: true },
+  { id: "compliance", label: "Sécurité & Conformité", icon: <ShieldCheck className="h-4 w-4" />, defaultSelected: true },
   { id: "levels", label: "Niveaux Poissons", icon: <Award className="h-4 w-4" />, defaultSelected: true },
   { id: "participation", label: "Participation aux sorties", icon: <Trophy className="h-4 w-4" />, defaultSelected: true },
   { id: "encadrantsActivity", label: "Implication du Staff", icon: <UserCheck className="h-4 w-4" />, defaultSelected: true },
