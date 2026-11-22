@@ -9,7 +9,6 @@ import { PDFPageLevels } from "./pages/PDFPageLevels";
 import { PDFPageTopPlongeurs } from "./pages/PDFPageTopPlongeurs";
 import { PDFPageEncadrantsActivity } from "./pages/PDFPageEncadrantsActivity";
 import { PDFPageTopSites } from "./pages/PDFPageTopSites";
-import { PDFPageMap } from "./pages/PDFPageMap";
 import { PDFPageEquipment } from "./pages/PDFPageEquipment";
 import { PDFPageMembership } from "./pages/PDFPageMembership";
 import { PDFPagePhotos } from "./pages/PDFPagePhotos";
@@ -26,7 +25,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
   const sections = selectedSections || [
     "cover", "summary", "bureau", "encadrants", "dashboard", 
     "demographics", "membership", "levels", "topPlongeurs", "encadrantsActivity", 
-    "topSites", "map", "equipment", "photos", "contact"
+    "topSites", "equipment", "photos", "contact"
   ];
 
   // Calculate dynamic page numbers based on selected sections
@@ -52,9 +51,8 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
       {sections.includes("membership") && <PDFPageMembership membership={data.membership} year={year} pageNumber={getPageNumber("membership")} />}
       {sections.includes("levels") && <PDFPageLevels levels={data.fishLevels} stats={data.stats} year={year} pageNumber={getPageNumber("levels")} />}
       {sections.includes("topPlongeurs") && <PDFPageTopPlongeurs participants={data.topParticipants} year={year} pageNumber={getPageNumber("topPlongeurs")} />}
-      {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity encadrants={data.topEncadrants} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}
+      {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity staff={data.staff} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}
       {sections.includes("topSites") && <PDFPageTopSites locations={data.topLocations} year={year} pageNumber={getPageNumber("topSites")} />}
-      {sections.includes("map") && <PDFPageMap locations={data.topLocations} pageNumber={getPageNumber("map")} />}
       {sections.includes("equipment") && <PDFPageEquipment equipment={data.equipment} pageNumber={getPageNumber("equipment")} />}
       {sections.includes("photos") && Array.from({ length: photoPages }, (_, part) => (
         <PDFPagePhotos key={part} photos={data.photos} year={year} part={part} pageNumber={getPageNumber("photos")} />

@@ -153,22 +153,21 @@ Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni pa
 
 **Thème** : marine `0A3A49`, orange `F08814`, cyan `0891B2`, vert `059669`, vert clair `65A30D`, brun `C2410C`, gris `64748B`, fond clair `F8FAFC`.
 
-**Ordre des 18 diapos** (intitulé / titre) :
+**Ordre des 17 diapos** (intitulé / titre) :
 1. Page de titre : « Rapport d'Activité & Statistiques <année> », « Assemblée Générale », « Document généré le … »
-2. ASSEMBLÉE GÉNÉRALE / Sommaire (13 entrées numérotées, 2 colonnes)
+2. ASSEMBLÉE GÉNÉRALE / Sommaire (12 entrées numérotées, 2 colonnes)
 3. GOUVERNANCE / Le Bureau : « N membres · composition au <date> », cartes avatar + nom + rôle
 4. ÉQUIPE TECHNIQUE / Nos Encadrants : « N encadrants · composition au <date> », avatar, prénom, nom, niveau, rôle
 5. CHIFFRES CLÉS / Bilan Global : 3 KPI (adhérents saison, sorties, plongées cumulées) + encart moyenne par sortie et note « sorties comptabilisées depuis la mise en service de l'application »
-6. ADHÉRENTS / Démographie : 3 graphiques (âges, parité, niveaux d'apnée)
+6. ADHÉRENTS / Démographie : 3 graphiques (âges, parité, niveaux d'apnée), chacun sur 100 % des adhérents (niveaux peu fréquents regroupés en « Autres », absents en « Non renseigné », total affiché)
 7. ADHÉRENTS / Parité & Nouveaux Adhérents : 3 KPI (adhérents, nouveaux, renouvellements) + graphique parité H/F ; nouveau = `joined_at` >= 1er septembre de la saison
 8. ADHÉRENTS / Niveaux des adhérents : graphique + tableau (Inactif, Castagnole, Crabe, Méduse, Poulpe, Dauphin, Requin)
 9. PARTICIPATION / Les Mordus de l'Apnée : tableau top 15
-10. ENCADREMENT / Implication du Staff : tableau + total des sorties encadrées
+10. ENCADREMENT / Implication du Staff : **non nominatif** — 4 KPI moyens (encadrants actifs, sorties par encadrant, encadrants par sortie, % de sorties co-encadrées) + courbe mensuelle (sorties et encadrants mobilisés)
 11. SITES DE PLONGÉE / Top 10 des Sites : 10 cartes photo + rang + nombre de sorties
-12. SITES DE PLONGÉE / Carte des Spots : liste GPS + carte schématique
-13. MATÉRIEL / Parc Matériel & Valorisation : valeur totale + graphique top 15
-14 à 17. ALBUM PHOTO / Souvenirs puis Souvenirs (suite) : 4 pages de 6 photos (titre, date, lieu), 24 photos max réparties sur l'année (moins si l'album est plus petit : 6 par page, 0 page si vide)
-18. CONTACT / Restons Connectés : réseaux, localisations, liens cliquables
+12. MATÉRIEL / Parc Matériel & Valorisation : valeur totale + graphique top 15
+13 à 16. ALBUM PHOTO / Souvenirs puis Souvenirs (suite) : 4 pages de 6 photos (titre, date, lieu), 24 photos max réparties sur l'année (moins si l'album est plus petit : 6 par page, 0 page si vide)
+17. CONTACT / Restons Connectés : réseaux, localisations, liens cliquables
 
 **Règles de données** (identiques au PDF) : adhérents, bureau, encadrants et parité = saison en cours ; sorties, niveaux, top plongeurs, sites = année civile ; sorties = toutes les sorties passées non supprimées (même nombre que « Liste des sorties » de l'app).
 
