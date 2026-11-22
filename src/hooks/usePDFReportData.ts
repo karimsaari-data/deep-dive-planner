@@ -20,10 +20,28 @@ export interface PDFDemographics {
   levelData: Array<{ name: string; value: number }>;
 }
 
-export interface PDFTopParticipant {
-  name: string;
+// Participation aux sorties (agrégée, non nominative)
+export interface PDFParticipationMonth {
+  month: string;
   participations: number;
-  memberCode: string;
+  outings: number;
+}
+
+export interface PDFParticipationType {
+  name: string; // type de sortie (Mer, Dépollution, Piscine…)
+  participations: number;
+  outings: number;
+}
+
+export interface PDFParticipationStats {
+  participants: number; // personnes différentes ayant participé à au moins une sortie
+  seasonMembersParticipating: number; // dont adhérents de la saison
+  seasonMembers: number;
+  participationRate: number; // % des adhérents de la saison ayant participé
+  avgPerParticipant: number; // participations par participant (1 décimale)
+  avgPerOuting: number; // participants par sortie (1 décimale)
+  monthly: PDFParticipationMonth[];
+  byType: PDFParticipationType[];
 }
 
 // Indicateurs d'encadrement agrégés (non nominatifs)
@@ -119,7 +137,7 @@ export interface PDFReportData {
   allEncadrants: PDFMember[];
   stats: PDFStats;
   demographics: PDFDemographics;
-  topParticipants: PDFTopParticipant[];
+  participation: PDFParticipationStats;
   staff: PDFStaffStats;
   topLocations: PDFTopLocation[];
   equipment: {
@@ -273,7 +291,7 @@ export const usePDFReportData = (year: number) => {
       // 3. Fetch stats (outings count, participations)
       const { data: outings, error: outingsError } = await supabase
         .from("outings")
-        .select("id, date_time, organizer_id, location, location_id")
+        .select("id, date_time, organizer_id, location, location_id, outing_type")
         .gte("date_time", startOfYear)
         .lte("date_time", endOfYear)
         .lt("date_time", now)
@@ -322,6 +340,7 @@ export const usePDFReportData = (year: number) => {
       let totalValidOutings = 0;
       let totalParticipations = 0;
       const validOutingIds = new Set<string>();
+      const participationByOuting = new Map<string, number>();
       const locationCountMap = new Map<string, { name: string; id: string | null; count: number }>();
 
       outings?.forEach(o => {
@@ -333,7 +352,9 @@ export const usePDFReportData = (year: number) => {
         totalValidOutings++;
         validOutingIds.add(o.id);
         const hpCount = historicalParticipants?.filter(hp => hp.outing_id === o.id).length || 0;
-        totalParticipations += isHistorical ? hpCount : presentCount;
+        const outingParticipations = isHistorical ? hpCount : presentCount;
+        totalParticipations += outingParticipations;
+        participationByOuting.set(o.id, outingParticipations);
         
         // Count locations for valid outings
         if (validOutingIds.has(o.id)) {
@@ -362,7 +383,7 @@ export const usePDFReportData = (year: number) => {
         totalOutings: totalValidOutings,
         totalParticipations,
         seasonYear,
-        periodStart: startOfYear,
+        periodStart: validDates[0] || startOfYear,
         periodEnd: now,
         firstOutingDate: validDates[0] || null,
       };
@@ -422,10 +443,46 @@ export const usePDFReportData = (year: number) => {
         }
       });
 
-      const topParticipants: PDFTopParticipant[] = Array.from(participantCountMap.values())
-        .map(p => ({ name: p.name, participations: p.count, memberCode: p.code }))
-        .sort((a, b) => b.participations - a.participations)
-        .slice(0, 15);
+      // Participation agrégée (aucun nom) : mêmes présences que le total de plongées
+      const seasonEmails = new Set(membersDir.map(m => m.email?.toLowerCase()).filter(Boolean));
+      const participantKeys = Array.from(participantCountMap.keys());
+      const seasonMembersParticipating = participantKeys.filter(k => seasonEmails.has(k)).length;
+      const monthFmtP = new Intl.DateTimeFormat("fr-FR", { month: "short" });
+      const monthlyP = new Map<number, { participations: number; outings: number }>();
+      const typeP = new Map<string, { participations: number; outings: number }>();
+      outings?.forEach(o => {
+        if (!validOutingIds.has(o.id)) return;
+        const pc = participationByOuting.get(o.id) || 0;
+        const m = new Date(o.date_time).getMonth();
+        const me = monthlyP.get(m) ?? { participations: 0, outings: 0 };
+        me.participations += pc;
+        me.outings++;
+        monthlyP.set(m, me);
+        const type = (o as { outing_type?: string }).outing_type || "Autre";
+        const te = typeP.get(type) ?? { participations: 0, outings: 0 };
+        te.participations += pc;
+        te.outings++;
+        typeP.set(type, te);
+      });
+      const roundP = (n: number) => Math.round(n * 10) / 10;
+      const firstMonthP = monthlyP.size > 0 ? Math.min(...monthlyP.keys()) : 0;
+      const lastMonthP = monthlyP.size > 0 ? Math.max(...monthlyP.keys()) : -1;
+      const participation: PDFParticipationStats = {
+        participants: participantKeys.length,
+        seasonMembersParticipating,
+        seasonMembers: membersDir.length,
+        participationRate: membersDir.length > 0 ? Math.round((seasonMembersParticipating / membersDir.length) * 100) : 0,
+        avgPerParticipant: participantKeys.length > 0 ? roundP(totalParticipations / participantKeys.length) : 0,
+        avgPerOuting: totalValidOutings > 0 ? roundP(totalParticipations / totalValidOutings) : 0,
+        monthly: Array.from({ length: Math.max(lastMonthP - firstMonthP + 1, 0) }, (_, i) => i + firstMonthP).map(m => ({
+          month: monthFmtP.format(new Date(2000, m, 1)),
+          participations: monthlyP.get(m)?.participations ?? 0,
+          outings: monthlyP.get(m)?.outings ?? 0,
+        })),
+        byType: Array.from(typeP.entries())
+          .map(([name, v]) => ({ name, ...v }))
+          .sort((a, b) => b.participations - a.participations),
+      };
 
       // 5. Top encadrants
       // Encadrants (emails) de chaque sortie, co-encadrants inclus
@@ -743,7 +800,7 @@ export const usePDFReportData = (year: number) => {
         allEncadrants,
         stats,
         demographics,
-        topParticipants,
+        participation,
         staff: staffStats,
         topLocations,
         equipment: {

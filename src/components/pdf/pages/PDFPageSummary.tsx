@@ -127,7 +127,7 @@ function getSectionDescription(sectionId: string): string {
     membership: "Parité H/F et nouvelles adhésions",
     levels: "Castagnole, Dauphin, Requin…",
     photos: "Les moments forts de la saison",
-    topPlongeurs: "Les mordus de l'apnée",
+    participation: "Qui participe, quand, à quoi",
     encadrantsActivity: "Mobilisation de l'équipe",
     topSites: "Nos spots favoris",
     equipment: "Inventaire et valorisation",

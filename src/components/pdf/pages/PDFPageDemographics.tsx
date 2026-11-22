@@ -1,14 +1,16 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
-import { PDFDemographics } from "@/hooks/usePDFReportData";
+import { PDFDemographics, PDFStats } from "@/hooks/usePDFReportData";
+import { formatDate } from "../period";
 
 interface PDFPageDemographicsProps {
   demographics: PDFDemographics;
+  stats: PDFStats;
   pageNumber?: number;
 }
 
 const COLORS = ["#1e3a5f", "#0891b2", "#059669", "#65a30d", "#ca8a04", "#ea580c"];
 
-export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemographicsProps) => {
+export const PDFPageDemographics = ({ demographics, stats, pageNumber }: PDFPageDemographicsProps) => {
   const maxAge = Math.max(...demographics.ageData.map(d => d.value), 1);
   const maxLevel = Math.max(...demographics.levelData.map(d => d.value), 1);
 
@@ -27,6 +29,9 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
           >
             Démographie
           </h1>
+          <span style={{ fontSize: "14px", lineHeight: "20px", color: "#666666", marginLeft: "8px" }}>
+            Adhérents saison {stats.seasonYear - 1}-{stats.seasonYear}, situation au {formatDate(stats.periodEnd)}
+          </span>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "24px", height: "calc(100% - 80px)" }}>

@@ -155,19 +155,21 @@ Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni pa
 
 **Ordre des 17 diapos** (intitulé / titre) :
 1. Page de titre : « Rapport d'Activité & Statistiques <année> », « Assemblée Générale », « Document généré le … »
-2. ASSEMBLÉE GÉNÉRALE / Sommaire (12 entrées numérotées, 2 colonnes)
+2. ASSEMBLÉE GÉNÉRALE / Sommaire (12 entrées numérotées, 2 colonnes, numéro de page ; **chaque carte est un lien** vers la première diapo de la rubrique)
 3. GOUVERNANCE / Le Bureau : « N membres · composition au <date> », cartes avatar + nom + rôle
 4. ÉQUIPE TECHNIQUE / Nos Encadrants : « N encadrants · composition au <date> », avatar, prénom, nom, niveau, rôle
 5. CHIFFRES CLÉS / Bilan Global : 3 KPI (adhérents saison, sorties, plongées cumulées) + encart moyenne par sortie et note « sorties comptabilisées depuis la mise en service de l'application »
 6. ADHÉRENTS / Démographie : 3 graphiques (âges, parité, niveaux d'apnée), chacun sur 100 % des adhérents (niveaux peu fréquents regroupés en « Autres », absents en « Non renseigné », total affiché)
 7. ADHÉRENTS / Parité & Nouveaux Adhérents : 3 KPI (adhérents, nouveaux, renouvellements) + graphique parité H/F ; nouveau = `joined_at` >= 1er septembre de la saison
 8. ADHÉRENTS / Niveaux des adhérents : graphique + tableau (Inactif, Castagnole, Crabe, Méduse, Poulpe, Dauphin, Requin)
-9. PARTICIPATION / Les Mordus de l'Apnée : tableau top 15
+9. PARTICIPATION / Participation aux sorties : **non nominatif** — 4 KPI (participants différents, % d'adhérents ayant participé, sorties par participant, participants par sortie) + participations par mois + répartition par type de sortie
 10. ENCADREMENT / Implication du Staff : **non nominatif** — 4 KPI moyens (encadrants actifs, sorties par encadrant, encadrants par sortie, % de sorties co-encadrées) + courbe mensuelle (sorties et encadrants mobilisés)
 11. SITES DE PLONGÉE / Top 10 des Sites : 10 cartes photo + rang + nombre de sorties
 12. MATÉRIEL / Parc Matériel & Valorisation : valeur totale + graphique top 15
 13 à 16. ALBUM PHOTO / Souvenirs puis Souvenirs (suite) : 4 pages de 6 photos (titre, date, lieu), 24 photos max réparties sur l'année (moins si l'album est plus petit : 6 par page, 0 page si vide)
 17. CONTACT / Restons Connectés : réseaux, localisations, liens cliquables
+
+**Période** : l'application n'est en service que depuis mai. Toute statistique de sorties/participation/niveaux/sites/photos porte la mention « Période : du <première sortie> au <date> · application en service depuis <mois> » (helpers dans `src/components/pdf/period.ts`) ; les statistiques d'adhérents indiquent leur date de situation. Aucune page nominative de classement de membres.
 
 **Règles de données** (identiques au PDF) : adhérents, bureau, encadrants et parité = saison en cours ; sorties, niveaux, top plongeurs, sites = année civile ; sorties = toutes les sorties passées non supprimées (même nombre que « Liste des sorties » de l'app).
 

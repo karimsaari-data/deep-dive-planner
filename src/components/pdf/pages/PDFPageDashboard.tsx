@@ -1,5 +1,7 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
 import { PDFStats } from "@/hooks/usePDFReportData";
+import { formatPeriod } from "../period";
+
 
 interface PDFPageDashboardProps {
   stats: PDFStats;
@@ -22,7 +24,7 @@ export const PDFPageDashboard = ({ stats, year, pageNumber }: PDFPageDashboardPr
     {
       icon: "🤿",
       label: "Sorties Réalisées",
-      sub: `du 1er janvier au ${fmt(stats.periodEnd)}`,
+      sub: formatPeriod(stats),
       value: stats.totalOutings,
       color: "#0891b2",
     },

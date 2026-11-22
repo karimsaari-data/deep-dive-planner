@@ -1,8 +1,11 @@
 import { PDFPageWrapper } from "../PDFPageWrapper";
-import { PDFPhoto, PDFPhotos, PHOTOS_PER_PAGE } from "@/hooks/usePDFReportData";
+import { PDFPhoto, PDFPhotos, PDFStats, PHOTOS_PER_PAGE } from "@/hooks/usePDFReportData";
+import { formatPeriod } from "../period";
+
 
 interface PDFPagePhotosProps {
   photos: PDFPhotos;
+  stats: PDFStats;
   year: number;
   part: number; // 0 = première page, 1 = seconde
   pageNumber?: number;
@@ -11,7 +14,7 @@ interface PDFPagePhotosProps {
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
-export const PDFPagePhotos = ({ photos, year, part, pageNumber }: PDFPagePhotosProps) => {
+export const PDFPagePhotos = ({ photos, stats, year, part, pageNumber }: PDFPagePhotosProps) => {
   const items: PDFPhoto[] = photos.items.slice(part * PHOTOS_PER_PAGE, (part + 1) * PHOTOS_PER_PAGE);
 
   return (
@@ -24,7 +27,7 @@ export const PDFPagePhotos = ({ photos, year, part, pageNumber }: PDFPagePhotosP
           </h1>
         </div>
         <p style={{ fontSize: "14px", lineHeight: "20px", color: "#666666", margin: "0 0 16px 0" }}>
-          {photos.totalPhotos} photos dans l'album du club · {photos.totalOutings} sortie{photos.totalOutings > 1 ? "s" : ""} photographiée{photos.totalOutings > 1 ? "s" : ""}
+          {photos.totalPhotos} photos dans l'album du club · {photos.totalOutings} sortie{photos.totalOutings > 1 ? "s" : ""} photographiée{photos.totalOutings > 1 ? "s" : ""} · {formatPeriod(stats)}
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>

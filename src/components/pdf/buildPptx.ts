@@ -3,6 +3,7 @@ import { PHOTOS_PER_PAGE, type PDFMember, type PDFReportData } from "@/hooks/use
 import { formatFullName } from "@/lib/formatName";
 import { CONTACT_LINKS } from "./pages/PDFPageContact";
 import { PDF_SECTIONS } from "./PDFSectionSelector";
+import { formatDate, formatPeriod, periodLabel } from "./period";
 import logoTeamOxygen from "@/assets/logo-team-oxygen.webp";
 
 // Diapositives natives (textes, formes, tableaux et graphiques modifiables dans PowerPoint).
@@ -214,9 +215,14 @@ const slideCover = (pptx: PptxGenJS, year: number) => {
   slide.addText(`Document généré le ${fmtDate(new Date())}`, { x: M, y: 5.85, w: W - 2 * M, h: 0.4, align: "center", fontFace: FONT, fontSize: 13, color: C.grey });
 };
 
-const slideSummary = (pptx: PptxGenJS, sections: string[]) => {
+// Image 1x1 transparente : zone cliquable sur toute la carte (un lien sur un texte
+// ne serait cliquable que sur les mots).
+const CLICK_ZONE =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4//8/AwAI/AL+p5qgoAAAAABJRU5ErkJggg==";
+
+const slideSummary = (pptx: PptxGenJS, sections: string[], startSlide: Record<string, number>) => {
   const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
-  addTitle(slide, "Sommaire", undefined, "Assemblée Générale");
+  addTitle(slide, "Sommaire", "Cliquez sur une rubrique pour y accéder", "Assemblée Générale");
   const descriptions: Record<string, string> = {
     bureau: "Composition du bureau du club",
     encadrants: "Nos encadrants certifiés",
@@ -224,31 +230,43 @@ const slideSummary = (pptx: PptxGenJS, sections: string[]) => {
     demographics: "Profil des adhérents",
     membership: "Parité H/F et nouvelles adhésions",
     levels: "Castagnole, Dauphin, Requin…",
-    topPlongeurs: "Les mordus de l'apnée",
+    participation: "Qui participe, quand, à quoi",
     photos: "Les moments forts de la saison",
     encadrantsActivity: "Mobilisation de l'équipe",
     topSites: "Nos spots favoris",
     equipment: "Inventaire et valorisation",
     contact: "Restons connectés",
   };
-  const items = PDF_SECTIONS.filter((s) => s.id !== "cover" && s.id !== "summary" && sections.includes(s.id));
+  // Rubriques réellement présentes dans la présentation (photos absentes si album vide)
+  const items = PDF_SECTIONS.filter(
+    (s) => s.id !== "cover" && s.id !== "summary" && sections.includes(s.id) && startSlide[s.id]
+  );
   const colW = (W - 2 * M - 0.4) / 2;
   const perCol = Math.ceil(items.length / 2);
   items.forEach((s, i) => {
     const col = Math.floor(i / perCol);
     const row = i % perCol;
     const x = M + col * (colW + 0.4);
-    const y = 1.5 + row * 0.9;
-    card(slide, x, y, colW, 0.75);
-    slide.addShape("ellipse", { x: x + 0.15, y: y + 0.12, w: 0.5, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
-    slide.addText(String(i + 1), { x: x + 0.15, y: y + 0.12, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: FONT, fontSize: 15, bold: true, color: "FFFFFF" });
+    const y = 1.65 + row * 0.85;
+    const target = startSlide[s.id];
+    card(slide, x, y, colW, 0.72);
+    slide.addShape("ellipse", { x: x + 0.15, y: y + 0.11, w: 0.5, h: 0.5, fill: { color: C.navy }, line: { color: C.navy, width: 0 } });
+    slide.addText(String(i + 1), { x: x + 0.15, y: y + 0.11, w: 0.5, h: 0.5, align: "center", valign: "middle", fontFace: FONT, fontSize: 15, bold: true, color: "FFFFFF" });
     slide.addText(
       [
         { text: s.label, options: { bold: true, fontSize: 16, color: C.text, breakLine: true } },
         { text: descriptions[s.id] || "", options: { fontSize: 11, color: C.grey } },
       ],
-      { x: x + 0.8, y: y + 0.05, w: colW - 0.95, h: 0.65, fontFace: FONT, valign: "middle" }
+      { x: x + 0.8, y: y + 0.04, w: colW - 1.8, h: 0.64, fontFace: FONT, valign: "middle" }
     );
+    slide.addText(`p.${target}`, { x: x + colW - 0.95, y: y + 0.04, w: 0.8, h: 0.64, align: "right", valign: "middle", fontFace: FONT, fontSize: 13, color: "888888" });
+    // Lien interne vers la première diapo de la rubrique
+    slide.addImage({
+      data: CLICK_ZONE,
+      x, y, w: colW, h: 0.72,
+      altText: `Aller à ${s.label} (diapo ${target})`,
+      hyperlink: { slide: target, tooltip: `Aller à ${s.label}` },
+    });
   });
 };
 
@@ -305,7 +323,7 @@ const slideDashboard = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
   addTitle(slide, `Bilan Global ${year}`, undefined, "Chiffres clés");
   const kpis = [
     { label: "Adhérents saison", sub: `${stats.seasonYear - 1}-${stats.seasonYear} · dont ${stats.totalEncadrants} encadrants`, value: stats.totalMembers, color: C.navy },
-    { label: "Sorties réalisées", sub: `du 1er janvier au ${fmtDate(stats.periodEnd)}`, value: stats.totalOutings, color: C.cyan },
+    { label: "Sorties réalisées", sub: formatPeriod(stats), value: stats.totalOutings, color: C.cyan },
     { label: "Plongées cumulées", sub: "participations cumulées", value: stats.totalParticipations, color: C.green },
   ];
   const gap = 0.4;
@@ -337,7 +355,7 @@ const slideDashboard = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
 
 const slideDemographics = (pptx: PptxGenJS, d: PDFReportData["demographics"]) => {
   const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
-  addTitle(slide, "Démographie", `${d.totalMembers} adhérents · âge moyen ${d.averageAge} ans`, "Adhérents");
+  addTitle(slide, "Démographie", `${d.totalMembers} adhérents de la saison, situation au ${formatDate(new Date().toISOString())} · âge moyen ${d.averageAge} ans`, "Adhérents");
   const gap = 0.3;
   const cw = (W - 2 * M - 2 * gap) / 3;
   const y = 1.7;
@@ -413,7 +431,7 @@ const slideMembership = (pptx: PptxGenJS, data: PDFReportData) => {
   addTitle(
     slide,
     "Parité & Nouveaux Adhérents",
-    `Saison ${m.seasonYear - 1}-${m.seasonYear}` +
+    `Saison ${m.seasonYear - 1}-${m.seasonYear}, situation au ${formatDate(data.stats.periodEnd)}` +
       (m.previousSeasonTotal > 0
         ? ` · ${delta >= 0 ? "+" : "-"}${Math.abs(delta)} adhérents vs saison précédente (${m.previousSeasonTotal}, ${delta >= 0 ? "+" : "-"}${pct(Math.abs(delta), m.previousSeasonTotal)}%)`
         : ""),
@@ -480,7 +498,7 @@ const slideLevels = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
   addTitle(
     slide,
     `Niveaux des adhérents ${year}`,
-    `Niveau selon le nombre de sorties depuis le 1er janvier · ${total} adhérents saison ${stats.seasonYear - 1}-${stats.seasonYear} · dont ${active} actifs`,
+    `Niveau selon le nombre de sorties ${formatPeriod(stats)} (application en service depuis mai) · ${total} adhérents saison ${stats.seasonYear - 1}-${stats.seasonYear} · dont ${active} actifs`,
     "Adhérents"
   );
 
@@ -523,52 +541,75 @@ const slideLevels = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
   slide.addTable(rows, { x: 8.3, y: 1.9, w: W - M - 8.3, colW: [1.7, 1, 1.0, 0.73], rowH: 0.45, border: { type: "solid", color: C.border, pt: 0.5 } });
 };
 
-const rankTable = (
-  slide: Slide,
-  headers: string[],
-  rows: (string | number)[][],
-  colW: number[],
-  centerCols: number[],
-  highlightTop3: string
-) => {
-  const head = headers.map((h, i) => ({
-    text: h,
-    options: { bold: true, color: "FFFFFF", fill: { color: C.navy }, fontFace: FONT, fontSize: 12, align: (centerCols.includes(i) ? "center" : "left") as "left" | "center" },
-  }));
-  const body: PptxGenJS.TableRow[] = rows.map((r, idx) => {
-    const top = idx < 3;
-    const fill = { color: top ? highlightTop3 : idx % 2 === 0 ? C.light : "FFFFFF" };
-    return r.map((cell, i) => ({
-      text: String(cell),
-      options: {
-        fill,
-        fontFace: FONT,
-        fontSize: 12,
-        bold: top || centerCols.includes(i),
-        color: i === 2 && headers.length === 4 ? C.grey : C.text,
-        align: (centerCols.includes(i) ? "center" : "left") as "left" | "center",
-      },
-    }));
-  });
-  slide.addTable([head, ...body], { x: M, y: 1.7, w: W - 2 * M, colW, rowH: 0.31, border: { type: "solid", color: C.border, pt: 0.5 } });
-};
-
-const slideTopPlongeurs = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+const slideParticipation = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
+  const p = data.participation;
   const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
-  addTitle(slide, `Les Mordus de l'Apnée ${year}`, "Top 15 des participants les plus assidus", "Participation");
-  const medals = ["🥇", "🥈", "🥉"];
-  const rows = data.topParticipants.slice(0, 15).map((p, i) => [
-    `${medals[i] ? medals[i] + " " : ""}${i + 1}`,
-    p.name,
-    p.memberCode || "-",
-    p.participations,
-  ]);
-  if (rows.length === 0) {
-    slide.addText(`Aucune donnée de participation disponible pour ${year}`, { x: M, y: 3, w: W - 2 * M, h: 1, align: "center", fontFace: FONT, fontSize: 16, color: C.grey });
-    return;
+  addTitle(slide, `Participation aux sorties ${year}`, periodLabel(data.stats), "Participation");
+  const fmt = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+  const kpis = [
+    { label: "Participants différents", value: fmt(p.participants), sub: "au moins une sortie", color: C.navy },
+    { label: "Adhérents ayant participé", value: `${p.participationRate}%`, sub: `${p.seasonMembersParticipating} sur ${p.seasonMembers} adhérents`, color: C.cyan },
+    { label: "Sorties par participant", value: fmt(p.avgPerParticipant), sub: "en moyenne", color: C.green },
+    { label: "Participants par sortie", value: fmt(p.avgPerOuting), sub: "en moyenne", color: C.orange },
+  ];
+  const gap = 0.25;
+  const cw = (W - 2 * M - 3 * gap) / 4;
+  kpis.forEach((k, i) => {
+    const x = M + i * (cw + gap);
+    card(slide, x, 1.7, cw, 1.6, k.color);
+    slide.addText(k.value, { x, y: 1.72, w: cw, h: 0.85, align: "center", valign: "middle", fontFace: FONT, fontSize: 40, bold: true, color: k.color });
+    slide.addText(k.label, { x, y: 2.55, w: cw, h: 0.35, align: "center", fontFace: FONT, fontSize: 14, bold: true, color: "444444" });
+    slide.addText(k.sub, { x, y: 2.88, w: cw, h: 0.3, align: "center", fontFace: FONT, fontSize: 10, color: "888888" });
+  });
+
+  const leftW = 7.4;
+  card(slide, M, 3.5, leftW, 3.45);
+  slide.addText("Participations par mois", { x: M + 0.2, y: 3.55, w: 5, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  if (p.monthly.length) {
+    slide.addChart(
+      "bar",
+      [{ name: "Participations", labels: p.monthly.map((m) => `${m.month} (${m.outings} sortie${m.outings > 1 ? "s" : ""})`), values: p.monthly.map((m) => m.participations) }],
+      {
+        x: M + 0.1, y: 3.9, w: leftW - 0.2, h: 3.0,
+        barDir: "col",
+        chartColors: [C.cyan],
+        showValue: true,
+        dataLabelFontSize: 12,
+        dataLabelFontBold: true,
+        catAxisLabelFontSize: 11,
+        catAxisLabelFontFace: FONT,
+        valAxisHidden: true,
+        valGridLine: { style: "none" },
+        showLegend: false,
+        barGapWidthPct: 40,
+      }
+    );
   }
-  const total = W - 2 * M;
-  rankTable(slide, ["Rang", "Nom", "Code Membre", "Participations"], rows, [1.1, total - 1.1 - 2.2 - 2.2, 2.2, 2.2], [3], "FEF3C7");
+
+  const rx = M + leftW + 0.25;
+  const rw = W - M - rx;
+  card(slide, rx, 3.5, rw, 3.45);
+  slide.addText("Par type de sortie", { x: rx + 0.2, y: 3.55, w: rw - 0.4, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
+  if (p.byType.length) {
+    slide.addChart(
+      "doughnut",
+      [{ name: "Participations", labels: p.byType.map((t) => `${t.name} (${t.outings} sortie${t.outings > 1 ? "s" : ""})`), values: p.byType.map((t) => t.participations) }],
+      {
+        x: rx + 0.1, y: 3.9, w: rw - 0.2, h: 3.0,
+        chartColors: [C.cyan, C.green, C.orange, C.lime, C.brown, C.navy],
+        holeSize: 50,
+        showPercent: true,
+        showValue: false,
+        dataLabelColor: "FFFFFF",
+        dataLabelFontSize: 12,
+        dataLabelFontBold: true,
+        showLegend: true,
+        legendPos: "r",
+        legendFontSize: 11,
+        legendFontFace: FONT,
+      }
+    );
+  }
 };
 
 const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: number) => {
@@ -577,7 +618,7 @@ const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: num
   addTitle(
     slide,
     `Implication du Staff ${year}`,
-    `Mobilisation de l'équipe d'encadrement · ${staff.totalOutings} sorties · une sortie compte pour chaque encadrant, co-encadrement inclus`,
+    `${periodLabel(data.stats)} · ${staff.totalOutings} sorties`,
     "Encadrement"
   );
   const fmt = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
@@ -597,7 +638,8 @@ const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: num
     slide.addText(k.sub, { x, y: 2.88, w: cw, h: 0.3, align: "center", fontFace: FONT, fontSize: 10, color: "888888" });
   });
 
-  card(slide, M, 3.5, W - 2 * M, 3.45);
+  card(slide, M, 3.5, W - 2 * M, 3.2);
+  slide.addText("Une sortie compte pour chaque encadrant, co-encadrement inclus.", { x: M, y: 6.75, w: W - 2 * M, h: 0.25, fontFace: FONT, fontSize: 10, color: "888888" });
   slide.addText("Évolution mensuelle", { x: M + 0.2, y: 3.55, w: 5, h: 0.4, fontFace: FONT, fontSize: 15, bold: true, color: C.text });
   if (staff.monthly.length) {
     const labels = staff.monthly.map((m) => m.month);
@@ -608,7 +650,7 @@ const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: num
         { name: "Encadrants mobilisés", labels, values: staff.monthly.map((m) => m.encadrants) },
       ],
       {
-        x: M + 0.1, y: 3.9, w: W - 2 * M - 0.2, h: 3.0,
+        x: M + 0.1, y: 3.9, w: W - 2 * M - 0.2, h: 2.75,
         chartColors: [C.cyan, C.orange],
         lineSize: 3,
         lineDataSymbol: "circle",
@@ -633,7 +675,7 @@ const slideEncadrantsActivity = (pptx: PptxGenJS, data: PDFReportData, year: num
 
 const slideTopSites = async (pptx: PptxGenJS, data: PDFReportData, year: number) => {
   const slide = pptx.addSlide({ masterName: LAYOUT_TITLE });
-  addTitle(slide, `Top 10 des Sites ${year}`, undefined, "Sites de plongée");
+  addTitle(slide, `Top 10 des Sites ${year}`, periodLabel(data.stats), "Sites de plongée");
   const cols = 5;
   const gap = 0.2;
   const cw = (W - 2 * M - gap * (cols - 1)) / cols;
@@ -643,7 +685,7 @@ const slideTopSites = async (pptx: PptxGenJS, data: PDFReportData, year: number)
   for (let i = 0; i < locs.length; i++) {
     const loc = locs[i];
     const x = M + (i % cols) * (cw + gap);
-    const y = 1.5 + Math.floor(i / cols) * (ch + 0.2);
+    const y = 1.65 + Math.floor(i / cols) * (ch + 0.2);
     card(slide, x, y, cw, ch);
     const photo = loc.photo_url ? await loadImage(loc.photo_url, cw / ph) : null;
     if (photo) {
@@ -705,7 +747,7 @@ const slidePhotos = async (pptx: PptxGenJS, data: PDFReportData, year: number) =
     addTitle(
       slide,
       part === 0 ? `Souvenirs ${year}` : `Souvenirs ${year} (suite)`,
-      `${photos.totalPhotos} photos dans l'album du club · ${photos.totalOutings} sortie${photos.totalOutings > 1 ? "s" : ""} photographiée${photos.totalOutings > 1 ? "s" : ""}`,
+      `${photos.totalPhotos} photos dans l'album du club · ${photos.totalOutings} sortie${photos.totalOutings > 1 ? "s" : ""} photographiée${photos.totalOutings > 1 ? "s" : ""} · ${formatPeriod(data.stats)}`,
       "Album photo"
     );
     const items = photos.items.slice(part * PHOTOS_PER_PAGE, (part + 1) * PHOTOS_PER_PAGE);
@@ -786,17 +828,28 @@ export const buildPptx = async ({ data, year, selectedSections }: BuildPptxOptio
   // Ordre = celui du sélecteur
   const ordered = PDF_SECTIONS.map((s) => s.id).filter((id) => selectedSections.includes(id));
 
+  // Numéro de la première diapo de chaque rubrique (pour les liens du sommaire) :
+  // la section photos occupe 1 à 2 pages, ou aucune si l'album est vide.
+  const photoPages = Math.ceil(data.photos.items.length / PHOTOS_PER_PAGE);
+  const startSlide: Record<string, number> = {};
+  let nextSlide = 1;
+  ordered.forEach((id) => {
+    const count = id === "photos" ? photoPages : 1;
+    if (count > 0) startSlide[id] = nextSlide;
+    nextSlide += count;
+  });
+
   for (const id of ordered) {
     switch (id) {
       case "cover": slideCover(pptx, year); break;
-      case "summary": slideSummary(pptx, selectedSections); break;
+      case "summary": slideSummary(pptx, selectedSections, startSlide); break;
       case "bureau": await slideBureau(pptx, data.bureau); break;
       case "encadrants": await slideEncadrants(pptx, data.allEncadrants); break;
       case "dashboard": slideDashboard(pptx, data, year); break;
       case "demographics": slideDemographics(pptx, data.demographics); break;
       case "membership": slideMembership(pptx, data); break;
       case "levels": slideLevels(pptx, data, year); break;
-      case "topPlongeurs": slideTopPlongeurs(pptx, data, year); break;
+      case "participation": slideParticipation(pptx, data, year); break;
       case "encadrantsActivity": slideEncadrantsActivity(pptx, data, year); break;
       case "topSites": await slideTopSites(pptx, data, year); break;
       case "equipment": slideEquipment(pptx, data); break;
