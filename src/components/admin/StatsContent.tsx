@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, BarChart3, TrendingUp, Users, Calendar, AlertTriangle, UserCheck, FileDown } from "lucide-react";
 import OutingsListCard from "@/components/stats/OutingsListCard";
 import { fetchOutingsList } from "@/lib/outingsList";
-import { PDFReportGenerator } from "@/components/pdf/PDFReportGenerator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -636,7 +635,6 @@ const StatsContent = ({ isAdmin }: StatsContentProps) => {
               ))}
             </SelectContent>
           </Select>
-          <PDFReportGenerator year={selectedYear} />
         </div>
       </div>
 

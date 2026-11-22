@@ -9,6 +9,7 @@ import MembershipHistory from "@/components/admin/MembershipHistory";
 import EquipmentCatalogManager from "@/components/admin/EquipmentCatalogManager";
 import FleetManager from "@/components/admin/FleetManager";
 import StatsContent from "@/components/admin/StatsContent";
+import AGReportTab from "@/components/admin/AGReportTab";
 import ApneaLevelsManager from "@/components/admin/ApneaLevelsManager";
 import SondagesAdmin from "@/components/sondages/SondagesAdmin";
 import RelanceManager from "@/components/admin/RelanceManager";
@@ -68,6 +69,7 @@ const Admin = () => {
               <TabsTrigger value="sondages">Sondages</TabsTrigger>
               <TabsTrigger value="relances">Relances</TabsTrigger>
               <TabsTrigger value="stats">Statistiques</TabsTrigger>
+              <TabsTrigger value="ag-report">Rapport AG</TabsTrigger>
             </TabsList>
 
             <TabsContent value="locations">
@@ -108,6 +110,10 @@ const Admin = () => {
 
             <TabsContent value="stats">
               <StatsContent isAdmin={isAdmin} />
+            </TabsContent>
+
+            <TabsContent value="ag-report">
+              <AGReportTab />
             </TabsContent>
           </Tabs>
         </div>
