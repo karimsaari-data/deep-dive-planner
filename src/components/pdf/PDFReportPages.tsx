@@ -5,6 +5,7 @@ import { PDFPageBureau } from "./pages/PDFPageBureau";
 import { PDFPageEncadrants } from "./pages/PDFPageEncadrants";
 import { PDFPageDashboard } from "./pages/PDFPageDashboard";
 import { PDFPageDemographics } from "./pages/PDFPageDemographics";
+import { PDFPageLevels } from "./pages/PDFPageLevels";
 import { PDFPageTopPlongeurs } from "./pages/PDFPageTopPlongeurs";
 import { PDFPageEncadrantsActivity } from "./pages/PDFPageEncadrantsActivity";
 import { PDFPageTopSites } from "./pages/PDFPageTopSites";
@@ -22,7 +23,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
   // If no sections specified, render all
   const sections = selectedSections || [
     "cover", "summary", "bureau", "encadrants", "dashboard", 
-    "demographics", "topPlongeurs", "encadrantsActivity", 
+    "demographics", "levels", "topPlongeurs", "encadrantsActivity", 
     "topSites", "map", "equipment", "contact"
   ];
 
@@ -44,6 +45,7 @@ export const PDFReportPages = ({ data, year, selectedSections }: PDFReportPagesP
       {sections.includes("encadrants") && <PDFPageEncadrants members={data.allEncadrants} pageNumber={getPageNumber("encadrants")} />}
       {sections.includes("dashboard") && <PDFPageDashboard stats={data.stats} year={year} pageNumber={getPageNumber("dashboard")} />}
       {sections.includes("demographics") && <PDFPageDemographics demographics={data.demographics} pageNumber={getPageNumber("demographics")} />}
+      {sections.includes("levels") && <PDFPageLevels levels={data.fishLevels} stats={data.stats} year={year} pageNumber={getPageNumber("levels")} />}
       {sections.includes("topPlongeurs") && <PDFPageTopPlongeurs participants={data.topParticipants} year={year} pageNumber={getPageNumber("topPlongeurs")} />}
       {sections.includes("encadrantsActivity") && <PDFPageEncadrantsActivity encadrants={data.topEncadrants} year={year} pageNumber={getPageNumber("encadrantsActivity")} />}
       {sections.includes("topSites") && <PDFPageTopSites locations={data.topLocations} year={year} pageNumber={getPageNumber("topSites")} />}

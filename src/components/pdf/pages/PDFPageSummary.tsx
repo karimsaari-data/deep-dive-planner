@@ -118,6 +118,7 @@ function getSectionDescription(sectionId: string): string {
     encadrants: "Nos encadrants certifiés",
     dashboard: "Chiffres clés de l'année",
     demographics: "Profil des adhérents",
+    levels: "Castagnole, Dauphin, Requin…",
     topPlongeurs: "Les mordus de l'apnée",
     encadrantsActivity: "Implication du staff",
     topSites: "Nos spots favoris",

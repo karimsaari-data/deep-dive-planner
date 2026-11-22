@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { FISH_LEVELS, getFishLevel } from "@/hooks/useTrombinoscope";
 
 export interface PDFMember {
   id: string;
@@ -57,7 +58,16 @@ export interface PDFStats {
   firstOutingDate: string | null; // première sortie comptabilisée dans l'app
 }
 
+export interface PDFFishLevel {
+  name: string;
+  emoji: string;
+  min: number;
+  max: number | null; // null = pas de plafond
+  count: number;
+}
+
 export interface PDFReportData {
+  fishLevels: PDFFishLevel[];
   bureau: PDFMember[];
   allEncadrants: PDFMember[];
   stats: PDFStats;
@@ -129,7 +139,7 @@ export const usePDFReportData = (year: number) => {
       // 2. Fetch demographics from club_members_directory + membership_yearly_status
       const { data: allMembersDir, error: membersDirError } = await supabase
         .from("club_members_directory")
-        .select("id, birth_date, gender");
+        .select("id, birth_date, gender, email");
 
       if (membersDirError) throw membersDirError;
 
@@ -200,7 +210,8 @@ export const usePDFReportData = (year: number) => {
         .select("id, date_time, organizer_id, location, location_id")
         .gte("date_time", startOfYear)
         .lte("date_time", endOfYear)
-        .lt("date_time", now);
+        .lt("date_time", now)
+        .eq("is_deleted", false);
 
       if (outingsError) throw outingsError;
 
@@ -251,16 +262,12 @@ export const usePDFReportData = (year: number) => {
         const isHistorical = historicalOutingIds.has(o.id);
         const presentCount = presentCountByOuting.get(o.id) || 0;
         
-        if (isHistorical) {
-          totalValidOutings++;
-          validOutingIds.add(o.id);
-          const hpCount = historicalParticipants?.filter(hp => hp.outing_id === o.id).length || 0;
-          totalParticipations += hpCount;
-        } else if (presentCount >= 2) {
-          totalValidOutings++;
-          validOutingIds.add(o.id);
-          totalParticipations += presentCount;
-        }
+        // Même règle que "Liste des sorties" de l'app : toutes les sorties
+        // passées non supprimées comptent, même sans présence saisie.
+        totalValidOutings++;
+        validOutingIds.add(o.id);
+        const hpCount = historicalParticipants?.filter(hp => hp.outing_id === o.id).length || 0;
+        totalParticipations += isHistorical ? hpCount : presentCount;
         
         // Count locations for valid outings
         if (validOutingIds.has(o.id)) {
@@ -307,9 +314,7 @@ export const usePDFReportData = (year: number) => {
 
       reservations?.forEach(r => {
         const isHistorical = historicalOutingIds.has(r.outing_id);
-        const presentCount = presentCountByOuting.get(r.outing_id) || 0;
         
-        if (!isHistorical && presentCount < 2) return;
         if (isHistorical) return;
         
         const profile = profileMap.get(r.user_id);
@@ -444,6 +449,53 @@ export const usePDFReportData = (year: number) => {
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
 
+      // 6b. Niveaux "poissons" (même règle que le trombinoscope de l'app :
+      // présences de l'année civile, sans filtre de seuil par sortie)
+      const { data: allPresences } = await supabase
+        .from("reservations")
+        .select("user_id, outing:outings!inner(date_time)")
+        .eq("status", "confirmé")
+        .eq("is_present", true)
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", now);
+
+      const { data: allProfiles } = await supabase.from("profiles").select("id, email");
+      const emailByUserId = new Map((allProfiles || []).map(p => [p.id, p.email?.toLowerCase() || ""]));
+
+      const presencesByEmail = new Map<string, number>();
+      (allPresences || []).forEach((r: any) => {
+        const email = emailByUserId.get(r.user_id);
+        if (email) presencesByEmail.set(email, (presencesByEmail.get(email) || 0) + 1);
+      });
+
+      const { data: histPresences } = await supabase
+        .from("historical_outing_participants")
+        .select("member:club_members_directory(email), outing:outings!inner(date_time)")
+        .gte("outing.date_time", startOfYear)
+        .lte("outing.date_time", endOfYear)
+        .lt("outing.date_time", now);
+
+      (histPresences || []).forEach((hp: any) => {
+        const email = hp.member?.email?.toLowerCase();
+        if (email) presencesByEmail.set(email, (presencesByEmail.get(email) || 0) + 1);
+      });
+
+      const levelCounts = new Map<string, number>(FISH_LEVELS.map(l => [l.name, 0]));
+      membersDir.forEach(m => {
+        const n = presencesByEmail.get(m.email?.toLowerCase() || "") || 0;
+        const lvl = getFishLevel(n).name;
+        levelCounts.set(lvl, (levelCounts.get(lvl) || 0) + 1);
+      });
+
+      const fishLevels: PDFFishLevel[] = FISH_LEVELS.map((l, i) => ({
+        name: l.name,
+        emoji: l.emoji,
+        min: l.min,
+        max: i < FISH_LEVELS.length - 1 ? FISH_LEVELS[i + 1].min - 1 : null,
+        count: levelCounts.get(l.name) || 0,
+      }));
+
       // 7. Equipment inventory
       const { data: inventory } = await supabase
         .from("equipment_inventory")
@@ -479,6 +531,7 @@ export const usePDFReportData = (year: number) => {
       const totalEquipmentValue = equipmentItems.reduce((sum, e) => sum + e.totalValue, 0);
 
       return {
+        fishLevels,
         bureau,
         allEncadrants,
         stats,
