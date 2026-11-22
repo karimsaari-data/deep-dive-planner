@@ -8,7 +8,9 @@ interface PDFPageMapProps {
 
 // Generate a simple SVG map representation based on coordinates
 const MapVisualization = ({ locations }: { locations: PDFTopLocation[] }) => {
-  const validLocations = locations.filter(loc => loc.latitude && loc.longitude);
+  const validLocations = locations
+    .map((loc, i) => ({ ...loc, rank: i + 1 }))
+    .filter(loc => loc.latitude && loc.longitude);
   
   if (validLocations.length === 0) {
     return (
@@ -70,27 +72,8 @@ const MapVisualization = ({ locations }: { locations: PDFTopLocation[] }) => {
         />
       ))}
       
-      {/* Connection lines between spots */}
-      {validLocations.slice(0, 10).map((loc, i) => {
-        if (i === 0) return null;
-        const prev = validLocations[i - 1];
-        return (
-          <line
-            key={`line-${i}`}
-            x1={toSvgX(prev.longitude!)}
-            y1={toSvgY(prev.latitude!)}
-            x2={toSvgX(loc.longitude!)}
-            y2={toSvgY(loc.latitude!)}
-            stroke="#1e3a5f"
-            strokeWidth="1"
-            strokeDasharray="4,4"
-            opacity="0.3"
-          />
-        );
-      })}
-      
       {/* Location markers */}
-      {validLocations.slice(0, 10).map((loc, index) => {
+      {validLocations.slice(0, 10).map((loc) => {
         const x = toSvgX(loc.longitude!);
         const y = toSvgY(loc.latitude!);
         
@@ -112,7 +95,7 @@ const MapVisualization = ({ locations }: { locations: PDFTopLocation[] }) => {
               fontWeight="bold"
               fontFamily="Arial, sans-serif"
             >
-              {index + 1}
+              {loc.rank}
             </text>
             
             {/* Location name label */}
@@ -206,9 +189,6 @@ export const PDFPageMap = ({ locations, pageNumber }: PDFPageMapProps) => {
                                     width: "24px",
                                     height: "24px",
                                     borderRadius: "50%",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
                                     textAlign: "center",
                                     lineHeight: "24px"
                                   }}>
@@ -216,7 +196,7 @@ export const PDFPageMap = ({ locations, pageNumber }: PDFPageMapProps) => {
                                   </div>
                                 </td>
                                 <td style={{ verticalAlign: "middle", paddingLeft: "10px" }}>
-                                  <p style={{ fontSize: "13px", fontWeight: "600", color: "#1a1a1a", margin: 0 }}>{loc.name}</p>
+                                  <p style={{ fontSize: "13px", fontWeight: "600", color: "#1a1a1a", margin: 0, lineHeight: "18px" }}>{loc.name}</p>
                                   <p style={{ fontSize: "10px", color: "#666666", margin: "2px 0 0 0" }}>
                                     {loc.latitude && loc.longitude 
                                       ? `${loc.latitude.toFixed(4)}° N, ${loc.longitude.toFixed(4)}° E` 

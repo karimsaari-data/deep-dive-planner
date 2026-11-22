@@ -7,23 +7,29 @@ interface PDFPageDashboardProps {
   pageNumber?: number;
 }
 
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
 export const PDFPageDashboard = ({ stats, year, pageNumber }: PDFPageDashboardProps) => {
   const kpis = [
     {
       icon: "👥",
-      label: "Total Adhérents",
+      label: "Adhérents saison",
+      sub: `${stats.seasonYear - 1}-${stats.seasonYear} · dont ${stats.totalEncadrants} encadrants`,
       value: stats.totalMembers,
       color: "#1e3a5f",
     },
     {
       icon: "🤿",
       label: "Sorties Réalisées",
+      sub: `du 1er janvier au ${fmt(stats.periodEnd)}`,
       value: stats.totalOutings,
       color: "#0891b2",
     },
     {
       icon: "📊",
       label: "Plongées Cumulées",
+      sub: "participations cumulées",
       value: stats.totalParticipations,
       color: "#059669",
     },
@@ -94,6 +100,9 @@ export const PDFPageDashboard = ({ stats, year, pageNumber }: PDFPageDashboardPr
               >
                 {kpi.label}
               </p>
+              <p style={{ fontSize: "13px", color: "#888888", margin: "8px 0 0 0", lineHeight: "18px" }}>
+                {kpi.sub}
+              </p>
             </div>
           ))}
         </div>
@@ -101,7 +110,7 @@ export const PDFPageDashboard = ({ stats, year, pageNumber }: PDFPageDashboardPr
         <div
           style={{
             marginTop: "32px",
-            padding: "16px 24px",
+            padding: "14px 24px",
             backgroundColor: "#ecfdf5",
             borderRadius: "8px",
             borderLeft: "4px solid #059669",
@@ -121,6 +130,11 @@ export const PDFPageDashboard = ({ stats, year, pageNumber }: PDFPageDashboardPr
                 : 0}
             </strong>{" "}
             participants
+          </p>
+          <p style={{ fontSize: "12px", color: "#92400e", margin: "8px 0 0 0", lineHeight: "18px" }}>
+            ⚠️ Sorties comptabilisées depuis la mise en service de l'application
+            {stats.firstOutingDate ? ` (première sortie : ${fmt(stats.firstOutingDate)})` : ""}.
+            Quelques sorties antérieures ne sont pas incluses.
           </p>
         </div>
       </div>

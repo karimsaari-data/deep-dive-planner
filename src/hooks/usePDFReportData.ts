@@ -48,8 +48,13 @@ export interface PDFEquipmentItem {
 
 export interface PDFStats {
   totalMembers: number;
+  totalEncadrants: number;
   totalOutings: number;
   totalParticipations: number;
+  seasonYear: number;
+  periodStart: string; // ISO date (1er janvier)
+  periodEnd: string; // ISO date (date de génération)
+  firstOutingDate: string | null; // première sortie comptabilisée dans l'app
 }
 
 export interface PDFReportData {
@@ -73,6 +78,12 @@ export const usePDFReportData = (year: number) => {
       const startOfYear = `${year}-01-01T00:00:00`;
       const endOfYear = `${year}-12-31T23:59:59`;
       const now = new Date().toISOString();
+
+      // Saison courante : sept. -> août (saison N+1 à partir de septembre).
+      // Pour un rapport sur une année passée, la saison = l'année demandée.
+      const today = new Date();
+      const currentSeason = today.getMonth() >= 8 ? today.getFullYear() + 1 : today.getFullYear();
+      const seasonYear = year === today.getFullYear() ? currentSeason : year;
 
       // 1. Fetch trombinoscope data
       const { data: trombiData, error: trombiError } = await supabase
@@ -116,19 +127,24 @@ export const usePDFReportData = (year: number) => {
         .sort((a, b) => a.last_name.localeCompare(b.last_name, "fr"));
 
       // 2. Fetch demographics from club_members_directory + membership_yearly_status
-      const { data: membersDir, error: membersDirError } = await supabase
+      const { data: allMembersDir, error: membersDirError } = await supabase
         .from("club_members_directory")
         .select("id, birth_date, gender");
 
       if (membersDirError) throw membersDirError;
 
-      // Get apnea_level from membership_yearly_status for the year
-      const memberIds = membersDir?.map(m => m.id) || [];
-      const { data: membershipStatuses } = await supabase
+      // Adhérents de la saison courante uniquement (membership_yearly_status)
+      const { data: seasonStatuses, error: seasonError } = await supabase
         .from("membership_yearly_status")
-        .select("member_id, apnea_level")
-        .eq("season_year", year)
-        .in("member_id", memberIds.length > 0 ? memberIds : ['00000000-0000-0000-0000-000000000000']);
+        .select("member_id, apnea_level, is_encadrant")
+        .eq("season_year", seasonYear);
+
+      if (seasonError) throw seasonError;
+
+      const membershipStatuses = seasonStatuses || [];
+      const seasonMemberIds = new Set(membershipStatuses.map(s => s.member_id));
+      const membersDir = (allMembersDir || []).filter(m => seasonMemberIds.has(m.id));
+      const totalEncadrants = membershipStatuses.filter(s => s.is_encadrant).length;
 
       const levelMap = new Map(membershipStatuses?.map(s => [s.member_id, s.apnea_level]) || []);
 
@@ -203,7 +219,7 @@ export const usePDFReportData = (year: number) => {
       const { data: historicalMembershipStatuses } = await supabase
         .from("membership_yearly_status")
         .select("member_id, is_encadrant")
-        .eq("season_year", year)
+        .eq("season_year", seasonYear)
         .in("member_id", historicalMemberIds.length > 0 ? historicalMemberIds : ['00000000-0000-0000-0000-000000000000']);
 
       const historicalEncadrantMap = new Map(historicalMembershipStatuses?.map(s => [s.member_id, s.is_encadrant]) || []);
@@ -248,7 +264,7 @@ export const usePDFReportData = (year: number) => {
         
         // Count locations for valid outings
         if (validOutingIds.has(o.id)) {
-          const locationKey = o.location_id || o.location;
+          const locationKey = (o.location || "").trim().toLowerCase() || o.location_id;
           const existing = locationCountMap.get(locationKey);
           if (existing) {
             existing.count++;
@@ -262,10 +278,20 @@ export const usePDFReportData = (year: number) => {
         }
       });
 
+      const validDates = (outings || [])
+        .filter(o => validOutingIds.has(o.id))
+        .map(o => o.date_time)
+        .sort();
+
       const stats: PDFStats = {
-        totalMembers: membersDir?.length || 0,
+        totalMembers: membersDir.length,
+        totalEncadrants,
         totalOutings: totalValidOutings,
         totalParticipations,
+        seasonYear,
+        periodStart: startOfYear,
+        periodEnd: now,
+        firstOutingDate: validDates[0] || null,
       };
 
       // 4. Top participants

@@ -49,7 +49,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {demographics.ageData.map((item, index) => (
                 <div key={item.name} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "12px", color: "#666666", width: "50px" }}>{item.name}</span>
+                  <span style={{ fontSize: "12px", lineHeight: "20px", color: "#666666", width: "50px" }}>{item.name}</span>
                   <div style={{ flex: 1, height: "20px", backgroundColor: "#e2e8f0", borderRadius: "4px", overflow: "hidden" }}>
                     <div
                       style={{
@@ -60,7 +60,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#1a1a1a", width: "30px", textAlign: "right" }}>
+                  <span style={{ fontSize: "12px", lineHeight: "20px", fontWeight: "600", color: "#1a1a1a", width: "30px", textAlign: "right" }}>
                     {item.value}
                   </span>
                 </div>
@@ -138,7 +138,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {demographics.levelData.slice(0, 8).map((item, index) => (
                 <div key={item.name} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span style={{ fontSize: "11px", color: "#666666", width: "80px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: "11px", lineHeight: "16px", color: "#666666", width: "90px", whiteSpace: "nowrap" }}>
                     {item.name}
                   </span>
                   <div style={{ flex: 1, height: "16px", backgroundColor: "#e2e8f0", borderRadius: "4px", overflow: "hidden" }}>
@@ -151,7 +151,7 @@ export const PDFPageDemographics = ({ demographics, pageNumber }: PDFPageDemogra
                       }}
                     />
                   </div>
-                  <span style={{ fontSize: "12px", fontWeight: "600", color: "#1a1a1a", width: "25px", textAlign: "right" }}>
+                  <span style={{ fontSize: "12px", lineHeight: "16px", fontWeight: "600", color: "#1a1a1a", width: "25px", textAlign: "right" }}>
                     {item.value}
                   </span>
                 </div>

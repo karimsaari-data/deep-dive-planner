@@ -42,7 +42,7 @@ export const PDFPageEncadrants = ({ members, pageNumber }: PDFPageEncadrantsProp
               marginLeft: "8px",
             }}
           >
-            ({members.length} encadrants)
+            ({members.length} encadrants) · composition au {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
           </span>
         </div>
 
@@ -128,8 +128,11 @@ export const PDFPageEncadrants = ({ members, pageNumber }: PDFPageEncadrantsProp
                     fontWeight: "500",
                     color: "#0891b2",
                     backgroundColor: "#e0f2fe",
-                    padding: "2px 6px",
-                    borderRadius: "6px",
+                    display: "inline-block",
+                    height: "16px",
+                    lineHeight: "16px",
+                    padding: "0 8px",
+                    borderRadius: "8px",
                     marginTop: "4px",
                   }}
                 >
@@ -140,7 +143,8 @@ export const PDFPageEncadrants = ({ members, pageNumber }: PDFPageEncadrantsProp
               {member.board_role && (
                 <span
                   style={{
-                    fontSize: "8px",
+                    fontSize: "9px",
+                    lineHeight: "14px",
                     fontWeight: "500",
                     color: "#e67e22",
                     marginTop: "2px",
