@@ -10,6 +10,9 @@ export interface OutingListItem {
   is_past: boolean;
   participant_count: number;
   organizer_name?: string | null;
+  // Organisateur puis co-encadrants (une sortie compte pour chacun)
+  encadrants?: string[];
+  co_organizer_names?: string[]; // sous-ensemble de `encadrants` : les co-organisateurs
   registrants?: OutingRegistrant[];
 }
 
@@ -30,7 +33,7 @@ export const fetchOutingsList = async (year: number): Promise<OutingListItem[]> 
   const chunks: string[][] = [];
   for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
 
-  const [{ data: organizers }, reservationRows, historicalRows] = await Promise.all([
+  const [{ data: organizers }, reservationRows, historicalRows, coRows] = await Promise.all([
     supabase
       .from("outings")
       .select("id, organizer:profiles!outings_organizer_id_fkey(first_name, last_name)")
@@ -49,7 +52,30 @@ export const fetchOutingsList = async (year: number): Promise<OutingListItem[]> 
         .select("outing_id, member:club_members_directory(first_name, last_name)")
         .in("outing_id", c)
     )),
+    // Co-encadrants (table absente des types générés)
+    Promise.all(chunks.map((c) =>
+      (supabase.from("outing_co_instructors" as never) as unknown as {
+        select: (cols: string) => {
+          in: (col: string, values: string[]) => Promise<{ data: { outing_id: string; user_id: string }[] | null }>;
+        };
+      }).select("outing_id, user_id").in("outing_id", c)
+    )),
   ]);
+
+  const coList = coRows.flatMap((r) => r.data ?? []);
+  const coUserIds = [...new Set(coList.map((r) => r.user_id))];
+  const { data: coProfiles } = coUserIds.length
+    ? await supabase.from("profiles").select("id, first_name, last_name").in("id", coUserIds)
+    : { data: [] as { id: string; first_name: string; last_name: string }[] };
+  const coNameById = new Map((coProfiles ?? []).map((p) => [p.id, `${p.first_name} ${p.last_name}`.trim()]));
+  const coNamesByOuting = new Map<string, string[]>();
+  coList.forEach((r) => {
+    const name = coNameById.get(r.user_id);
+    if (!name) return;
+    const arr = coNamesByOuting.get(r.outing_id) ?? [];
+    arr.push(name);
+    coNamesByOuting.set(r.outing_id, arr);
+  });
 
   const registrantsById = new Map<string, OutingRegistrant[]>();
   const addRegistrant = (outingId: string, person: any, present: boolean) => {
@@ -69,6 +95,8 @@ export const fetchOutingsList = async (year: number): Promise<OutingListItem[]> 
   return list.map((o) => ({
     ...o,
     organizer_name: nameById.get(o.id) ?? null,
+    co_organizer_names: [...new Set(coNamesByOuting.get(o.id) ?? [])].filter((n) => n !== nameById.get(o.id)),
+    encadrants: [...new Set([nameById.get(o.id), ...(coNamesByOuting.get(o.id) ?? [])].filter((n): n is string => !!n))],
     registrants: (registrantsById.get(o.id) ?? []).sort((a, b) => a.name.localeCompare(b.name, "fr")),
   }));
 };

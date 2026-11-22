@@ -84,7 +84,10 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
   const organizerOptions = useMemo(() => {
     const counts = new Map<string, number>();
     (outings ?? []).forEach((o) => {
-      if (o.organizer_name) counts.set(o.organizer_name, (counts.get(o.organizer_name) ?? 0) + 1);
+      // Une sortie compte pour chaque encadrant, co-encadrants inclus
+      (o.encadrants ?? (o.organizer_name ? [o.organizer_name] : [])).forEach((n) =>
+        counts.set(n, (counts.get(n) ?? 0) + 1)
+      );
     });
     return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr"));
   }, [outings]);
@@ -94,7 +97,7 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
       outings?.filter(
         (o) =>
           (!onlyEmpty || o.participant_count === 0) &&
-          (organizer === ALL_ORGANIZERS || o.organizer_name === organizer)
+          (organizer === ALL_ORGANIZERS || (o.encadrants ?? [o.organizer_name]).includes(organizer))
       ),
     [outings, onlyEmpty, organizer]
   );
@@ -174,7 +177,11 @@ const OutingsListCard = ({ outings, year }: OutingsListCardProps) => {
                         )}
                       </TableCell>
                       <TableCell className="font-medium">{outing.title}</TableCell>
-                      <TableCell className="text-sm">{formatOrganizer(outing.organizer_name)}</TableCell>
+                      <TableCell className="text-sm">
+                        {(outing.encadrants?.length ? outing.encadrants : [outing.organizer_name])
+                          .map((n) => formatOrganizer(n) + (n && outing.co_organizer_names?.includes(n) ? " (co)" : ""))
+                          .join(", ")}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={TYPE_BADGE_CLASS[outing.outing_type] ?? ""}>
                           {outing.outing_type}
