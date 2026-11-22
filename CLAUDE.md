@@ -173,6 +173,8 @@ Trame validée par le club (fichier `Rapport_AG_TeamOxygen_2026.pptx`, fourni pa
 
 **Période** : l'application n'est en service que depuis mai. Toute statistique de sorties/participation/niveaux/sites/photos porte la mention « Période : du <première sortie> au <date> · application en service depuis <mois> » (helpers dans `src/components/pdf/period.ts`) ; les statistiques d'adhérents indiquent leur date de situation. Aucune page nominative de classement de membres.
 
+**Période** : l'application n'est en service que depuis mai. Toute statistique de sorties/participation/niveaux/sites/photos porte la mention « Période : du <première sortie> au <date> · application en service depuis <mois> » (helpers dans `src/components/pdf/period.ts`) ; les statistiques d'adhérents indiquent leur date de situation. Aucune page nominative de classement de membres.
+
 **Règles de données** (identiques au PDF) : adhérents, bureau, encadrants et parité = saison en cours ; sorties, niveaux, top plongeurs, sites = année civile ; sorties = toutes les sorties passées non supprimées (même nombre que « Liste des sorties » de l'app).
 
 **Alignement** : `buildPptx.ts` reproduit la trame (6 mises en page, logo en haut à droite, barre du bas, pied, thème, couverture en placeholders). Seul écart connu : pptxgenjs ajoute une mise en page `DEFAULT` inutilisée. Les mises en page `Titre et contenu`, `Deux colonnes` et `Section` sont définies mais aucune diapo générée ne les utilise encore.
