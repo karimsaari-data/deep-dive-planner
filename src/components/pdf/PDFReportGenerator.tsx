@@ -4,7 +4,7 @@ import { FileDown, Loader2, Presentation, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import PptxGenJS from "pptxgenjs";
+import { buildPptx } from "./buildPptx";
 import { PDFReportPages } from "./PDFReportPages";
 import { usePDFReportData } from "@/hooks/usePDFReportData";
 import { CONTACT_LINKS } from "./pages/PDFPageContact";
@@ -111,7 +111,7 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
   };
 
   const runExport = async (
-    format: "pdf" | "pptx",
+    format: "pdf",
     build: (images: string[]) => Promise<void>
   ) => {
     if (!containerRef.current || selectedSections.length === 0) {
@@ -156,37 +156,34 @@ export const PDFReportGenerator = ({ year }: PDFReportGeneratorProps) => {
       pdf.save(`Rapport_AG_TeamOxygen_${year}.pdf`);
     });
 
-  const generatePPTX = () =>
-    runExport("pptx", async (images) => {
-      const pptx = new PptxGenJS();
-      // Même format que les pages du rapport (A4 paysage, en pouces)
-      const W = 297 / 25.4;
-      const H = 210 / 25.4;
-      pptx.defineLayout({ name: "A4_LANDSCAPE", width: W, height: H });
-      pptx.layout = "A4_LANDSCAPE";
-      pptx.title = `Rapport AG Team Oxygen ${year}`;
-      pptx.company = "Team Oxygen";
-
-      images.forEach((imgData, i) => {
-        const slide = pptx.addSlide();
-        slide.addImage({ data: imgData, x: 0, y: 0, w: W, h: H });
-        slide.addNotes(getPageTitle(i));
-        if (isContactAt(i, images.length)) {
-          // Zones cliquables transparentes (mêmes positions que le PDF, mm -> pouces)
-          CONTACT_PAGE_LINKS.forEach(link => {
-            slide.addText(" ", {
-              x: link.x / 25.4,
-              y: link.y / 25.4,
-              w: link.w / 25.4,
-              h: link.h / 25.4,
-              hyperlink: { url: link.url },
-            });
-          });
-        }
-      });
-
-      await pptx.writeFile({ fileName: `Rapport_AG_TeamOxygen_${year}.pptx` });
+  // PowerPoint natif : textes, tableaux, formes et graphiques modifiables
+  const generatePPTX = async () => {
+    if (selectedSections.length === 0) {
+      toast.error("Veuillez sélectionner au moins une section");
+      return;
+    }
+    setIsDialogOpen(false);
+    setIsGenerating(true);
+    const toastId = toast.loading("Préparation de la présentation...", {
+      description: "Chargement des données...",
     });
+    try {
+      const { data: fresh } = await refetch();
+      const reportData = fresh ?? data;
+      if (!reportData) throw new Error("Données du rapport indisponibles");
+      toast.loading("Création des diapositives...", { id: toastId, description: "Images et graphiques" });
+      await buildPptx({ data: reportData, year, selectedSections });
+      toast.success("Présentation téléchargée avec succès !", {
+        id: toastId,
+        description: `${selectedSections.length} diapositives éditables`,
+      });
+    } catch (error) {
+      console.error("Error generating pptx:", error);
+      toast.error("Erreur lors de la génération du PowerPoint", { id: toastId, description: "Veuillez réessayer" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <>
