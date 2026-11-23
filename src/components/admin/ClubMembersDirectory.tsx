@@ -420,6 +420,29 @@ const ClubMembersDirectory = () => {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
+  // Export contacts : membres actifs (sans date de départ passée) -> nom, prénom, mail, tel
+  const exportContactsCSV = () => {
+    const today = format(new Date(), "yyyy-MM-dd");
+    const active = (members || []).filter((m) => !m.departure_date || m.departure_date > today);
+    if (!active.length) {
+      toast.error("Aucun membre à exporter");
+      return;
+    }
+    const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
+    const csvContent = [
+      ["Nom", "Prénom", "Email", "Téléphone"].join(";"),
+      ...active.map((m) => [m.last_name, m.first_name, m.email, m.phone || ""].map(esc).join(";")),
+    ].join("\n");
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `contacts_membres_${today}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${active.length} contacts exportés`);
+  };
+
   // CSV Export with seasonal columns
   const exportCSV = () => {
     const dataToExport = filteredAndSortedMembers?.length ? filteredAndSortedMembers : members;
@@ -1016,6 +1039,10 @@ const ClubMembersDirectory = () => {
               <Button onClick={exportCSV} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-1" />
                 Export CSV
+              </Button>
+              <Button onClick={exportContactsCSV} variant="outline" size="sm">
+                <Users className="h-4 w-4 mr-1" />
+                Export contacts
               </Button>
               <Button onClick={() => setPurgeConfirmOpen(true)} variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive/10">
                 <Trash2 className="h-4 w-4 mr-1" />
