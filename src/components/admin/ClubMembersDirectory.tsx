@@ -80,6 +80,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { toast } from "sonner";
+import { downloadXlsx } from "@/lib/exportXlsx";
 import { useClubMembersDirectory, ClubMember, ClubMemberInsert } from "@/hooks/useClubMembersDirectory";
 import {
   useMembershipYearlyStatus,
@@ -420,27 +421,31 @@ const ClubMembersDirectory = () => {
       : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
-  // Export contacts : membres actifs (sans date de départ passée) -> nom, prénom, mail, tel
-  const exportContactsCSV = () => {
+  // Export contacts : membres actifs (sans date de départ passée) -> nom, prénom, mail, tel (xlsx)
+  const exportContactsXlsx = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
     const active = (members || []).filter((m) => !m.departure_date || m.departure_date > today);
     if (!active.length) {
       toast.error("Aucun membre à exporter");
       return;
     }
-    const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
-    const csvContent = [
-      ["Nom", "Prénom", "Email", "Téléphone"].join(";"),
-      ...active.map((m) => [m.last_name, m.first_name, m.email, m.phone || ""].map(esc).join(";")),
-    ].join("\n");
-    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `contacts_membres_${today}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success(`${active.length} contacts exportés`);
+    try {
+      await downloadXlsx(`contacts_membres_${today}.xlsx`, [
+        {
+          name: "Contacts",
+          columns: [
+            { header: "Nom", width: 24 },
+            { header: "Prénom", width: 24 },
+            { header: "Email", width: 36 },
+            { header: "Téléphone", width: 18 },
+          ],
+          rows: active.map((m) => [m.last_name, m.first_name, m.email, m.phone || ""]),
+        },
+      ]);
+      toast.success(`${active.length} contacts exportés`);
+    } catch (e) {
+      toast.error("Erreur lors de l'export");
+    }
   };
 
   // CSV Export with seasonal columns
@@ -1040,9 +1045,9 @@ const ClubMembersDirectory = () => {
                 <Download className="h-4 w-4 mr-1" />
                 Export CSV
               </Button>
-              <Button onClick={exportContactsCSV} variant="outline" size="sm">
+              <Button onClick={exportContactsXlsx} variant="outline" size="sm">
                 <Users className="h-4 w-4 mr-1" />
-                Export contacts
+                Export contacts (xlsx)
               </Button>
               <Button onClick={() => setPurgeConfirmOpen(true)} variant="outline" size="sm" className="text-destructive border-destructive hover:bg-destructive/10">
                 <Trash2 className="h-4 w-4 mr-1" />
