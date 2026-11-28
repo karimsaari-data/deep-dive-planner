@@ -263,13 +263,13 @@ const FleetManager = () => {
             {boats?.map((boat) => (
               <div
                 key={boat.id}
-                className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4"
+                className="flex flex-wrap items-start gap-3 rounded-lg border border-border bg-muted/30 p-4"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                   <Ship className="h-6 w-6 text-primary" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                <div className="flex-1 min-w-[10rem]">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-foreground">{boat.name}</span>
                     {boat.registration_number && (
                       <span className="text-xs bg-muted px-2 py-0.5 rounded">
@@ -290,7 +290,7 @@ const FleetManager = () => {
                     {boat.pilot_phone && (
                       <a
                         href={`tel:${boat.pilot_phone}`}
-                        className="flex items-center gap-1 text-primary hover:underline"
+                        className="tap-link flex items-center gap-1 whitespace-nowrap text-primary hover:underline [&_svg]:shrink-0"
                       >
                         <Phone className="h-3 w-3" />
                         {boat.pilot_phone}
@@ -312,7 +312,7 @@ const FleetManager = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="ml-auto flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"

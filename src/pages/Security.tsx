@@ -60,9 +60,9 @@ const Security = () => {
         </div>
 
         <Tabs defaultValue={defaultTab}>
-          {/* Scrollable sur mobile pour éviter tout débordement horizontal */}
-          <div className="mb-6 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <TabsList className="w-max">
+          {/* Les onglets passent à la ligne sur mobile : tous restent visibles */}
+          <div className="mb-6">
+            <TabsList>
               {/* Pour les encadrants, « En cas d'accident » est prioritaire : placé en premier */}
               {isEncadrant && (
                 <TabsTrigger value="accident" className="shrink-0">🚑 En cas d'accident</TabsTrigger>
@@ -82,12 +82,17 @@ const Security = () => {
               {securityPages.map((page) => (
                 <Card key={page.id} className="overflow-hidden shadow-lg">
                   <CardContent className="p-0">
-                    <img
-                      src={page.image}
-                      alt={`Fiche sécurité - ${page.title}`}
-                      className="w-full h-auto object-contain"
-                      loading="lazy"
-                    />
+                    <a href={page.image} target="_blank" rel="noopener noreferrer" className="block">
+                      <img
+                        src={page.image}
+                        alt={`Fiche sécurité - ${page.title}`}
+                        className="w-full h-auto object-contain"
+                        loading="lazy"
+                      />
+                      <span className="block py-3 text-center text-sm text-primary md:hidden">
+                        Toucher l'image pour l'agrandir
+                      </span>
+                    </a>
                   </CardContent>
                 </Card>
               ))}
@@ -278,12 +283,17 @@ const Security = () => {
 
             <Card className="overflow-hidden shadow-lg">
               <CardContent className="p-0">
-                <img
-                  src="/files/security/procedure-alerte-cross.jpg"
-                  alt="Accident de plongée : procédure d'alerte (FFESSM) — alerter le CROSS par téléphone (196) ou par VHF (canal 16)"
-                  className="w-full h-auto object-contain"
-                  loading="lazy"
-                />
+                <a href="/files/security/procedure-alerte-cross.jpg" target="_blank" rel="noopener noreferrer" className="block">
+                  <img
+                    src="/files/security/procedure-alerte-cross.jpg"
+                    alt="Accident de plongée : procédure d'alerte (FFESSM) — alerter le CROSS par téléphone (196) ou par VHF (canal 16)"
+                    className="w-full h-auto object-contain"
+                    loading="lazy"
+                  />
+                  <span className="block py-3 text-center text-sm text-primary md:hidden">
+                    Toucher l'image pour l'agrandir
+                  </span>
+                </a>
               </CardContent>
             </Card>
           </TabsContent>

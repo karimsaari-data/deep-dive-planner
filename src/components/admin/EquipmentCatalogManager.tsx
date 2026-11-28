@@ -117,7 +117,7 @@ const EquipmentCatalogManager = () => {
   return (
     <Card className="shadow-card">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
             Catalogue du matériel
@@ -205,11 +205,11 @@ const EquipmentCatalogManager = () => {
             Aucun article dans le catalogue
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {catalog?.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3"
+                className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-muted/30 p-3"
               >
                 {item.photo_url ? (
                   <img
@@ -223,7 +223,7 @@ const EquipmentCatalogManager = () => {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">{item.name}</p>
+                  <p className="break-words font-medium text-foreground">{item.name}</p>
                   {item.description && (
                     <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                   )}

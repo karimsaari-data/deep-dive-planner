@@ -91,7 +91,7 @@ const LocationDetail = () => {
       <section className="py-8">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Back button */}
-          <Link to="/map" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+          <Link to="/map" className="tap-link inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="h-4 w-4" />
             Retour à la carte
           </Link>
@@ -130,7 +130,7 @@ const LocationDetail = () => {
 
           {/* Navigation - compact inline buttons */}
           {hasCoordinates && (
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
               <Button
                 variant="ocean"
                 size="sm"
@@ -154,7 +154,7 @@ const LocationDetail = () => {
                   href={location.maps_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  className="tap-link inline-flex items-center gap-1 whitespace-nowrap text-sm text-primary hover:underline"
                 >
                   <ExternalLink className="h-3 w-3" />
                   Lien original

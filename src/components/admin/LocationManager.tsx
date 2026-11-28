@@ -304,14 +304,14 @@ const LocationManager = () => {
           <MapPin className="h-5 w-5 text-primary" />
           Gestion des lieux
         </CardTitle>
-        <div className="flex items-center gap-3">
-          <div className="relative">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Rechercher un lieu..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 w-[200px] md:w-[250px]"
+              className="pl-9 w-full sm:w-[200px] md:w-[250px]"
             />
           </div>
           <Button asChild variant="outline" size="sm" className="gap-2">
@@ -772,7 +772,7 @@ const LocationManager = () => {
             {filteredLocations.map((location) => (
               <div
                 key={location.id}
-                className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
+                className="flex flex-wrap items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
               >
                 {location.photo_url && (
                   <div className="h-16 w-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
@@ -783,7 +783,7 @@ const LocationManager = () => {
                     />
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-[10rem]">
                   <button
                     onClick={() => setViewingLocation(location)}
                     className="font-medium text-foreground hover:text-primary hover:underline text-left"
@@ -791,7 +791,7 @@ const LocationManager = () => {
                     {location.name}
                   </button>
                   {location.address && (
-                    <p className="text-sm text-muted-foreground truncate">{location.address}</p>
+                    <p className="break-words text-sm text-muted-foreground">{location.address}</p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-1">
                     {location.type && (
@@ -816,13 +816,13 @@ const LocationManager = () => {
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="ml-auto flex items-center gap-1">
                   {location.maps_url && (
                     <a
                       href={location.maps_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80 p-1"
+                      className="tap-link text-primary hover:text-primary/80 p-1"
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>

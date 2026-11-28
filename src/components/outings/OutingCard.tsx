@@ -229,7 +229,7 @@ const OutingCard = ({ outing, carpoolInfo }: OutingCardProps) => {
             {outing.location_id ? (
               <Link 
                 to={`/location/${outing.location_id}`} 
-                className="flex-1 hover:text-primary hover:underline transition-colors"
+                className="tap-link flex-1 !justify-start hover:text-primary hover:underline transition-colors"
               >
                 {displayLocation}
               </Link>

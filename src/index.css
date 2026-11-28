@@ -140,6 +140,86 @@
   }
 }
 
+/* Écrans tactiles : toute cible fait au moins 44 × 44 px. La souris n'est pas concernée. */
+@layer base {
+  @media (pointer: coarse) {
+    :where(button:not([role="checkbox"]):not([role="switch"]):not([role="radio"]), .ui-button) {
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+    }
+
+    :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]), select) {
+      min-height: 2.75rem;
+    }
+
+    /* Cases, interrupteurs et boutons radio gardent leur taille ; seule la zone tactile grandit. */
+    [role="checkbox"],
+    [role="switch"],
+    [role="radio"] {
+      position: relative;
+    }
+
+    [role="checkbox"]::after,
+    [role="switch"]::after,
+    [role="radio"]::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 2.75rem);
+      height: max(100%, 2.75rem);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+@media (pointer: coarse) {
+  /* Lien isolé (hors phrase) */
+  .tap-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  /* Petit bouton dont la taille visible ne doit pas changer */
+  button.tap-area {
+    position: relative;
+    min-height: 0;
+    min-width: 0;
+  }
+
+  button.tap-area::after {
+    content: "";
+    position: absolute;
+    inset: calc((100% - 2.75rem) / 2);
+  }
+
+  /* Leaflet : zoom et repères */
+  .leaflet-touch .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+
+  .leaflet-marker-icon.leaflet-interactive::after {
+    content: "";
+    position: absolute;
+    inset: min(0px, calc((100% - 44px) / 2));
+  }
+}
+
+/* Tableaux plus larges que l'écran : ombre sur le côté où il reste des colonnes */
+.table-scroll {
+  scrollbar-width: thin;
+  background:
+    linear-gradient(to right, hsl(var(--card)) 30%, transparent) left / 48px 100% no-repeat local,
+    linear-gradient(to left, hsl(var(--card)) 30%, transparent) right / 48px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.22), transparent) left / 16px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.22), transparent) right / 16px 100% no-repeat scroll;
+}
+
 @layer utilities {
   .ocean-gradient {
     background: var(--gradient-ocean);

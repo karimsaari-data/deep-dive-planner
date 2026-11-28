@@ -118,7 +118,7 @@ const LandingPage = () => (
 
         <Link
           to="/auth"
-          className="text-sm font-medium text-white/70 tracking-wide transition-colors duration-200 hover:text-white"
+          className="tap-link text-sm font-medium text-white/70 tracking-wide transition-colors duration-200 hover:text-white"
         >
           Se connecter
         </Link>
@@ -136,7 +136,7 @@ const LandingPage = () => (
         <h1
           className="myox-fade-2 mb-6 font-bold text-white"
           style={{
-            fontSize: "clamp(3rem, 8vw, 6rem)",
+            fontSize: "clamp(min(3rem, 11.5vw), 8vw, 6rem)",
             letterSpacing: "0.1em",
             textShadow: "0 4px 60px rgba(0,0,0,0.45)",
             lineHeight: 1,

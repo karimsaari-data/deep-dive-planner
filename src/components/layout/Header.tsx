@@ -1,7 +1,8 @@
-﻿import { useEffect, useMemo, useRef } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Waves, Calendar, User, Settings, LogOut, Image, Camera, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Waves, Calendar, User, Settings, LogOut, Image, Camera, FileText, MapIcon, CloudSun, Package, Users, Shield, Eye, EyeOff, ChevronDown, MoreHorizontal, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,7 @@ const Header = () => {
   const { data: isEncadrantFromDirectory } = useIsCurrentUserEncadrant();
   const { isMemberPreview, toggleMemberPreview } = useViewMode();
 
-  const mobileNavRef = useRef<HTMLElement | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Determine if user is an encadrant (either from directory or has organizer role)
   const realIsEncadrant = isOrganizer || isEncadrantFromDirectory;
@@ -89,23 +90,23 @@ const Header = () => {
     return items;
   }, [effectiveIsOrganizer, isEncadrant]);
 
-  // Liste complète à plat (utilisée pour la nav mobile défilante)
+  // Liste complète à plat (utilisée par le menu mobile)
   const navItems = useMemo(
     () => [...primaryItems, ...moreItems],
     [primaryItems, moreItems]
   );
 
-  // Reset mobile nav scroll when user/role changes
+  // Le menu mobile se referme à chaque changement de page
   useEffect(() => {
-    mobileNavRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [user?.id, effectiveIsOrganizer, isAdmin, isEncadrant]);
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 backdrop-blur-md" style={{ background: "rgba(1,12,28,0.85)" }}>
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/" className="flex flex-shrink-0 items-center gap-3 transition-opacity hover:opacity-75">
+        <Link to="/" className="tap-link flex flex-shrink-0 items-center gap-3 transition-opacity hover:opacity-75">
           <img
             src={logoTeamOxygen}
             alt="My Oxygen"
@@ -193,11 +194,54 @@ const Header = () => {
               <Button
                 variant="ghost"
                 onClick={signOut}
-                className="gap-2 rounded-full text-red-300 hover:bg-red-500/15 hover:text-red-200"
+                className="hidden gap-2 rounded-full text-red-300 hover:bg-red-500/15 hover:text-red-200 lg:inline-flex"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="hidden lg:inline">Déconnexion</span>
               </Button>
+              <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Ouvrir le menu"
+                    className="rounded-full text-white/80 hover:bg-white/10 hover:text-white lg:hidden"
+                  >
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" aria-describedby={undefined} className="w-72 max-w-[85vw] overflow-y-auto">
+                  <SheetTitle className="mb-4">Menu</SheetTitle>
+                  <nav className="flex flex-col gap-1">
+                    {navItems.map(({ to, label, icon: Icon }) => (
+                      <Link
+                        key={to}
+                        to={to}
+                        onClick={() => setMenuOpen(false)}
+                        aria-current={isActive(to) ? "page" : undefined}
+                        className={cn(
+                          "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-foreground hover:bg-muted",
+                          isActive(to) && "bg-secondary text-secondary-foreground"
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {label}
+                      </Link>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        signOut();
+                      }}
+                      className="mt-2 flex min-h-11 items-center gap-3 rounded-md border-t border-border px-3 text-sm font-medium text-destructive hover:bg-destructive/10"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Déconnexion
+                    </button>
+                  </nav>
+                </SheetContent>
+              </Sheet>
             </>
           ) : (
             <Link to="/auth">
@@ -207,40 +251,6 @@ const Header = () => {
         </div>
       </div>
 
-      {user && (
-        <nav
-          ref={mobileNavRef}
-          className="border-t border-white/5 p-2 lg:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          style={{ background: "rgba(1,12,28,0.95)" }}
-        >
-          <div className="flex w-max gap-1">
-            {navItems.map(({ to, label, icon: Icon }) => (
-              <Link key={to} to={to}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "gap-1.5 text-xs whitespace-nowrap text-white/70 hover:text-white hover:bg-white/10",
-                    isActive(to) && "bg-white/15 text-white"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </Button>
-              </Link>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="gap-1.5 whitespace-nowrap text-xs text-red-300 hover:bg-red-500/15 hover:text-red-200"
-            >
-              <LogOut className="h-4 w-4" />
-              Déconnexion
-            </Button>
-          </div>
-        </nav>
-      )}
     </header>
   );
 };

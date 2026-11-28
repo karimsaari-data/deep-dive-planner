@@ -984,7 +984,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                           {selectedInvitees.map((m) => (
                             <span key={m.id} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
                               {formatFullName(m.first_name, m.last_name)}
-                              <button type="button" onClick={() => setSelectedInvitees((prev) => prev.filter((c) => c.id !== m.id))}>
+                              <button type="button" className="tap-area" onClick={() => setSelectedInvitees((prev) => prev.filter((c) => c.id !== m.id))}>
                                 <X className="h-3 w-3" />
                               </button>
                             </span>
@@ -1051,7 +1051,7 @@ const CreateOutingForm = ({ prefilledLocationId, prefilledLocationName, onClose 
                   {selectedCoInstructors.map((ci) => (
                     <span key={ci.id} className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary">
                       {formatFullName(ci.first_name, ci.last_name)}
-                      <button type="button" onClick={() => setSelectedCoInstructors((prev) => prev.filter((c) => c.id !== ci.id))}>
+                      <button type="button" className="tap-area" onClick={() => setSelectedCoInstructors((prev) => prev.filter((c) => c.id !== ci.id))}>
                         <X className="h-3 w-3" />
                       </button>
                     </span>

@@ -87,7 +87,7 @@ const ClubCalendarWidget = () => {
                 {event.location && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3 text-muted-foreground/70 shrink-0" />
-                    <p className="text-xs text-muted-foreground truncate">{event.location}</p>
+                    <p className="min-w-0 break-words text-xs text-muted-foreground">{event.location}</p>
                   </div>
                 )}
               </div>
