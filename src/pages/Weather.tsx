@@ -383,11 +383,11 @@ const Weather = () => {
                             <Clock className="h-3 w-3" />
                             Détail par heure
                           </p>
-                          <div className="grid grid-cols-5 gap-2">
+                          <div className="grid grid-cols-5 gap-1 sm:gap-2">
                             {day.hourlyData.map((hour) => (
                               <div 
                                 key={hour.time} 
-                                className="text-center p-2 rounded-lg bg-muted/50"
+                                className="text-center px-0.5 py-2 sm:px-2 rounded-lg bg-muted/50"
                               >
                                 <p className="text-xs font-medium text-foreground">{hour.time}</p>
                                 <div className="my-1">{getWeatherIcon(hour.weatherCode)}</div>
@@ -395,7 +395,7 @@ const Weather = () => {
                                 {hour.waterTemp > 0 && (
                                   <p className="text-xs text-cyan-600 font-medium">{hour.waterTemp.toFixed(0)}° 💧</p>
                                 )}
-                                <p className="text-xs text-primary font-medium">{hour.windSpeed.toFixed(0)} km/h</p>
+                                <p className="whitespace-nowrap text-[11px] sm:text-xs text-primary font-medium">{hour.windSpeed.toFixed(0)} km/h</p>
                                 <p className="text-xs text-blue-500">{hour.waveHeight.toFixed(1)} m</p>
                               </div>
                             ))}

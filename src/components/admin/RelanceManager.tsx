@@ -231,7 +231,7 @@ const RelanceManager = () => {
             resetSort();
           }}
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-auto min-h-11 gap-2 text-left [&>span]:line-clamp-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -243,7 +243,7 @@ const RelanceManager = () => {
           </SelectContent>
         </Select>
 
-        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{filtered.length}</Badge>
             <span>
@@ -252,7 +252,7 @@ const RelanceManager = () => {
                 : `membre${filtered.length > 1 ? "s" : ""} à relancer`}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}>
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Exporter Excel

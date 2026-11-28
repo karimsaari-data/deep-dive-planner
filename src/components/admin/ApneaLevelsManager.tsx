@@ -270,7 +270,7 @@ const ApneaLevelsManager = () => {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">
+                    <TableCell className="min-w-[220px] max-w-[300px] text-sm text-muted-foreground">
                       {level.prerogatives}
                     </TableCell>
                     <TableCell className="text-center">

@@ -306,7 +306,7 @@ const CarpoolMapView = ({
         <div className="absolute bottom-4 left-4 right-4 bg-background rounded-xl shadow-2xl border border-border p-4 z-[1000] animate-fade-in">
           <button
             onClick={() => setSelectedCarpool(null)}
-            className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+            className="absolute top-0 right-0 flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
           >
             ✕
           </button>

@@ -254,7 +254,7 @@ const OutingWeatherCard = ({ latitude, longitude, outingDate }: OutingWeatherCar
                   {hour.waterTemp > 0 && (
                     <p className="text-xs text-cyan-600 font-medium">{hour.waterTemp.toFixed(0)}° 💧</p>
                   )}
-                  <p className="text-xs text-primary font-medium">{hour.windSpeed.toFixed(0)} km/h</p>
+                  <p className="whitespace-nowrap text-[11px] sm:text-xs text-primary font-medium">{hour.windSpeed.toFixed(0)} km/h</p>
                   <p className="text-xs text-blue-500">{hour.waveHeight.toFixed(1)} m</p>
                 </div>
               ))}

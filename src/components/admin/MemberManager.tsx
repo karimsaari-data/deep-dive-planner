@@ -210,17 +210,17 @@ const MemberManager = () => {
               return (
                 <div
                   key={profile.id}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 p-3"
+                  className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar className="h-10 w-10 shrink-0">
                       <AvatarImage src={profile.avatar_url ?? undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary text-sm">
                         {initials}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-medium text-foreground flex items-center gap-2">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground flex flex-wrap items-center gap-2">
                         {formatFullName(profile.first_name, profile.last_name)}
                         {isAccessRevoked(profile.email) && (
                           <Badge
@@ -233,7 +233,7 @@ const MemberManager = () => {
                           </Badge>
                         )}
                       </p>
-                      <p className="text-xs text-muted-foreground">{profile.email}</p>
+                      <p className="break-all text-xs text-muted-foreground">{profile.email}</p>
                       {profile.member_code && (
                         <p className="text-xs font-semibold text-foreground mt-1">
                           {profile.member_code}
@@ -242,7 +242,7 @@ const MemberManager = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center justify-end gap-3">
                     <span className="text-sm text-muted-foreground mr-2">Admin</span>
                     <Switch
                       checked={isUserAdmin(profile.id)}

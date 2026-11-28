@@ -449,7 +449,7 @@ export default function SondagesAdmin() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                   </svg>
                   <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher un membre..." className="pl-9" />
-                  {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">×</button>}
+                  {search && <button onClick={() => setSearch("")} className="absolute right-0 top-1/2 flex h-10 w-11 -translate-y-1/2 items-center justify-center text-gray-400 text-lg">×</button>}
                 </div>
                 {search && <p className="text-xs text-gray-400 mt-1">{filteredMembers.length} résultat{filteredMembers.length > 1 ? "s" : ""} sur {notVotedMembers.length}</p>}
               </div>
@@ -483,7 +483,7 @@ export default function SondagesAdmin() {
                                   className="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
                               ) : (
                                 <button disabled={isSaving} onClick={() => saveVote(m.id, [opt.id], name)}
-                                  className="w-6 h-6 rounded-full border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-500 transition mx-auto block disabled:opacity-40" />
+                                  className="tap-area w-6 h-6 rounded-full border-2 border-gray-300 hover:border-blue-500 hover:bg-blue-500 transition mx-auto block disabled:opacity-40" />
                               )}
                             </td>
                           ))}

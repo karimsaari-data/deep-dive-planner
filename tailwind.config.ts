@@ -15,6 +15,14 @@ export default {
     extend: {
       colors: {
         border: "hsl(var(--border))",
+        ocean: {
+          DEFAULT: "hsl(var(--ocean-medium))",
+          deep: "hsl(var(--ocean-deep))",
+          medium: "hsl(var(--ocean-medium))",
+          light: "hsl(var(--ocean-light))",
+          surface: "hsl(var(--ocean-surface))",
+        },
+        foam: "hsl(var(--foam))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",

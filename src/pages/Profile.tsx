@@ -639,7 +639,7 @@ const Profile = () => {
                         N° {license.license_number || "-"} · Valide jusqu'au{" "}
                         {license.license_expiry_date ? formatBirthDate(license.license_expiry_date) : "-"}
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button type="button" variant="outline" size="sm" onClick={handleViewLicenseDocument}>
                           <FileText className="h-4 w-4 mr-1" />
                           Voir le document

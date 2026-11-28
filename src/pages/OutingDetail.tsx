@@ -1394,7 +1394,7 @@ const OutingDetail = () => {
                 <div className="flex flex-wrap gap-3 mt-4">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="h-auto min-h-11 flex-1 whitespace-normal"
                     onClick={handleSaveReport}
                     disabled={updateSessionReport.isPending}
                   >

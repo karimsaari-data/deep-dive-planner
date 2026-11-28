@@ -64,7 +64,7 @@ const Index = () => {
             </div>
             <a
               href="#agenda-club"
-              className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
+              className="tap-link flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors"
             >
               <Calendar className="h-3.5 w-3.5" />
               Agenda du club

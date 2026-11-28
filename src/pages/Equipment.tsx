@@ -498,10 +498,10 @@ const ClickableInventoryItemCard = ({ item, onClick }: { item: EquipmentInventor
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="font-medium text-foreground">{item.catalog?.name}</p>
           {item.unique_code && (
-            <Badge variant="outline" className="text-xs font-mono">
+            <Badge variant="outline" className="whitespace-nowrap text-xs font-mono">
               {item.unique_code}
             </Badge>
           )}
@@ -510,7 +510,7 @@ const ClickableInventoryItemCard = ({ item, onClick }: { item: EquipmentInventor
           <p className="text-xs text-muted-foreground truncate">{item.notes}</p>
         )}
       </div>
-      <Badge variant={status.variant}>{status.label}</Badge>
+      <Badge variant={status.variant} className="shrink-0">{status.label}</Badge>
     </button>
   );
 };
@@ -573,10 +573,10 @@ const InventoryItemCard = ({ item, showActions = false }: { item: EquipmentInven
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <p className="font-medium text-foreground">{item.catalog?.name}</p>
           {item.unique_code && (
-            <Badge variant="outline" className="text-xs font-mono">
+            <Badge variant="outline" className="whitespace-nowrap text-xs font-mono">
               {item.unique_code}
             </Badge>
           )}
@@ -768,15 +768,15 @@ const GlobalInventoryTab = () => {
         {/* Sub-tabs */}
         <Tabs value={subTab} onValueChange={(v) => setSubTab(v as typeof subTab)}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="synthesis" className="flex items-center gap-2">
+            <TabsTrigger value="synthesis" className="flex flex-col items-center gap-1 whitespace-normal text-xs sm:flex-row sm:gap-2 sm:text-sm">
               <BarChart3 className="h-4 w-4" />
               Synthèse
             </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-2">
+            <TabsTrigger value="list" className="flex flex-col items-center gap-1 whitespace-normal text-xs sm:flex-row sm:gap-2 sm:text-sm">
               <List className="h-4 w-4" />
               Liste détaillée
             </TabsTrigger>
-            <TabsTrigger value="by-encadrant" className="flex items-center gap-2">
+            <TabsTrigger value="by-encadrant" className="flex flex-col items-center gap-1 whitespace-normal text-xs sm:flex-row sm:gap-2 sm:text-sm">
               <Users className="h-4 w-4" />
               Par encadrant
             </TabsTrigger>
